@@ -63,8 +63,8 @@ export async function reseedLibraryData(client: Client, logger: Logger): Promise
   // Read manifest
   const manifestPath = resolve(librariesDir, 'manifest.json');
   if (!existsSync(manifestPath)) {
-    logger.error(`Manifest not found at: ${manifestPath}`);
-    throw new Error(`Manifest not found at: ${manifestPath}`);
+    logger.warn(`No library manifest found at: ${manifestPath} — starting with empty library`);
+    return;
   }
 
   const manifest: Manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
