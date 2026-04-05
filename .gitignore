@@ -63,3 +63,4 @@ tools/gridfinity-generator/__pycache__/
 
 # Git worktrees
 .worktrees/
+.superpowers/
