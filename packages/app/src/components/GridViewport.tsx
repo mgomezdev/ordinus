@@ -10,6 +10,7 @@ interface GridViewportProps {
   viewportRef?: RefObject<HTMLDivElement | null>;
   handleTouchStart: (e: TouchEvent) => void;
   handleTouchMove: (e: TouchEvent) => void;
+  handleTouchEnd: () => void;
 }
 
 export function GridViewport({
@@ -21,6 +22,7 @@ export function GridViewport({
   viewportRef: externalRef,
   handleTouchStart,
   handleTouchMove,
+  handleTouchEnd,
 }: GridViewportProps) {
   const internalRef = useRef<HTMLDivElement>(null);
   const ref = externalRef ?? internalRef;
@@ -92,12 +94,16 @@ export function GridViewport({
     // passive: false required — handlers call preventDefault() to suppress browser scroll/zoom
     viewport.addEventListener('touchstart', handleTouchStart, { passive: false });
     viewport.addEventListener('touchmove', handleTouchMove, { passive: false });
+    viewport.addEventListener('touchend', handleTouchEnd);
+    viewport.addEventListener('touchcancel', handleTouchEnd);
 
     return () => {
       viewport.removeEventListener('touchstart', handleTouchStart);
       viewport.removeEventListener('touchmove', handleTouchMove);
+      viewport.removeEventListener('touchend', handleTouchEnd);
+      viewport.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [handleTouchStart, handleTouchMove, ref]);
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd, ref]);
 
   return (
     <div

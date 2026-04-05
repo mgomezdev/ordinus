@@ -135,6 +135,10 @@ export function useGridTransform() {
     });
   }, [updateTransform]);
 
+  const handleTouchEnd = useCallback(() => {
+    pinchStartRef.current = null;
+  }, []);
+
   return {
     transform,
     zoomIn,
@@ -146,5 +150,6 @@ export function useGridTransform() {
     pan,
     handleTouchStart,
     handleTouchMove,
+    handleTouchEnd,
   };
 }

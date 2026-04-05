@@ -12,6 +12,7 @@ describe('GridViewport', () => {
     isSpaceHeldRef: { current: false },
     handleTouchStart: vi.fn(),
     handleTouchMove: vi.fn(),
+    handleTouchEnd: vi.fn(),
   };
 
   describe('Rendering', () => {
