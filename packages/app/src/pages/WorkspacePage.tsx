@@ -73,7 +73,7 @@ export function WorkspacePage() {
   // Zoom and pan
   const {
     transform, zoomIn, zoomOut, resetZoom, fitToScreen,
-    handleWheel, setZoomLevel, pan,
+    handleWheel, pan, handleTouchStart, handleTouchMove,
   } = useGridTransform();
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -307,9 +307,10 @@ export function WorkspacePage() {
           viewportRef={viewportRef}
           transform={transform}
           handleWheel={handleWheel}
-          setZoomLevel={setZoomLevel}
           pan={pan}
           isSpaceHeldRef={isSpaceHeldRef}
+          handleTouchStart={handleTouchStart}
+          handleTouchMove={handleTouchMove}
         >
           <GridPreview
             gridX={gridResult.gridX}

@@ -8,9 +8,10 @@ describe('GridViewport', () => {
   const defaultProps = {
     transform: defaultTransform,
     handleWheel: vi.fn(),
-    setZoomLevel: vi.fn(),
     pan: vi.fn(),
     isSpaceHeldRef: { current: false },
+    handleTouchStart: vi.fn(),
+    handleTouchMove: vi.fn(),
   };
 
   describe('Rendering', () => {
