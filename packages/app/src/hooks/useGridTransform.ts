@@ -51,6 +51,17 @@ export function useGridTransform() {
     e.preventDefault();
     const t = transformRef.current;
 
+    if (!e.ctrlKey) {
+      // Trackpad 2-finger scroll → pan (no zoom change)
+      updateTransform({
+        ...t,
+        panX: t.panX - e.deltaX / t.zoom,
+        panY: t.panY - e.deltaY / t.zoom,
+      });
+      return;
+    }
+
+    // Pinch-to-zoom (ctrlKey = true on trackpad pinch, or Ctrl+scroll with mouse wheel)
     const delta = -e.deltaY * WHEEL_ZOOM_FACTOR;
     const newZoom = clampZoom(t.zoom * (1 + delta));
     if (newZoom === t.zoom) return;
@@ -58,12 +69,8 @@ export function useGridTransform() {
     // Zoom centered on cursor position
     const mouseX = e.clientX - containerRect.left;
     const mouseY = e.clientY - containerRect.top;
-
-    // Point in content space under cursor
     const contentX = mouseX / t.zoom - t.panX;
     const contentY = mouseY / t.zoom - t.panY;
-
-    // New pan so the same content point stays under cursor
     const newPanX = mouseX / newZoom - contentX;
     const newPanY = mouseY / newZoom - contentY;
 

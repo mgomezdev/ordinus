@@ -107,8 +107,10 @@ describe('useGridTransform', () => {
       const mockEvent = {
         preventDefault: () => {},
         deltaY: -100,
+        deltaX: 0,
         clientX: 200,
         clientY: 200,
+        ctrlKey: true,
       } as WheelEvent;
 
       const rect = { left: 0, top: 0 } as DOMRect;
@@ -124,8 +126,10 @@ describe('useGridTransform', () => {
       const mockEvent = {
         preventDefault: () => {},
         deltaY: 100,
+        deltaX: 0,
         clientX: 200,
         clientY: 200,
+        ctrlKey: true,
       } as WheelEvent;
 
       const rect = { left: 0, top: 0 } as DOMRect;
@@ -141,8 +145,10 @@ describe('useGridTransform', () => {
       const mockEvent = {
         preventDefault: () => {},
         deltaY: -200,
+        deltaX: 0,
         clientX: 100,
         clientY: 100,
+        ctrlKey: true,
       } as WheelEvent;
 
       const rect = { left: 0, top: 0 } as DOMRect;
@@ -155,6 +161,53 @@ describe('useGridTransform', () => {
       const { panX, panY } = result.current.transform;
       expect(typeof panX).toBe('number');
       expect(typeof panY).toBe('number');
+    });
+  });
+
+  describe('Trackpad Scroll Pan', () => {
+    it('should pan (not zoom) when ctrlKey is false', () => {
+      const { result } = renderHook(() => useGridTransform());
+
+      const mockEvent = {
+        preventDefault: () => {},
+        deltaY: 100,
+        deltaX: 50,
+        clientX: 0,
+        clientY: 0,
+        ctrlKey: false,
+      } as WheelEvent;
+      const rect = { left: 0, top: 0 } as DOMRect;
+
+      act(() => { result.current.handleWheel(mockEvent, rect); });
+
+      // Zoom must not change
+      expect(result.current.transform.zoom).toBe(1);
+      // Pan must change (negate delta, divide by zoom=1)
+      expect(result.current.transform.panX).toBeCloseTo(-50, 5);
+      expect(result.current.transform.panY).toBeCloseTo(-100, 5);
+    });
+
+    it('should pan proportionally when zoomed in and ctrlKey is false', () => {
+      const { result } = renderHook(() => useGridTransform());
+
+      // Zoom to 2x first
+      act(() => { result.current.setZoomLevel(2); });
+
+      const mockEvent = {
+        preventDefault: () => {},
+        deltaY: 0,
+        deltaX: 200,
+        clientX: 0,
+        clientY: 0,
+        ctrlKey: false,
+      } as WheelEvent;
+      const rect = { left: 0, top: 0 } as DOMRect;
+
+      act(() => { result.current.handleWheel(mockEvent, rect); });
+
+      expect(result.current.transform.zoom).toBe(2);
+      // deltaX=200 at zoom=2 → panX change = -200/2 = -100
+      expect(result.current.transform.panX).toBeCloseTo(-100, 5);
     });
   });
 
