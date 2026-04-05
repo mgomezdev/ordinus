@@ -16,6 +16,14 @@ export function useGridTransform() {
 
   const transformRef = useRef(transform);
 
+  const pinchStartRef = useRef<{
+    dist: number;
+    zoom: number;
+    mid: { x: number; y: number };
+    panX: number;
+    panY: number;
+  } | null>(null);
+
   const updateTransform = useCallback((next: GridTransform) => {
     transformRef.current = next;
     setTransform(next);
@@ -87,6 +95,46 @@ export function useGridTransform() {
     updateTransform({ ...t, panX: t.panX + dx, panY: t.panY + dy });
   }, [updateTransform]);
 
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    if (e.touches.length !== 2) return;
+    e.preventDefault();
+    const t1 = e.touches[0];
+    const t2 = e.touches[1];
+    const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    if (dist === 0) return;
+    const t = transformRef.current;
+    pinchStartRef.current = {
+      dist,
+      zoom: t.zoom,
+      mid: { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 },
+      panX: t.panX,
+      panY: t.panY,
+    };
+  }, []);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (e.touches.length !== 2 || !pinchStartRef.current) return;
+    e.preventDefault();
+    const { dist: startDist, zoom: startZoom, mid: startMid, panX: startPanX, panY: startPanY } =
+      pinchStartRef.current;
+    const t1 = e.touches[0];
+    const t2 = e.touches[1];
+
+    const newDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    const newZoom = clampZoom(startZoom * (newDist / startDist));
+    const newMid = { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+
+    // Keep the content point that was under startMid anchored under newMid
+    const contentX = startMid.x / startZoom - startPanX;
+    const contentY = startMid.y / startZoom - startPanY;
+
+    updateTransform({
+      zoom: newZoom,
+      panX: newMid.x / newZoom - contentX,
+      panY: newMid.y / newZoom - contentY,
+    });
+  }, [updateTransform]);
+
   return {
     transform,
     zoomIn,
@@ -96,5 +144,7 @@ export function useGridTransform() {
     handleWheel,
     setZoomLevel,
     pan,
+    handleTouchStart,
+    handleTouchMove,
   };
 }
