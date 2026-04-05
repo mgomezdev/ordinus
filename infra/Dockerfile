@@ -41,14 +41,23 @@ COPY --from=build /app/packages/shared packages/shared
 COPY --from=build /app/packages/server/dist packages/server/dist
 COPY --from=build /app/packages/server/package.json packages/server/package.json
 
-# Seed data
-COPY packages/app/public/libraries/ packages/app/public/libraries/
-
 # Entrypoint
 COPY infra/docker-entrypoint.sh /docker-entrypoint.sh
 RUN sed -i 's/\r$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 
-RUN mkdir -p /data/images /tmp/nginx-image-cache
+# Persistent volume mount points
+RUN mkdir -p /config /data/libraries /data/images /data/user-stls /data/user-stl-images /tmp/nginx-image-cache
+VOLUME ["/config", "/data"]
+
+# Runtime environment — override these with -e or env_file
+ENV NODE_ENV=production \
+    LOG_LEVEL=warn \
+    DB_PATH=/config/gridfinity.db \
+    IMAGE_DIR=/data/images \
+    USER_STL_DIR=/data/user-stls \
+    USER_STL_IMAGE_DIR=/data/user-stl-images \
+    LIBRARIES_DIR=/data/libraries \
+    CORS_ORIGIN=http://localhost:8080
 
 EXPOSE 80
 

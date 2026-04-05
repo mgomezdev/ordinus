@@ -4,14 +4,22 @@
 #
 # Setup:
 #   1. Copy this file to docker-compose.yml
-#   2. Download library-starter.zip from GitHub Releases and extract into ./library
-#      https://github.com/ninjabuffalo/gridfinity-customizer/releases
-#   3. Copy .env.sample to .env and set your JWT secrets
+#   2. Copy .env.sample to .env and fill in your values
+#   3. (Optional) Place library files into ./data/libraries/
+#      The app starts with an empty library if none are provided.
 #   4. docker compose up -d
 #   5. Open http://localhost:8080  (first boot seeds the database — may take a few seconds)
+#      Default login: admin@gridfinity.local / admin
 #
 # To update to a newer release:
 #   docker compose pull && docker compose up -d
+#
+# Volume layout:
+#   /config  — SQLite database (gridfinity.db). Survives image updates.
+#   /data    — Uploaded files, images, and library content (/data/libraries/).
+#
+# CORS_ORIGIN must match the URL you use to access the app in your browser.
+# If running behind a reverse proxy, set it to the public URL.
 
 services:
   app:
@@ -20,6 +28,6 @@ services:
       - "${PORT:-8080}:80"
     env_file: .env
     volumes:
-      - ${LIBRARY_DIR:-./library}:/libraries
+      - ${CONFIG_DIR:-./config}:/config
       - ${DATA_DIR:-./data}:/data
     restart: unless-stopped
