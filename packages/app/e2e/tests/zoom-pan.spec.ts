@@ -1,7 +1,27 @@
 import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { GridPage } from '../pages/GridPage';
 import { LibraryPage } from '../pages/LibraryPage';
 import { dragToGridCell } from '../utils/drag-drop';
+
+async function ctrlWheel(page: Page, deltaY: number) {
+  const viewport = page.locator('[data-testid="preview-viewport"]');
+  await viewport.hover();
+  const box = await viewport.boundingBox();
+  const cx = box!.x + box!.width / 2;
+  const cy = box!.y + box!.height / 2;
+  await page.evaluate(
+    ({ cx, cy, deltaY }) => {
+      const el = document.elementFromPoint(cx, cy);
+      if (!el) throw new Error(`No element at (${cx}, ${cy})`);
+      el.dispatchEvent(
+        new WheelEvent('wheel', { deltaY, ctrlKey: true, bubbles: true, cancelable: true }),
+      );
+    },
+    { cx, cy, deltaY },
+  );
+  await page.waitForTimeout(50);
+}
 
 test.describe('Zoom and Pan Controls', () => {
   let gridPage: GridPage;
@@ -129,13 +149,8 @@ test.describe('Zoom and Pan Controls', () => {
   });
 
   test.describe('Wheel Zoom', () => {
-    test('scroll up zooms in', async ({ page }) => {
-      const viewport = page.locator('[data-testid="preview-viewport"]');
-
-      // Scroll up (negative deltaY = zoom in)
-      await viewport.hover();
-      await page.mouse.wheel(0, -200);
-      await page.waitForTimeout(100);
+    test('ctrl+scroll up zooms in', async ({ page }) => {
+      await ctrlWheel(page, -200);
 
       const zoomLevel = page.locator('.zoom-level');
       const text = await zoomLevel.textContent();
@@ -143,12 +158,8 @@ test.describe('Zoom and Pan Controls', () => {
       expect(percent).toBeGreaterThan(100);
     });
 
-    test('scroll down zooms out', async ({ page }) => {
-      const viewport = page.locator('[data-testid="preview-viewport"]');
-
-      await viewport.hover();
-      await page.mouse.wheel(0, 200);
-      await page.waitForTimeout(100);
+    test('ctrl+scroll down zooms out', async ({ page }) => {
+      await ctrlWheel(page, 200);
 
       const zoomLevel = page.locator('.zoom-level');
       const text = await zoomLevel.textContent();
