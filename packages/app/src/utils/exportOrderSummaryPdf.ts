@@ -35,6 +35,7 @@ export interface ExportOrderSummaryConfig {
 
 export async function exportOrderSummaryPdf(
   bomItems: BOMItem[],
+  extraItems: BOMItem[],
   config: ExportOrderSummaryConfig,
   onError?: (err: unknown) => void,
 ): Promise<void> {
@@ -82,8 +83,14 @@ export async function exportOrderSummaryPdf(
     pdf.text(`Spacers: H ${spacerConfig.horizontal}, V ${spacerConfig.vertical}`, margin, cursorY + 5);
     cursorY += 13;
 
-    const { total, hasTbd } = calculateOrderTotal(bomItems, true);
-    const totalQty = bomItems.reduce((sum, i) => sum + i.quantity, 0);
+    const { total: configuredTotal, hasTbd: configuredHasTbd } = calculateOrderTotal(bomItems, true);
+    const configuredQty = bomItems.reduce((sum, i) => sum + i.quantity, 0);
+
+    // As Configured table
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('As Configured', margin, cursorY);
+    cursorY += 5;
 
     autoTable(pdf, {
       startY: cursorY,
@@ -91,17 +98,10 @@ export async function exportOrderSummaryPdf(
       body: [
         ...formatOrderSummaryRows(bomItems),
         [
-          {
-            content: `${totalQty} item${totalQty !== 1 ? 's' : ''}`,
-            colSpan: 2,
-            styles: { fontStyle: 'bold' },
-          },
+          { content: `${configuredQty} item${configuredQty !== 1 ? 's' : ''}`, colSpan: 2, styles: { fontStyle: 'bold' } },
           '',
           '',
-          {
-            content: hasTbd ? 'Pending quote' : `$${total.toFixed(2)}`,
-            styles: { fontStyle: 'bold' },
-          },
+          { content: configuredHasTbd ? 'Pending quote' : `$${configuredTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } },
         ],
       ],
       margin: { left: margin, right: margin },
@@ -109,9 +109,54 @@ export async function exportOrderSummaryPdf(
       headStyles: { fillColor: [0, 122, 255] },
     });
 
-    if (hasTbd) {
+    if (extraItems.length > 0) {
       const pdfWithTable = pdf as { lastAutoTable?: { finalY: number } };
-      const finalY = pdfWithTable.lastAutoTable?.finalY ?? cursorY;
+      cursorY = (pdfWithTable.lastAutoTable?.finalY ?? cursorY) + 8;
+
+      const { total: extrasTotal, hasTbd: extrasHasTbd } = calculateOrderTotal(extraItems, true);
+      const extrasQty = extraItems.reduce((sum, i) => sum + i.quantity, 0);
+      const grandTotal = configuredTotal + extrasTotal;
+      const grandQty = configuredQty + extrasQty;
+      const grandHasTbd = configuredHasTbd || extrasHasTbd;
+
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Extras', margin, cursorY);
+      cursorY += 5;
+
+      autoTable(pdf, {
+        startY: cursorY,
+        head: [['Component', 'Size', 'Qty', 'Unit Price', 'Total']],
+        body: [
+          ...formatOrderSummaryRows(extraItems),
+          [
+            { content: `${extrasQty} item${extrasQty !== 1 ? 's' : ''}`, colSpan: 2, styles: { fontStyle: 'bold' } },
+            '',
+            '',
+            { content: extrasHasTbd ? 'Pending quote' : `$${extrasTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } },
+          ],
+        ],
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [80, 80, 80] },
+      });
+
+      const pdfWithExtras = pdf as { lastAutoTable?: { finalY: number } };
+      cursorY = (pdfWithExtras.lastAutoTable?.finalY ?? cursorY) + 4;
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(
+        `Full Order Total: ${grandQty} items — ${grandHasTbd ? 'Pending quote' : `$${grandTotal.toFixed(2)}`}`,
+        margin,
+        cursorY,
+      );
+    }
+
+    const anyHasTbd = configuredHasTbd || extraItems.some(i => i.price === undefined);
+    if (anyHasTbd) {
+      const pdfFinal = pdf as { lastAutoTable?: { finalY: number } };
+      const finalY = pdfFinal.lastAutoTable?.finalY ?? cursorY;
       pdf.setFontSize(8);
       pdf.setTextColor(180, 83, 9);
       pdf.text(

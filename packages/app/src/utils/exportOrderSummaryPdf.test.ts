@@ -39,3 +39,20 @@ describe('calculateOrderTotal', () => {
     expect(hasTbd).toBe(true);
   });
 });
+
+describe('exportOrderSummaryPdf with extras', () => {
+  it('formatOrderSummaryRows formats extra items identically to configured rows', () => {
+    const extras: BOMItem[] = [{ ...item1, quantity: 2 }];
+    const rows = formatOrderSummaryRows(extras);
+    expect(rows[0]).toEqual(['Small Bin', '1\u00d71', '2', '$10.00', '$20.00']);
+  });
+
+  it('calculateOrderTotal sums extras separately from configured', () => {
+    const extras: BOMItem[] = [{ ...item1, quantity: 1 }]; // 1 × $10
+    const configuredResult = calculateOrderTotal([item1], true); // 3 × $10 = $30
+    const extrasResult = calculateOrderTotal(extras, true);      // 1 × $10 = $10
+    expect(configuredResult.total).toBe(30);
+    expect(extrasResult.total).toBe(10);
+    expect(configuredResult.total + extrasResult.total).toBe(40);
+  });
+});

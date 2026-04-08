@@ -77,6 +77,7 @@ export function OrderSummaryPage() {
     setExportPdfError(null);
     await exportOrderSummaryPdf(
       bomItems,
+      extraRows.map(r => ({ ...r.bomItem, quantity: r.qty })),
       { gridResult, spacerConfig, unitSystem, layoutName: layoutMeta.name },
       () => setExportPdfError('PDF export failed. Please try again.'),
     );
