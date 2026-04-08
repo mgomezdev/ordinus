@@ -130,6 +130,7 @@ export function OrderSummaryPage() {
             className="bom-section-header"
             onClick={() => setIsConfiguredOpen(o => !o)}
             aria-expanded={isConfiguredOpen}
+            aria-label="Toggle As Configured section"
           >
             <div className="bom-section-header-left">
               <span className="bom-section-title">As Configured</span>
@@ -200,6 +201,7 @@ export function OrderSummaryPage() {
             className="bom-section-header"
             onClick={() => setIsExtrasOpen(o => !o)}
             aria-expanded={isExtrasOpen}
+            aria-label="Toggle Extras section"
           >
             <div className="bom-section-header-left">
               <span className="bom-section-title">Extras</span>
