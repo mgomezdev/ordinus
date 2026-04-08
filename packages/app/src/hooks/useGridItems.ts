@@ -28,7 +28,7 @@ function buildOccupancyCount(
   return grid;
 }
 
-function hasCollision(
+export function hasCollision(
   items: PlacedItem[],
   x: number,
   y: number,
@@ -67,7 +67,7 @@ function hasCollisionExcludeSet(
   return false;
 }
 
-function isOutOfBounds(
+export function isOutOfBounds(
   x: number,
   y: number,
   width: number,

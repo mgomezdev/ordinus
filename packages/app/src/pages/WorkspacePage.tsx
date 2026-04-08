@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { ImageViewMode, DragData } from '../types/gridfinity';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useGridTransform } from '../hooks/useGridTransform';
+import { hasCollision, isOutOfBounds } from '../hooks/useGridItems';
+import type { SnapPreviewData } from '../hooks/usePointerDrag';
 import { DimensionInput } from '../components/DimensionInput';
 import { GridPreview } from '../components/GridPreview';
 import { GridSummary } from '../components/GridSummary';
@@ -115,6 +117,35 @@ export function WorkspacePage() {
       handleDrop(dragData, x, y);
     }
   }, [isReadOnly, gridResult.gridX, gridResult.gridY, addRefImagePlacement, handleDrop]);
+
+  const [rawSnapPreview, setRawSnapPreview] = useState<SnapPreviewData | null>(null);
+
+  const snapPreview = useMemo(() => {
+    if (!rawSnapPreview) return null;
+    const { dragData, col, row } = rawSnapPreview;
+    if (dragData.type === 'ref-image') return null;
+
+    let w: number, d: number, excludeId: string | undefined;
+
+    if (dragData.type === 'library') {
+      const item = getItemById(dragData.itemId);
+      if (!item) return null;
+      w = item.widthUnits;
+      d = item.heightUnits;
+    } else if (dragData.type === 'placed' && dragData.instanceId) {
+      const placed = placedItems.find(i => i.instanceId === dragData.instanceId);
+      if (!placed) return null;
+      w = placed.width;
+      d = placed.height;
+      excludeId = dragData.instanceId;
+    } else {
+      return null;
+    }
+
+    const oob = isOutOfBounds(col, row, w, d, gridResult.gridX, gridResult.gridY);
+    const collides = !oob && hasCollision(placedItems, col, row, w, d, excludeId);
+    return { col, row, w, d, valid: !oob && !collides };
+  }, [rawSnapPreview, placedItems, getItemById, gridResult.gridX, gridResult.gridY]);
 
   const handleExportPdf = useCallback(async () => {
     setExportPdfError(null);
@@ -342,6 +373,8 @@ export function WorkspacePage() {
             onImageRotateCcw={(id) => updateRefImageRotation(id, 'ccw')}
             refImageMetadata={refImageMetadata}
             onRefImageRebind={handleRebindImage}
+            snapPreview={snapPreview}
+            onSnapChange={setRawSnapPreview}
           />
         </GridViewport>
       </section>

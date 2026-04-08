@@ -38,15 +38,19 @@ vi.mock('./ReferenceImageOverlay', () => ({
 }));
 
 // Mock the usePointerDrag hook
-const mockRegisterDropTarget = vi.fn();
-const mockUnregisterDropTarget = vi.fn();
-vi.mock('../hooks/usePointerDrag', () => ({
-  usePointerDropTarget: (options: { gridRef: React.RefObject<HTMLDivElement | null>; gridX: number; gridY: number; onDrop: unknown }) => {
+const { mockRegisterDropTarget, mockUnregisterDropTarget, mockUsePointerDropTarget } = vi.hoisted(() => {
+  const mockRegisterDropTarget = vi.fn();
+  const mockUnregisterDropTarget = vi.fn();
+  const mockUsePointerDropTarget = vi.fn((options: { gridX: number; gridY: number; onDrop: unknown; onSnapChange?: unknown }) => {
     // Match the real hook's behavior: only register if gridX and gridY are positive
     if (options.gridX > 0 && options.gridY > 0) {
       mockRegisterDropTarget(options);
     }
-  },
+  });
+  return { mockRegisterDropTarget, mockUnregisterDropTarget, mockUsePointerDropTarget };
+});
+vi.mock('../hooks/usePointerDrag', () => ({
+  usePointerDropTarget: mockUsePointerDropTarget,
 }));
 
 describe('GridPreview', () => {
@@ -1203,6 +1207,56 @@ describe('GridPreview', () => {
       fireEvent.keyDown(gridContainer, { key: 'a' });
 
       expect(mockOnSelectItem).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Snap Preview', () => {
+    const baseProps = {
+      gridX: 4,
+      gridY: 4,
+      placedItems: [],
+      selectedItemIds: new Set<string>(),
+      onDrop: vi.fn(),
+      onSelectItem: vi.fn(),
+      getItemById: vi.fn(),
+    };
+
+    it('renders no snap preview when snapPreview is null', () => {
+      const { container } = render(<GridPreview {...baseProps} snapPreview={null} />);
+      expect(container.querySelector('.snap-preview')).toBeNull();
+    });
+
+    it('renders valid snap preview overlay', () => {
+      const { container } = render(
+        <GridPreview
+          {...baseProps}
+          snapPreview={{ col: 1, row: 0, w: 2, d: 1, valid: true }}
+        />
+      );
+      expect(container.querySelector('.snap-preview--valid')).toBeInTheDocument();
+    });
+
+    it('renders invalid snap preview overlay', () => {
+      const { container } = render(
+        <GridPreview
+          {...baseProps}
+          snapPreview={{ col: 0, row: 0, w: 2, d: 1, valid: false }}
+        />
+      );
+      expect(container.querySelector('.snap-preview--invalid')).toBeInTheDocument();
+    });
+
+    it('passes onSnapChange to usePointerDropTarget', () => {
+      const onSnapChange = vi.fn();
+      render(
+        <GridPreview
+          {...baseProps}
+          onSnapChange={onSnapChange}
+        />
+      );
+      expect(mockUsePointerDropTarget).toHaveBeenCalledWith(
+        expect.objectContaining({ onSnapChange })
+      );
     });
   });
 });

@@ -4,6 +4,8 @@ import { PlacedItemOverlay } from './PlacedItemOverlay';
 import { SpacerOverlay } from './SpacerOverlay';
 import { ReferenceImageOverlay } from './ReferenceImageOverlay';
 import { usePointerDropTarget } from '../hooks/usePointerDrag';
+import type { SnapPreviewData } from '../hooks/usePointerDrag';
+import { SnapPreviewOverlay } from './SnapPreviewOverlay';
 
 const EMPTY_SPACERS: ComputedSpacer[] = [];
 const EMPTY_REF_IMAGES: ReferenceImage[] = [];
@@ -42,6 +44,8 @@ interface GridPreviewProps {
   refImageMetadata?: Map<string, RefImageMeta>;
   onRefImageRebind?: (id: string) => void;
   getLibraryMeta?: (libraryId: string) => Promise<LibraryMeta>;
+  snapPreview?: { col: number; row: number; w: number; d: number; valid: boolean } | null;
+  onSnapChange?: (preview: SnapPreviewData | null) => void;
 }
 
 export function GridPreview({
@@ -73,6 +77,8 @@ export function GridPreview({
   refImageMetadata,
   onRefImageRebind,
   getLibraryMeta,
+  snapPreview = null,
+  onSnapChange,
 }: GridPreviewProps) {
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -81,6 +87,7 @@ export function GridPreview({
     gridX,
     gridY,
     onDrop,
+    onSnapChange,
   });
 
   // Memoize cells array (must be before early return per Rules of Hooks)
@@ -162,6 +169,17 @@ export function GridPreview({
           onKeyDown={handleGridKeyDown}
         >
           {cells}
+          {snapPreview && (
+            <SnapPreviewOverlay
+              col={snapPreview.col}
+              row={snapPreview.row}
+              w={snapPreview.w}
+              d={snapPreview.d}
+              valid={snapPreview.valid}
+              gridX={gridX}
+              gridY={gridY}
+            />
+          )}
           {placedItems.map(item => (
             <PlacedItemOverlay
               key={item.instanceId}
