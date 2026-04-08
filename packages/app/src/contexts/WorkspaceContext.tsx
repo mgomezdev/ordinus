@@ -4,7 +4,7 @@ import type {
   UnitSystem, ImperialFormat, GridSpacerConfig, BOMItem, LibraryItem,
   LibraryMeta, DragData, BinCustomization, Category,
   GridResult, ReferenceImage, PlacedItem, PlacedItemWithValidity,
-  ComputedSpacer,
+  ComputedSpacer, BOMExtras,
 } from '../types/gridfinity';
 import type { SelectModifiers } from '../hooks/useGridItems';
 import type { LoadedLayoutConfig } from '../types/layoutConfig';
@@ -18,6 +18,7 @@ import { useDialogState } from '../hooks/useDialogState';
 import { useGridItems } from '../hooks/useGridItems';
 import { useSpacerCalculation } from '../hooks/useSpacerCalculation';
 import { useBillOfMaterials } from '../hooks/useBillOfMaterials';
+import { useBOMExtras } from '../hooks/useBOMExtras';
 import { useLibraries } from '../hooks/useLibraries';
 import { useLibraryData } from '../hooks/useLibraryData';
 import { useCategoryData } from '../hooks/useCategoryData';
@@ -91,6 +92,13 @@ interface WorkspaceContextValue {
 
   // BOM
   bomItems: BOMItem[];
+
+  // BOM extras
+  extras: BOMExtras;
+  addExtra: (key: string) => void;
+  setExtraQty: (key: string, qty: number) => void;
+  removeExtra: (key: string) => void;
+  clearExtras: () => void;
 
   // Layout meta
   layoutMeta: LayoutMetaState;
@@ -292,6 +300,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   } = useGridItems(gridResult.gridX, gridResult.gridY, getItemById);
 
   const bomItems = useBillOfMaterials(placedItems, libraryItems);
+  const { extras, addExtra, setExtraQty, removeExtra, clearExtras } = useBOMExtras();
 
   // Load library meta for the selected single item
   useEffect(() => {
@@ -349,6 +358,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const { handleLoadLayout, loadLayout } = useLayoutLoader({
     unitSystem, setWidth, setDepth, setSpacerConfig,
     loadItems, loadRefImagePlacements, layoutDispatch, getAccessToken,
+    clearExtras,
   });
 
   // handleClearAll: confirms then clears items and ref images
@@ -418,6 +428,13 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
     // BOM
     bomItems,
+
+    // BOM extras
+    extras,
+    addExtra,
+    setExtraQty,
+    removeExtra,
+    clearExtras,
 
     // Layout meta
     layoutMeta,
