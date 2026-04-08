@@ -40,10 +40,10 @@ describe('formatCustomizationDescription', () => {
     expect(formatCustomizationDescription({
       wallPattern: 'hexgrid',
       lipStyle: 'reduced',
-      fingerSlide: 'none',
-      wallCutout: 'none',
+      fingerSlide: 'rounded',
+      wallCutout: 'vertical',
       height: 3,
-    })).toBe('Hex Wall · Reduced Lip · 3u height');
+    })).toBe('Hex Wall · Reduced Lip · Rounded Finger Slide · Vertical Cutout · 3u height');
   });
 
   it('handles all wall pattern values', () => {
