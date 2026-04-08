@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useBillOfMaterials } from './useBillOfMaterials';
 import type { PlacedItem, LibraryItem, BinCustomization } from '../types/gridfinity';
-import { DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
+import { DEFAULT_BIN_CUSTOMIZATION, getBOMKey } from '../types/gridfinity';
 
 const BASE_ITEM: LibraryItem = {
   id: 'lib1:item1',
@@ -26,6 +26,21 @@ const mockLibraryItems: LibraryItem[] = [
   { id: 'divider-1x1', name: '1x1 Divider', widthUnits: 1, heightUnits: 1, color: '#22c55e', categories: ['divider'] },
   { id: 'organizer-1x3', name: '1x3 Organizer', widthUnits: 1, heightUnits: 3, color: '#f59e0b', categories: ['organizer'] },
 ];
+
+describe('getBOMKey', () => {
+  it('returns itemId:: for undefined customization', () => {
+    expect(getBOMKey('bin-1x1', undefined)).toBe('bin-1x1::');
+  });
+
+  it('returns itemId:: for default customization', () => {
+    expect(getBOMKey('bin-1x1', DEFAULT_BIN_CUSTOMIZATION)).toBe('bin-1x1::');
+  });
+
+  it('returns itemId::serialized for non-default customization', () => {
+    const custom: BinCustomization = { wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 8 };
+    expect(getBOMKey('bin-1x1', custom)).toBe('bin-1x1::grid|normal|none|none|8');
+  });
+});
 
 describe('useBillOfMaterials', () => {
   it('should return empty array when no items are placed', () => {
