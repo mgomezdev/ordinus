@@ -5,20 +5,24 @@ interface GridViewportProps {
   children: ReactNode;
   transform: GridTransform;
   handleWheel: (e: WheelEvent, rect: DOMRect) => void;
-  setZoomLevel: (zoom: number) => void;
   pan: (dx: number, dy: number) => void;
   isSpaceHeldRef: MutableRefObject<boolean>;
   viewportRef?: RefObject<HTMLDivElement | null>;
+  handleTouchStart: (e: TouchEvent) => void;
+  handleTouchMove: (e: TouchEvent) => void;
+  handleTouchEnd: () => void;
 }
 
 export function GridViewport({
   children,
   transform,
   handleWheel,
-  setZoomLevel,
   pan,
   isSpaceHeldRef,
   viewportRef: externalRef,
+  handleTouchStart,
+  handleTouchMove,
+  handleTouchEnd,
 }: GridViewportProps) {
   const internalRef = useRef<HTMLDivElement>(null);
   const ref = externalRef ?? internalRef;
@@ -82,43 +86,24 @@ export function GridViewport({
     };
   }, [pan, transform.zoom, isSpaceHeldRef, ref]);
 
-  // Pinch-to-zoom touch support
+  // Two-finger pan + zoom touch support
   useEffect(() => {
     const viewport = ref.current;
     if (!viewport) return;
 
-    let lastPinchDist = 0;
-    let lastPinchZoom = 1;
-
-    const getDistance = (t1: Touch, t2: Touch) =>
-      Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        lastPinchDist = getDistance(e.touches[0], e.touches[1]);
-        lastPinchZoom = transform.zoom;
-      }
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        const dist = getDistance(e.touches[0], e.touches[1]);
-        const scale = dist / lastPinchDist;
-        setZoomLevel(lastPinchZoom * scale);
-      }
-    };
-
-    // passive: false is required -- handlers call preventDefault() to capture pinch-to-zoom
-    viewport.addEventListener('touchstart', onTouchStart, { passive: false });
-    viewport.addEventListener('touchmove', onTouchMove, { passive: false });
+    // passive: false required — handlers call preventDefault() to suppress browser scroll/zoom
+    viewport.addEventListener('touchstart', handleTouchStart, { passive: false });
+    viewport.addEventListener('touchmove', handleTouchMove, { passive: false });
+    viewport.addEventListener('touchend', handleTouchEnd);
+    viewport.addEventListener('touchcancel', handleTouchEnd);
 
     return () => {
-      viewport.removeEventListener('touchstart', onTouchStart);
-      viewport.removeEventListener('touchmove', onTouchMove);
+      viewport.removeEventListener('touchstart', handleTouchStart);
+      viewport.removeEventListener('touchmove', handleTouchMove);
+      viewport.removeEventListener('touchend', handleTouchEnd);
+      viewport.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [transform.zoom, setZoomLevel, ref]);
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd, ref]);
 
   return (
     <div

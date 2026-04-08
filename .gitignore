@@ -41,6 +41,7 @@ blob-report/
 
 # Internal planning and development artifacts
 plans/
+!docs/superpowers/plans/
 TODOs.txt
 
 # Server build output
@@ -63,3 +64,4 @@ tools/gridfinity-generator/__pycache__/
 
 # Git worktrees
 .worktrees/
+.superpowers/

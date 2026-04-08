@@ -16,6 +16,14 @@ export function useGridTransform() {
 
   const transformRef = useRef(transform);
 
+  const pinchStartRef = useRef<{
+    dist: number;
+    zoom: number;
+    mid: { x: number; y: number };
+    panX: number;
+    panY: number;
+  } | null>(null);
+
   const updateTransform = useCallback((next: GridTransform) => {
     transformRef.current = next;
     setTransform(next);
@@ -51,6 +59,17 @@ export function useGridTransform() {
     e.preventDefault();
     const t = transformRef.current;
 
+    if (!e.ctrlKey) {
+      // Trackpad 2-finger scroll → pan (no zoom change)
+      updateTransform({
+        ...t,
+        panX: t.panX - e.deltaX / t.zoom,
+        panY: t.panY - e.deltaY / t.zoom,
+      });
+      return;
+    }
+
+    // Pinch-to-zoom (ctrlKey = true on trackpad pinch, or Ctrl+scroll with mouse wheel)
     const delta = -e.deltaY * WHEEL_ZOOM_FACTOR;
     const newZoom = clampZoom(t.zoom * (1 + delta));
     if (newZoom === t.zoom) return;
@@ -58,12 +77,8 @@ export function useGridTransform() {
     // Zoom centered on cursor position
     const mouseX = e.clientX - containerRect.left;
     const mouseY = e.clientY - containerRect.top;
-
-    // Point in content space under cursor
     const contentX = mouseX / t.zoom - t.panX;
     const contentY = mouseY / t.zoom - t.panY;
-
-    // New pan so the same content point stays under cursor
     const newPanX = mouseX / newZoom - contentX;
     const newPanY = mouseY / newZoom - contentY;
 
@@ -80,6 +95,50 @@ export function useGridTransform() {
     updateTransform({ ...t, panX: t.panX + dx, panY: t.panY + dy });
   }, [updateTransform]);
 
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    if (e.touches.length !== 2) return;
+    e.preventDefault();
+    const t1 = e.touches[0];
+    const t2 = e.touches[1];
+    const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    if (dist === 0) return;
+    const t = transformRef.current;
+    pinchStartRef.current = {
+      dist,
+      zoom: t.zoom,
+      mid: { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 },
+      panX: t.panX,
+      panY: t.panY,
+    };
+  }, []);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (e.touches.length !== 2 || !pinchStartRef.current) return;
+    e.preventDefault();
+    const { dist: startDist, zoom: startZoom, mid: startMid, panX: startPanX, panY: startPanY } =
+      pinchStartRef.current;
+    const t1 = e.touches[0];
+    const t2 = e.touches[1];
+
+    const newDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    const newZoom = clampZoom(startZoom * (newDist / startDist));
+    const newMid = { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+
+    // Keep the content point that was under startMid anchored under newMid
+    const contentX = startMid.x / startZoom - startPanX;
+    const contentY = startMid.y / startZoom - startPanY;
+
+    updateTransform({
+      zoom: newZoom,
+      panX: newMid.x / newZoom - contentX,
+      panY: newMid.y / newZoom - contentY,
+    });
+  }, [updateTransform]);
+
+  const handleTouchEnd = useCallback(() => {
+    pinchStartRef.current = null;
+  }, []);
+
   return {
     transform,
     zoomIn,
@@ -89,5 +148,8 @@ export function useGridTransform() {
     handleWheel,
     setZoomLevel,
     pan,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
   };
 }
