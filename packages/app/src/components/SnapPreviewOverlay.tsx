@@ -1,4 +1,4 @@
-interface SnapPreviewOverlayProps {
+export interface SnapPreviewOverlayProps {
   col: number;
   row: number;
   w: number;
