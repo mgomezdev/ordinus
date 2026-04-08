@@ -61,6 +61,7 @@
   --invalid-primary: #EF4444;
   --invalid-secondary: #DC2626;
   --invalid-bg: #FEF2F2;
+  --invalid-alpha-20: rgba(239, 68, 68, 0.2);
   --invalid-alpha-40: rgba(239, 68, 68, 0.1);
 
   /* Spacer State */
@@ -68,6 +69,10 @@
   --spacer-secondary: #4F46E5;
   --spacer-bg: rgba(99, 102, 241, 0.08);
   --spacer-alpha-40: rgba(99, 102, 241, 0.12);
+
+  /* Snap Preview Valid State (blue-500 per Tailwind) */
+  --snap-valid-primary: #3b82f6;
+  --snap-valid-bg: rgba(59, 130, 246, 0.2);
 
   /* Surfaces */
   --surface-overlay: rgba(0, 0, 0, 0.4);
@@ -348,6 +353,20 @@ input[type='number']::-webkit-inner-spin-button {
   white-space: pre-wrap;
   word-break: break-word;
   overflow-x: auto;
+}
+
+.snap-preview--valid {
+  background: var(--snap-valid-bg);
+  border: 2px dashed var(--snap-valid-primary);
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+
+.snap-preview--invalid {
+  background: var(--invalid-alpha-20);
+  border: 2px dashed var(--invalid-primary);
+  border-radius: 2px;
+  box-sizing: border-box;
 }
 
 .error-fallback-stack {
