@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { PlacedItem, BOMItem, LibraryItem, BinCustomization } from '../types/gridfinity';
-import { serializeCustomization, isDefaultCustomization } from '../types/gridfinity';
+import { isDefaultCustomization, getBOMKey } from '../types/gridfinity';
 
 export function useBillOfMaterials(placedItems: PlacedItem[], libraryItems: LibraryItem[]): BOMItem[] {
   return useMemo(() => {
@@ -9,10 +9,7 @@ export function useBillOfMaterials(placedItems: PlacedItem[], libraryItems: Libr
 
     placedItems.forEach(placedItem => {
       // Treat undefined and all-default customizations as the same group
-      const customKey = isDefaultCustomization(placedItem.customization)
-        ? ''
-        : serializeCustomization(placedItem.customization);
-      const groupKey = `${placedItem.itemId}::${customKey}`;
+      const groupKey = getBOMKey(placedItem.itemId, placedItem.customization);
       const existing = itemCounts.get(groupKey);
       if (existing) {
         existing.count++;
