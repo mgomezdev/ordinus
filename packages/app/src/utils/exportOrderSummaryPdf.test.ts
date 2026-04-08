@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { formatOrderSummaryRows, calculateOrderTotal } from './exportOrderSummaryPdf';
 import type { BOMItem } from '../types/gridfinity';
 
@@ -40,19 +40,67 @@ describe('calculateOrderTotal', () => {
   });
 });
 
-describe('exportOrderSummaryPdf with extras', () => {
-  it('formatOrderSummaryRows formats extra items identically to configured rows', () => {
-    const extras: BOMItem[] = [{ ...item1, quantity: 2 }];
-    const rows = formatOrderSummaryRows(extras);
-    expect(rows[0]).toEqual(['Small Bin', '1\u00d71', '2', '$10.00', '$20.00']);
+const { mockAutoTable, mockSave, mockText, mockSetFont, mockSetFontSize, mockSetTextColor } = vi.hoisted(() => ({
+  mockAutoTable: vi.fn(),
+  mockSave: vi.fn(),
+  mockText: vi.fn(),
+  mockSetFont: vi.fn(),
+  mockSetFontSize: vi.fn(),
+  mockSetTextColor: vi.fn(),
+}));
+
+vi.mock('jspdf', () => ({
+  default: vi.fn(function () {
+    return {
+      internal: { pageSize: { getWidth: () => 210 } },
+      setFontSize: mockSetFontSize,
+      setFont: mockSetFont,
+      text: mockText,
+      setTextColor: mockSetTextColor,
+      save: mockSave,
+      lastAutoTable: { finalY: 100 },
+    };
+  }),
+}));
+
+vi.mock('jspdf-autotable', () => ({ default: mockAutoTable }));
+
+vi.mock('./exportPdf', () => ({
+  getOrientation: () => 'portrait',
+  generateFilename: () => 'order-summary.pdf',
+}));
+
+describe('exportOrderSummaryPdf', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('calculateOrderTotal sums extras separately from configured', () => {
-    const extras: BOMItem[] = [{ ...item1, quantity: 1 }]; // 1 × $10
-    const configuredResult = calculateOrderTotal([item1], true); // 3 × $10 = $30
-    const extrasResult = calculateOrderTotal(extras, true);      // 1 × $10 = $10
-    expect(configuredResult.total).toBe(30);
-    expect(extrasResult.total).toBe(10);
-    expect(configuredResult.total + extrasResult.total).toBe(40);
+  it('calls autoTable once when extraItems is empty', async () => {
+    const { exportOrderSummaryPdf } = await import('./exportOrderSummaryPdf');
+    await exportOrderSummaryPdf(
+      [item1],
+      [],
+      {
+        gridResult: { gridX: 4, gridY: 4, actualWidth: 168, actualDepth: 168, gapWidth: 0, gapDepth: 0 },
+        spacerConfig: { horizontal: 'none', vertical: 'none' },
+        unitSystem: 'metric',
+      },
+    );
+    expect(mockAutoTable).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls autoTable twice when extraItems is non-empty', async () => {
+    const { exportOrderSummaryPdf } = await import('./exportOrderSummaryPdf');
+    const extras: BOMItem[] = [{ ...item1, quantity: 1 }];
+    await exportOrderSummaryPdf(
+      [item1],
+      extras,
+      {
+        gridResult: { gridX: 4, gridY: 4, actualWidth: 168, actualDepth: 168, gapWidth: 0, gapDepth: 0 },
+        spacerConfig: { horizontal: 'none', vertical: 'none' },
+        unitSystem: 'metric',
+      },
+    );
+    expect(mockAutoTable).toHaveBeenCalledTimes(2);
   });
 });

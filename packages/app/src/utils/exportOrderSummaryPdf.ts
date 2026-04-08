@@ -45,6 +45,7 @@ export async function exportOrderSummaryPdf(
     const filename = generateFilename(layoutName);
 
     const pdf = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
+    const pdfTyped = pdf as jsPDF & { lastAutoTable?: { finalY: number } };
     const pageWidth = pdf.internal.pageSize.getWidth();
     const margin = 15;
     let cursorY = margin;
@@ -86,6 +87,14 @@ export async function exportOrderSummaryPdf(
     const { total: configuredTotal, hasTbd: configuredHasTbd } = calculateOrderTotal(bomItems, true);
     const configuredQty = bomItems.reduce((sum, i) => sum + i.quantity, 0);
 
+    const { total: extrasTotal, hasTbd: extrasHasTbd } = extraItems.length > 0
+      ? calculateOrderTotal(extraItems, true)
+      : { total: 0, hasTbd: false };
+    const extrasQty = extraItems.reduce((sum, i) => sum + i.quantity, 0);
+    const grandTotal = configuredTotal + extrasTotal;
+    const grandQty = configuredQty + extrasQty;
+    const grandHasTbd = configuredHasTbd || extrasHasTbd;
+
     // As Configured table
     pdf.setFontSize(11);
     pdf.setFont('helvetica', 'bold');
@@ -110,14 +119,7 @@ export async function exportOrderSummaryPdf(
     });
 
     if (extraItems.length > 0) {
-      const pdfWithTable = pdf as { lastAutoTable?: { finalY: number } };
-      cursorY = (pdfWithTable.lastAutoTable?.finalY ?? cursorY) + 8;
-
-      const { total: extrasTotal, hasTbd: extrasHasTbd } = calculateOrderTotal(extraItems, true);
-      const extrasQty = extraItems.reduce((sum, i) => sum + i.quantity, 0);
-      const grandTotal = configuredTotal + extrasTotal;
-      const grandQty = configuredQty + extrasQty;
-      const grandHasTbd = configuredHasTbd || extrasHasTbd;
+      cursorY = (pdfTyped.lastAutoTable?.finalY ?? cursorY) + 8;
 
       pdf.setFontSize(11);
       pdf.setFont('helvetica', 'bold');
@@ -141,8 +143,7 @@ export async function exportOrderSummaryPdf(
         headStyles: { fillColor: [80, 80, 80] },
       });
 
-      const pdfWithExtras = pdf as { lastAutoTable?: { finalY: number } };
-      cursorY = (pdfWithExtras.lastAutoTable?.finalY ?? cursorY) + 4;
+      cursorY = (pdfTyped.lastAutoTable?.finalY ?? cursorY) + 4;
 
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
@@ -151,18 +152,16 @@ export async function exportOrderSummaryPdf(
         margin,
         cursorY,
       );
+      cursorY += 6;
     }
 
-    const anyHasTbd = configuredHasTbd || extraItems.some(i => i.price === undefined);
-    if (anyHasTbd) {
-      const pdfFinal = pdf as { lastAutoTable?: { finalY: number } };
-      const finalY = pdfFinal.lastAutoTable?.finalY ?? cursorY;
+    if (grandHasTbd) {
       pdf.setFontSize(8);
       pdf.setTextColor(180, 83, 9);
       pdf.text(
         '\u2020 Items marked "Price TBD" will receive a confirmed quote before any build or shipment.',
         margin,
-        finalY + 6,
+        cursorY + 6,
       );
       pdf.setTextColor(0, 0, 0);
     }
