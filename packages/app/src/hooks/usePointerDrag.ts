@@ -3,6 +3,12 @@ import type { DragData } from '../types/gridfinity';
 
 // --- Drag store — encapsulated singleton replacing loose module-level vars ---
 
+export interface SnapPreviewData {
+  dragData: DragData;
+  col: number;
+  row: number;
+}
+
 interface ActiveDrag {
   data: DragData;
   ghostElement: HTMLElement | null;
@@ -16,6 +22,7 @@ interface DropTargetConfig {
   gridX: number;
   gridY: number;
   onDrop: (dragData: DragData, x: number, y: number) => void;
+  onSnapChange?: (preview: SnapPreviewData | null) => void;
 }
 
 const dragStore = {
@@ -182,6 +189,23 @@ export function usePointerDragSource(
         dragStore.activeDrag.ghostElement.style.left = `${moveEvent.clientX - dragStore.activeDrag.offsetX}px`;
         dragStore.activeDrag.ghostElement.style.top = `${moveEvent.clientY - dragStore.activeDrag.offsetY}px`;
       }
+
+      if (isDragging && dragStore.dropTarget) {
+        const { element, gridX: tgX, gridY: tgY, onSnapChange } = dragStore.dropTarget;
+        const rect = element.getBoundingClientRect();
+        if (
+          moveEvent.clientX >= rect.left && moveEvent.clientX <= rect.right &&
+          moveEvent.clientY >= rect.top && moveEvent.clientY <= rect.bottom
+        ) {
+          const cellWidth = rect.width / tgX;
+          const cellHeight = rect.height / tgY;
+          const col = Math.max(0, Math.min(Math.floor((moveEvent.clientX - rect.left) / cellWidth), tgX - 1));
+          const row = Math.max(0, Math.min(Math.floor((moveEvent.clientY - rect.top) / cellHeight), tgY - 1));
+          onSnapChange?.({ dragData: dragStore.activeDrag!.data, col, row });
+        } else {
+          onSnapChange?.(null);
+        }
+      }
     };
 
     const cleanup = () => {
@@ -201,6 +225,7 @@ export function usePointerDragSource(
         optionsRef.current.onTap?.(upEvent);
       } else {
         // End of drag — attempt drop
+        dragStore.dropTarget?.onSnapChange?.(null);
         attemptDrop(upEvent.clientX, upEvent.clientY);
         clearActiveDrag();
         cleanup();
@@ -210,6 +235,7 @@ export function usePointerDragSource(
 
     const handlePointerCancel = (cancelEvent: PointerEvent) => {
       if (cancelEvent.pointerId !== activePointerIdRef.current) return;
+      dragStore.dropTarget?.onSnapChange?.(null);
       clearActiveDrag();
       cleanup();
       optionsRef.current.onDragEnd?.();
@@ -230,17 +256,16 @@ interface PointerDropTargetOptions {
   gridX: number;
   gridY: number;
   onDrop: (dragData: DragData, x: number, y: number) => void;
+  onSnapChange?: (preview: SnapPreviewData | null) => void;
 }
 
 export function usePointerDropTarget(options: PointerDropTargetOptions): void {
-  const { gridRef, gridX, gridY, onDrop } = options;
+  const { gridRef, gridX, gridY, onDrop, onSnapChange } = options;
 
   useEffect(() => {
     const el = gridRef.current;
     if (!el || gridX <= 0 || gridY <= 0) return;
-
-    registerDropTarget({ element: el, gridX, gridY, onDrop });
-
+    registerDropTarget({ element: el, gridX, gridY, onDrop, onSnapChange });
     return () => unregisterDropTarget();
-  }, [gridRef, gridX, gridY, onDrop]);
+  }, [gridRef, gridX, gridY, onDrop, onSnapChange]);
 }

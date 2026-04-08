@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { exportOrderSummaryPdf, calculateOrderTotal } from '../utils/exportOrderSummaryPdf';
+import { formatCustomizationDescription } from '../utils/customizationDescription';
 import './OrderSummaryPage.css';
 
 export function OrderSummaryPage() {
@@ -98,7 +99,11 @@ export function OrderSummaryPage() {
               </tr>
             </thead>
             <tbody>
-              {bomItems.map(item => (
+              {bomItems.map(item => {
+                const customizationDesc = item.customization
+                  ? formatCustomizationDescription(item.customization)
+                  : '';
+                return (
                 <tr
                   key={`${item.itemId}-${item.customization ? JSON.stringify(item.customization) : ''}`}
                 >
@@ -107,6 +112,7 @@ export function OrderSummaryPage() {
                       <div className="order-bom-color" style={{ backgroundColor: item.color }} />
                       <div>
                         <div className="order-bom-name">{item.name}</div>
+                        {customizationDesc && <div className="order-bom-description">{customizationDesc}</div>}
                       </div>
                     </div>
                   </td>
@@ -125,7 +131,8 @@ export function OrderSummaryPage() {
                     {item.price !== undefined ? `$${(item.price * item.quantity).toFixed(2)}` : '—'}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}

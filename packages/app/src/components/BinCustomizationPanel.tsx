@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import {
   DEFAULT_BIN_CUSTOMIZATION,
   isDefaultCustomization,
@@ -10,6 +11,86 @@ import type {
   WallCutout,
   WallPattern,
 } from '../types/gridfinity';
+
+const MM_PER_HEIGHT_UNIT = 7;
+
+interface HeightFieldProps {
+  height: number;
+  idPrefix: string;
+  onChange: (height: number) => void;
+}
+
+function HeightField({ height, idPrefix, onChange }: HeightFieldProps) {
+  const [mmEditValue, setMmEditValue] = useState<string | null>(null);
+  const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const displayedMm = mmEditValue ?? String(height * MM_PER_HEIGHT_UNIT);
+
+  const handleUnitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const v = parseInt(e.target.value, 10);
+    if (!isNaN(v) && v >= 1 && v <= 20) {
+      onChange(v);
+    }
+  };
+
+  const handleMmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMmEditValue(e.target.value);
+  };
+
+  const handleMmBlur = () => {
+    const raw = parseInt(mmEditValue ?? '', 10);
+    setMmEditValue(null);
+    if (isNaN(raw) || raw < MM_PER_HEIGHT_UNIT) return;
+    const units = Math.floor(raw / MM_PER_HEIGHT_UNIT);
+    const snapped = units * MM_PER_HEIGHT_UNIT;
+    if (snapped !== raw) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setCorrectionMsg(`Rounded to ${units}u (${snapped}mm)`);
+      timerRef.current = setTimeout(() => setCorrectionMsg(null), 2000);
+    }
+    if (units >= 1 && units <= 20) {
+      onChange(units);
+    }
+  };
+
+  return (
+    <div className="bin-customization-field">
+      <label htmlFor={`${idPrefix}height-units-input`}>Height</label>
+      <div className="height-inputs">
+        <input
+          id={`${idPrefix}height-units-input`}
+          aria-label="Height in units"
+          type="number"
+          min={1}
+          max={20}
+          value={height}
+          onChange={handleUnitChange}
+        />
+        <span>u</span>
+        <input
+          id={`${idPrefix}height-mm-input`}
+          aria-label="Height in millimeters"
+          type="number"
+          min={MM_PER_HEIGHT_UNIT}
+          value={displayedMm}
+          onChange={handleMmChange}
+          onBlur={handleMmBlur}
+        />
+        <span>mm</span>
+      </div>
+      {correctionMsg && (
+        <div className="height-correction" role="status">{correctionMsg}</div>
+      )}
+    </div>
+  );
+}
 
 interface BinCustomizationPanelProps {
   customization: BinCustomization | undefined;
@@ -101,24 +182,11 @@ export function BinCustomizationPanel({
       )}
 
       {has('height') && (
-        <div className="bin-customization-field">
-          <label htmlFor={`${idPrefix}height-input`}>
-            Height ({current.height * 7}mm)
-          </label>
-          <input
-            id={`${idPrefix}height-input`}
-            type="number"
-            min={1}
-            max={20}
-            value={current.height}
-            onChange={(e) => {
-              const v = parseInt(e.target.value, 10);
-              if (!isNaN(v) && v >= 1 && v <= 20) {
-                onChange({ ...current, height: v });
-              }
-            }}
-          />
-        </div>
+        <HeightField
+          height={current.height}
+          idPrefix={idPrefix}
+          onChange={(h) => onChange({ ...current, height: h })}
+        />
       )}
 
       <button type="button" onClick={onReset} disabled={isDefault}>
