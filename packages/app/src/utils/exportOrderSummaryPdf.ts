@@ -118,8 +118,10 @@ export async function exportOrderSummaryPdf(
       headStyles: { fillColor: [0, 122, 255] },
     });
 
+    cursorY = pdfTyped.lastAutoTable?.finalY ?? cursorY;
+
     if (extraItems.length > 0) {
-      cursorY = (pdfTyped.lastAutoTable?.finalY ?? cursorY) + 8;
+      cursorY = cursorY + 8;
 
       pdf.setFontSize(11);
       pdf.setFont('helvetica', 'bold');
@@ -152,7 +154,6 @@ export async function exportOrderSummaryPdf(
         margin,
         cursorY,
       );
-      cursorY += 6;
     }
 
     if (grandHasTbd) {
