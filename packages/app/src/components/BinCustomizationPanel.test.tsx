@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { BinCustomizationPanel } from './BinCustomizationPanel';
 import type { BinCustomization, CustomizableField } from '../types/gridfinity';
 import { DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
@@ -632,7 +632,7 @@ describe('BinCustomizationPanel', () => {
       );
       expect(screen.queryByLabelText(/wall pattern/i)).not.toBeInTheDocument();
       expect(screen.getByLabelText(/lip style/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/height/i)).toBeInTheDocument();
+      expect(screen.getByLabelText('Height in units')).toBeInTheDocument();
     });
 
     it('renders nothing when customizableFields is empty', () => {
@@ -657,12 +657,12 @@ describe('BinCustomizationPanel', () => {
         />
       );
       expect(screen.getByLabelText(/wall pattern/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/height/i)).toBeInTheDocument();
+      expect(screen.getByLabelText('Height in units')).toBeInTheDocument();
     });
   });
 
   describe('height field', () => {
-    it('renders height as number input with range 1-20', () => {
+    it('renders unit and mm inputs', () => {
       render(
         <BinCustomizationPanel
           customization={DEFAULT_BIN_CUSTOMIZATION}
@@ -671,13 +671,24 @@ describe('BinCustomizationPanel', () => {
           customizableFields={['height']}
         />
       );
-      const input = screen.getByLabelText(/height/i);
-      expect(input).toHaveAttribute('type', 'number');
-      expect(input).toHaveAttribute('min', '1');
-      expect(input).toHaveAttribute('max', '20');
+      expect(screen.getByLabelText('Height in units')).toBeInTheDocument();
+      expect(screen.getByLabelText('Height in millimeters')).toBeInTheDocument();
     });
 
-    it('calls onChange with updated height', () => {
+    it('unit input shows current height, mm input shows height * 7', () => {
+      render(
+        <BinCustomizationPanel
+          customization={{ ...DEFAULT_BIN_CUSTOMIZATION, height: 3 }}
+          onChange={mockOnChange}
+          onReset={mockOnReset}
+          customizableFields={['height']}
+        />
+      );
+      expect(screen.getByLabelText('Height in units')).toHaveValue(3);
+      expect(screen.getByLabelText('Height in millimeters')).toHaveValue(21);
+    });
+
+    it('changing unit input calls onChange with new height', () => {
       render(
         <BinCustomizationPanel
           customization={DEFAULT_BIN_CUSTOMIZATION}
@@ -686,8 +697,55 @@ describe('BinCustomizationPanel', () => {
           customizableFields={['height']}
         />
       );
-      fireEvent.change(screen.getByLabelText(/height/i), { target: { value: '6' } });
-      expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ height: 6 }));
+      fireEvent.change(screen.getByLabelText('Height in units'), { target: { value: '5' } });
+      expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ height: 5 }));
+    });
+
+    it('blurring mm input with aligned value calls onChange with correct units', () => {
+      render(
+        <BinCustomizationPanel
+          customization={DEFAULT_BIN_CUSTOMIZATION}
+          onChange={mockOnChange}
+          onReset={mockOnReset}
+          customizableFields={['height']}
+        />
+      );
+      fireEvent.change(screen.getByLabelText('Height in millimeters'), { target: { value: '28' } });
+      fireEvent.blur(screen.getByLabelText('Height in millimeters'));
+      expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ height: 4 }));
+    });
+
+    it('blurring mm input with unaligned value rounds down and shows correction message', async () => {
+      render(
+        <BinCustomizationPanel
+          customization={DEFAULT_BIN_CUSTOMIZATION}
+          onChange={mockOnChange}
+          onReset={mockOnReset}
+          customizableFields={['height']}
+        />
+      );
+      fireEvent.change(screen.getByLabelText('Height in millimeters'), { target: { value: '23' } });
+      fireEvent.blur(screen.getByLabelText('Height in millimeters'));
+      expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ height: 3 }));
+      expect(await screen.findByText(/rounded to 3u \(21mm\)/i)).toBeInTheDocument();
+    });
+
+    it('correction message disappears after 2 seconds', async () => {
+      vi.useFakeTimers();
+      render(
+        <BinCustomizationPanel
+          customization={DEFAULT_BIN_CUSTOMIZATION}
+          onChange={mockOnChange}
+          onReset={mockOnReset}
+          customizableFields={['height']}
+        />
+      );
+      fireEvent.change(screen.getByLabelText('Height in millimeters'), { target: { value: '23' } });
+      fireEvent.blur(screen.getByLabelText('Height in millimeters'));
+      expect(screen.getByText(/rounded to 3u \(21mm\)/i)).toBeInTheDocument();
+      await act(async () => { vi.advanceTimersByTime(2001); });
+      expect(screen.queryByText(/rounded to 3u \(21mm\)/i)).not.toBeInTheDocument();
+      vi.useRealTimers();
     });
   });
 
