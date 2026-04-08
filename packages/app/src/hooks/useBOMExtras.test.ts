@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useBOMExtras } from './useBOMExtras';
+import { STORAGE_KEYS } from '../utils/storageKeys';
 
 beforeEach(() => {
   localStorage.clear();
@@ -13,7 +14,7 @@ describe('useBOMExtras', () => {
   });
 
   it('loads persisted extras from localStorage on mount', () => {
-    localStorage.setItem('gridfinity-bom-extras', JSON.stringify({ 'bin-1x1::': 2 }));
+    localStorage.setItem(STORAGE_KEYS.BOM_EXTRAS, JSON.stringify({ 'bin-1x1::': 2 }));
     const { result } = renderHook(() => useBOMExtras());
     expect(result.current.extras).toEqual({ 'bin-1x1::': 2 });
   });
@@ -50,18 +51,18 @@ describe('useBOMExtras', () => {
     act(() => { result.current.addExtra('bin-1x1::'); });
     act(() => { result.current.clearExtras(); });
     expect(result.current.extras).toEqual({});
-    expect(localStorage.getItem('gridfinity-bom-extras')).toBeNull();
+    expect(localStorage.getItem(STORAGE_KEYS.BOM_EXTRAS)).toBeNull();
   });
 
   it('persists extras to localStorage on each change', () => {
     const { result } = renderHook(() => useBOMExtras());
     act(() => { result.current.addExtra('bin-2x2::'); });
-    const stored = JSON.parse(localStorage.getItem('gridfinity-bom-extras') ?? '{}');
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.BOM_EXTRAS) ?? '{}');
     expect(stored['bin-2x2::']).toBe(1);
   });
 
   it('handles corrupt localStorage gracefully', () => {
-    localStorage.setItem('gridfinity-bom-extras', 'not-json');
+    localStorage.setItem(STORAGE_KEYS.BOM_EXTRAS, 'not-json');
     const { result } = renderHook(() => useBOMExtras());
     expect(result.current.extras).toEqual({});
   });

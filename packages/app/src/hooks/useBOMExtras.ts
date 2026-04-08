@@ -53,8 +53,10 @@ export function useBOMExtras(): UseBOMExtrasReturn {
   }, []);
 
   const clearExtras = useCallback(() => {
-    setExtras({});
-    localStorage.removeItem(STORAGE_KEYS.BOM_EXTRAS);
+    setExtras(() => {
+      localStorage.removeItem(STORAGE_KEYS.BOM_EXTRAS);
+      return {};
+    });
   }, []);
 
   return { extras, addExtra, setExtraQty, removeExtra, clearExtras };
