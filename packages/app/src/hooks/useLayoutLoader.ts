@@ -15,11 +15,13 @@ interface UseLayoutLoaderParams {
   loadRefImagePlacements: (placements: RefImagePlacement[]) => void;
   layoutDispatch: React.Dispatch<LayoutMetaAction>;
   getAccessToken: () => string | null;
+  clearExtras?: () => void;
 }
 
 export function useLayoutLoader({
   unitSystem, setWidth, setDepth, setSpacerConfig,
   loadItems, loadRefImagePlacements, layoutDispatch, getAccessToken,
+  clearExtras,
 }: UseLayoutLoaderParams) {
   const handleLoadLayout = useCallback((config: LoadedLayoutConfig) => {
     if (unitSystem === 'imperial') {
@@ -39,6 +41,8 @@ export function useLayoutLoader({
       if (config.ownerEmail) owner += ` <${config.ownerEmail}>`;
     }
 
+    clearExtras?.();
+
     layoutDispatch({
       type: 'LOAD_LAYOUT',
       payload: {
@@ -49,7 +53,7 @@ export function useLayoutLoader({
         owner,
       },
     });
-  }, [unitSystem, setWidth, setDepth, setSpacerConfig, loadItems, loadRefImagePlacements, layoutDispatch]);
+  }, [unitSystem, setWidth, setDepth, setSpacerConfig, loadItems, loadRefImagePlacements, layoutDispatch, clearExtras]);
 
   const loadLayout = useCallback(async (id: number) => {
     const token = getAccessToken();

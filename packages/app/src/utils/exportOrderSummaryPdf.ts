@@ -35,6 +35,7 @@ export interface ExportOrderSummaryConfig {
 
 export async function exportOrderSummaryPdf(
   bomItems: BOMItem[],
+  extraItems: BOMItem[],
   config: ExportOrderSummaryConfig,
   onError?: (err: unknown) => void,
 ): Promise<void> {
@@ -44,6 +45,7 @@ export async function exportOrderSummaryPdf(
     const filename = generateFilename(layoutName);
 
     const pdf = new jsPDF({ orientation, unit: 'mm', format: 'a4' });
+    const pdfTyped = pdf as jsPDF & { lastAutoTable?: { finalY: number } };
     const pageWidth = pdf.internal.pageSize.getWidth();
     const margin = 15;
     let cursorY = margin;
@@ -82,8 +84,22 @@ export async function exportOrderSummaryPdf(
     pdf.text(`Spacers: H ${spacerConfig.horizontal}, V ${spacerConfig.vertical}`, margin, cursorY + 5);
     cursorY += 13;
 
-    const { total, hasTbd } = calculateOrderTotal(bomItems, true);
-    const totalQty = bomItems.reduce((sum, i) => sum + i.quantity, 0);
+    const { total: configuredTotal, hasTbd: configuredHasTbd } = calculateOrderTotal(bomItems, true);
+    const configuredQty = bomItems.reduce((sum, i) => sum + i.quantity, 0);
+
+    const { total: extrasTotal, hasTbd: extrasHasTbd } = extraItems.length > 0
+      ? calculateOrderTotal(extraItems, true)
+      : { total: 0, hasTbd: false };
+    const extrasQty = extraItems.reduce((sum, i) => sum + i.quantity, 0);
+    const grandTotal = configuredTotal + extrasTotal;
+    const grandQty = configuredQty + extrasQty;
+    const grandHasTbd = configuredHasTbd || extrasHasTbd;
+
+    // As Configured table
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('As Configured', margin, cursorY);
+    cursorY += 5;
 
     autoTable(pdf, {
       startY: cursorY,
@@ -91,17 +107,10 @@ export async function exportOrderSummaryPdf(
       body: [
         ...formatOrderSummaryRows(bomItems),
         [
-          {
-            content: `${totalQty} item${totalQty !== 1 ? 's' : ''}`,
-            colSpan: 2,
-            styles: { fontStyle: 'bold' },
-          },
+          { content: `${configuredQty} item${configuredQty !== 1 ? 's' : ''}`, colSpan: 2, styles: { fontStyle: 'bold' } },
           '',
           '',
-          {
-            content: hasTbd ? 'Pending quote' : `$${total.toFixed(2)}`,
-            styles: { fontStyle: 'bold' },
-          },
+          { content: configuredHasTbd ? 'Pending quote' : `$${configuredTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } },
         ],
       ],
       margin: { left: margin, right: margin },
@@ -109,15 +118,51 @@ export async function exportOrderSummaryPdf(
       headStyles: { fillColor: [0, 122, 255] },
     });
 
-    if (hasTbd) {
-      const pdfWithTable = pdf as { lastAutoTable?: { finalY: number } };
-      const finalY = pdfWithTable.lastAutoTable?.finalY ?? cursorY;
+    cursorY = pdfTyped.lastAutoTable?.finalY ?? cursorY;
+
+    if (extraItems.length > 0) {
+      cursorY = cursorY + 8;
+
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Extras', margin, cursorY);
+      cursorY += 5;
+
+      autoTable(pdf, {
+        startY: cursorY,
+        head: [['Component', 'Size', 'Qty', 'Unit Price', 'Total']],
+        body: [
+          ...formatOrderSummaryRows(extraItems),
+          [
+            { content: `${extrasQty} item${extrasQty !== 1 ? 's' : ''}`, colSpan: 2, styles: { fontStyle: 'bold' } },
+            '',
+            '',
+            { content: extrasHasTbd ? 'Pending quote' : `$${extrasTotal.toFixed(2)}`, styles: { fontStyle: 'bold' } },
+          ],
+        ],
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [80, 80, 80] },
+      });
+
+      cursorY = (pdfTyped.lastAutoTable?.finalY ?? cursorY) + 4;
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(
+        `Full Order Total: ${grandQty} items — ${grandHasTbd ? 'Pending quote' : `$${grandTotal.toFixed(2)}`}`,
+        margin,
+        cursorY,
+      );
+    }
+
+    if (grandHasTbd) {
       pdf.setFontSize(8);
       pdf.setTextColor(180, 83, 9);
       pdf.text(
         '\u2020 Items marked "Price TBD" will receive a confirmed quote before any build or shipment.',
         margin,
-        finalY + 6,
+        cursorY + 6,
       );
       pdf.setTextColor(0, 0, 0);
     }

@@ -145,6 +145,14 @@ export function isDefaultCustomization(c: BinCustomization | undefined): boolean
     && c.height === 8;
 }
 
+export function getBOMKey(itemId: string, customization?: BinCustomization): string {
+  const customKey = isDefaultCustomization(customization) ? '' : serializeCustomization(customization);
+  return `${itemId}::${customKey}`;
+}
+
+// Maps BOM group key (itemId::serializedCustomization) → extra quantity
+export type BOMExtras = Record<string, number>;
+
 export interface LibraryMeta {
   customizableFields: CustomizableField[];
   customizationDefaults: Partial<BinCustomization>;
