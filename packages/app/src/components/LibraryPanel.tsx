@@ -6,9 +6,11 @@ import { UserStlLibrarySection } from './UserStlLibrarySection';
 
 interface LibraryPanelProps {
   width: number;
+  isMobile?: boolean;
+  isOpen?: boolean;
 }
 
-export function LibraryPanel({ width }: LibraryPanelProps) {
+export function LibraryPanel({ width, isMobile, isOpen }: LibraryPanelProps) {
   const {
     isAuthenticated,
     libraryItems, isLibraryLoading, isLibrariesLoading,
@@ -19,7 +21,10 @@ export function LibraryPanel({ width }: LibraryPanelProps) {
   const [libraryCategory, setLibraryCategory] = useState<string | null>(null);
 
   return (
-    <section className="library-panel" style={{ width, minWidth: width }}>
+    <section
+      className={`library-panel${isOpen ? ' library-panel--open' : ''}`}
+      style={isMobile ? undefined : { width, minWidth: width }}
+    >
       <div className="library-panel-header">
         <div className="library-panel-header-icon">⊞</div>
         <div className="library-panel-header-text">

@@ -1,5 +1,23 @@
 import '@testing-library/jest-dom'
 
+// matchMedia polyfill for jsdom (which doesn't implement window.matchMedia)
+if (typeof window.matchMedia === 'undefined') {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    configurable: true,
+    value: (query: string): MediaQueryList => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  });
+}
+
 // PointerEvent polyfill for jsdom (which doesn't support PointerEvent)
 if (typeof globalThis.PointerEvent === 'undefined') {
   class PointerEventPolyfill extends MouseEvent {
