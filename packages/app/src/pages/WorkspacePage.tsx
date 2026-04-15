@@ -15,6 +15,7 @@ import { SidebarPanel } from '../components/SidebarPanel';
 import { WorkspaceToolbar } from '../components/WorkspaceToolbar';
 import { LibraryPanel } from '../components/LibraryPanel';
 import { exportToPdf } from '../utils/exportPdf';
+import { useMobileLayout } from '../hooks/useMobileLayout';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3001/api/v1';
 
@@ -77,6 +78,16 @@ export function WorkspacePage() {
     transform, zoomIn, zoomOut, resetZoom, fitToScreen,
     handleWheel, pan, handleTouchStart, handleTouchMove, handleTouchEnd,
   } = useGridTransform();
+
+  const {
+    isMobile,
+    libraryOpen,
+    settingsOpen,
+    toggleLibrary,
+    toggleSettings,
+    closeLibrary,
+    closeSettings,
+  } = useMobileLayout();
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const isSpaceHeldRef = useRef(false);
@@ -311,12 +322,25 @@ export function WorkspacePage() {
 
   return (
     <>
+      <div className="mobile-panel-strip mobile-panel-strip--left">
+        <button
+          className={`mobile-toggle-btn${settingsOpen ? ' active' : ''}`}
+          onClick={toggleSettings}
+          type="button"
+          aria-label="Toggle settings panel"
+          title="Settings"
+        >
+          ⊞
+        </button>
+      </div>
+
       <SidebarPanel
         dimensionsContent={dimensionsContent}
         spacerContent={spacerContent}
         onClearCanvas={handleClearAll}
         onReset={handleReset}
         isReadOnly={isReadOnly}
+        isOpen={isMobile && settingsOpen}
       />
 
       <section className={`preview${isReadOnly ? ' canvas-readonly' : ''}`}>
@@ -377,11 +401,37 @@ export function WorkspacePage() {
             onSnapChange={setRawSnapPreview}
           />
         </GridViewport>
+
       </section>
 
-      <div className="library-resize-handle" onMouseDown={handleLibraryResizeStart} role="separator" aria-label="Resize library panel" />
-      <LibraryPanel width={libraryWidth} />
+      {isMobile && (libraryOpen || settingsOpen) && (
+        <div
+          className="mobile-backdrop mobile-backdrop--visible"
+          onClick={() => { closeLibrary(); closeSettings(); }}
+          aria-hidden="true"
+        />
+      )}
 
+      <div
+        className="library-resize-handle"
+        onMouseDown={!isMobile ? handleLibraryResizeStart : undefined}
+        role="separator"
+        aria-label="Resize library panel"
+      />
+
+      <LibraryPanel width={libraryWidth} isMobile={isMobile} isOpen={isMobile && libraryOpen} />
+
+      <div className="mobile-panel-strip mobile-panel-strip--right">
+        <button
+          className={`mobile-toggle-btn${libraryOpen ? ' active' : ''}`}
+          onClick={toggleLibrary}
+          type="button"
+          aria-label="Toggle library panel"
+          title="Component Library"
+        >
+          ☰
+        </button>
+      </div>
     </>
   );
 }

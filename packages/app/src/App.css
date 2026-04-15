@@ -2623,57 +2623,195 @@
   cursor: not-allowed;
 }
 
-/* Responsive */
-/* Tablet */
-@media (max-width: 1199px) {
-  .app-main {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
-  }
-
-  .sidebar {
-    order: 1;
-    width: 100%;
-  }
-
-  .preview {
-    order: 2;
-    min-height: 60vh;
-  }
-
+/* ─── Mobile toggle strips (hidden on desktop) ──────────────────────────── */
+.mobile-panel-strip {
+  display: none;
 }
 
-/* Mobile */
-@media (max-width: 768px) {
-  .app {
-    padding: var(--space-lg);
-  }
+.mobile-toggle-btn {
+  display: none;
+}
 
-  .app-header {
-    flex-direction: column;
-    gap: var(--space-sm);
-    height: auto;
-  }
-
-  .grid-controls {
-    justify-content: center;
-  }
-
-  .grid-summary {
-    margin-left: 0;
-    width: 100%;
-    justify-content: center;
-  }
-
+/* ─── Responsive: Tablet (≤1024px) — overlay panel layout ───────────────── */
+@media (max-width: 1024px) {
   .app-main {
-    grid-template-columns: 1fr;
+    position: relative;
   }
 
+  /* Toggle strips */
+  .mobile-panel-strip {
+    display: flex;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 44px;
+    z-index: 25;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--space-sm) 0;
+    background: var(--bg-secondary);
+  }
+
+  .mobile-panel-strip--left {
+    left: 0;
+    border-right: 1px solid var(--border-primary);
+  }
+
+  .mobile-panel-strip--right {
+    right: 0;
+    border-left: 1px solid var(--border-primary);
+  }
+
+  .mobile-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    font-size: 18px;
+    padding: 0;
+  }
+
+  .mobile-toggle-btn:hover {
+    background: var(--blue-100);
+    color: var(--blue-700);
+  }
+
+  .mobile-toggle-btn.active {
+    background: var(--blue-600);
+    color: #ffffff;
+  }
+
+  /* Backdrop */
+  .mobile-backdrop {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    background: transparent;
+  }
+
+  .mobile-backdrop--visible {
+    display: block;
+  }
+
+  /* Sidebar (settings) — slide in from left */
+  .sidebar {
+    position: absolute;
+    left: 44px;
+    top: 0;
+    bottom: 0;
+    width: 240px;
+    z-index: 20;
+    transform: translateX(calc(-44px - 240px));
+    transition: transform 0.2s ease;
+    background: var(--bg-secondary);
+    box-shadow: var(--shadow-lg);
+    overflow-y: auto;
+  }
+
+  .sidebar--open {
+    transform: translateX(0);
+  }
+
+  /* Library panel — slide in from right */
+  .library-panel {
+    position: absolute;
+    right: 44px;
+    top: 0;
+    bottom: 0;
+    width: 260px !important;
+    min-width: unset !important;
+    z-index: 20;
+    transform: translateX(calc(44px + 260px));
+    transition: transform 0.2s ease;
+    background: var(--bg-secondary);
+    box-shadow: var(--shadow-lg);
+    overflow-y: auto;
+  }
+
+  .library-panel--open {
+    transform: translateX(0);
+  }
+
+  /* Hide desktop resize handle */
+  .library-resize-handle {
+    display: none;
+  }
+
+  /* Grid canvas inset to avoid being hidden by strips */
   .preview {
-    min-height: 400px;
-    padding: var(--space-lg);
+    padding-left: 44px;
+    padding-right: 44px;
   }
 
+  /* Compact library card grid */
+  .library-items-grid,
+  .category-items {
+    grid-template-columns: repeat(auto-fill, 80px);
+  }
+}
+
+/* ─── Responsive: Phone (≤768px) ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Strips shrink to 36px */
+  .mobile-panel-strip {
+    width: 36px;
+  }
+
+  .mobile-panel-strip--left {
+    left: 0;
+  }
+
+  .mobile-panel-strip--right {
+    right: 0;
+  }
+
+  /* Sidebar adjusts offset for narrower strip */
+  .sidebar {
+    left: 36px;
+    width: 220px;
+    transform: translateX(calc(-36px - 220px));
+  }
+
+  .sidebar--open {
+    transform: translateX(0);
+  }
+
+  /* Library panel adjusts offset for narrower strip */
+  .library-panel {
+    right: 36px;
+    width: 240px !important;
+    transform: translateX(calc(36px + 240px));
+  }
+
+  .library-panel--open {
+    transform: translateX(0);
+  }
+
+  /* Shrink canvas padding to match strip width */
+  .preview {
+    padding-left: 36px;
+    padding-right: 36px;
+  }
+
+  /* Smaller card grid on phone */
+  .library-items-grid,
+  .category-items {
+    grid-template-columns: repeat(auto-fill, 72px);
+  }
+
+  .mobile-toggle-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
 }
 
 /* Clear All Button */

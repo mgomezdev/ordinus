@@ -11,6 +11,7 @@ export const STORAGE_KEYS = {
   CUSTOM_CATEGORIES: 'gridfinity-custom-categories',
   WALKTHROUGH_SEEN: 'gridfinity-walkthrough-seen',
   BOM_EXTRAS: 'gridfinity-bom-extras',
+  MOBILE_LAYOUT: 'gridfinity-mobile-layout',
 } as const;
 
 export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];

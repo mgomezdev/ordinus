@@ -6,6 +6,7 @@ interface SidebarPanelProps {
   onClearCanvas: () => void;
   onReset: () => void;
   isReadOnly: boolean;
+  isOpen?: boolean;
 }
 
 export function SidebarPanel({
@@ -14,9 +15,10 @@ export function SidebarPanel({
   onClearCanvas,
   onReset,
   isReadOnly,
+  isOpen,
 }: SidebarPanelProps) {
   return (
-    <section className="sidebar">
+    <section className={`sidebar${isOpen ? ' sidebar--open' : ''}`}>
       <nav className="sidebar-nav">
         <div className="sidebar-nav-row sidebar-nav-heading">
           <span className="sidebar-nav-icon">⊞</span>
