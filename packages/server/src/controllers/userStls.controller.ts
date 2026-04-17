@@ -196,7 +196,9 @@ export async function downloadFileHandler(req: Request, res: Response, next: Nex
     if (!row) return res.status(404).json({ error: 'Not found' });
     if (!checkOwnership(row, req, res)) return;
 
-    res.setHeader('Content-Disposition', `attachment; filename="${row.originalFilename}"`);
+    // Sanitize filename: allow only safe ASCII word chars, dots, hyphens, spaces
+    const safeFilename = row.originalFilename.replace(/[^\w.\- ]/g, '_');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
     return res.sendFile(row.filePath);
   } catch (err) {
     next(err);

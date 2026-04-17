@@ -199,7 +199,8 @@ describe('BOM endpoints', () => {
 
     it('downloads BOM JSON by ID', async () => {
       const res = await request(app)
-        .get(`/api/v1/bom/${bomId}/download`);
+        .get(`/api/v1/bom/${bomId}/download`)
+        .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).toBe(200);
       expect(res.headers['content-type']).toContain('application/json');
@@ -212,14 +213,16 @@ describe('BOM endpoints', () => {
 
     it('returns 404 for non-existent BOM', async () => {
       const res = await request(app)
-        .get('/api/v1/bom/99999/download');
+        .get('/api/v1/bom/99999/download')
+        .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).toBe(404);
     });
 
     it('returns 400 for invalid ID', async () => {
       const res = await request(app)
-        .get('/api/v1/bom/abc/download');
+        .get('/api/v1/bom/abc/download')
+        .set('Authorization', `Bearer ${accessToken}`);
 
       expect(res.status).toBe(400);
     });
