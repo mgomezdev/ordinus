@@ -31,10 +31,15 @@ async function seed(): Promise<void> {
   // Reseed library data from JSON files
   await reseedLibraryData(client, logger);
 
-  // Full reset: wipe and reseed users
-  await client.execute('DELETE FROM refresh_tokens;');
-  await client.execute('DELETE FROM users;');
-  await seedDefaultUsers(client, logger);
+  // Seed default users only if the table is empty (first-run only).
+  // Never wipe existing users in production to prevent accidental data loss.
+  const existingUsers = await client.execute('SELECT COUNT(*) as count FROM users;');
+  const userCount = Number((existingUsers.rows[0] as { count: number }).count);
+  if (userCount === 0) {
+    await seedDefaultUsers(client, logger);
+  } else {
+    logger.info(`Skipping user seed — ${userCount} user(s) already exist.`);
+  }
 
   logger.info('Seed complete!');
   client.close();

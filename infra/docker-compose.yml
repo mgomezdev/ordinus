@@ -19,10 +19,10 @@ services:
     expose:
       - "3001"
     environment:
-      - NODE_ENV=test
+      - NODE_ENV=production
       - PORT=3001
-      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-change-in-production}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-dev-refresh-secret-change-in-production}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
       - CORS_ORIGIN=http://localhost:32888
       - DB_PATH=/data/gridfinity.db
       - IMAGE_DIR=/data/images

@@ -59,8 +59,10 @@ export async function submitBom(
   return result.data;
 }
 
-export async function downloadBom(id: number): Promise<string> {
-  const response = await fetch(`${API_BASE_URL}/bom/${id}/download`);
+export async function downloadBom(id: number, accessToken?: string): Promise<string> {
+  const headers: Record<string, string> = {};
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  const response = await fetch(`${API_BASE_URL}/bom/${id}/download`, { headers });
   if (!response.ok) {
     throw new Error(`Download failed with status ${response.status}`);
   }
