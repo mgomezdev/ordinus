@@ -29,6 +29,11 @@ services:
       - USER_STL_DIR=/data/user-stls
       - USER_STL_IMAGE_DIR=/data/user-stl-images
       - LOG_LEVEL=warn
+      - GRIDFINITY_GENERATOR_DIR=/app/tools/gridfinity-generator
+      - GENERATED_STL_DIR=/data/generated
+      - OPENSCAD_PATH=/app/openscad/AppRun
+      - OPENSCAD_BACKEND=Manifold
+      - SCAD_FILE=/app/tools/gridfinity-generator/gridfinity_basic_cup.scad
     volumes:
       - gridfinity-data:/data
     healthcheck:

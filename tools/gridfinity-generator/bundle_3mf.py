@@ -101,10 +101,14 @@ def build_generate_params(item: dict) -> dict:
         params['wallpattern_style'] = wall_pattern
 
     wall_cutout = c.get('wallCutout', 'none')
-    if wall_cutout in ('vertical', 'both'):
-        params['wallcutout_vertical'] = 'enabled'
-    if wall_cutout in ('horizontal', 'both'):
-        params['wallcutout_horizontal'] = 'enabled'
+    if wall_cutout != 'none':
+        params['wallcutout_enabled'] = True
+        if wall_cutout == 'vertical':
+            params['wallcutout_walls'] = [1, 0, 1, 0]
+        elif wall_cutout == 'horizontal':
+            params['wallcutout_walls'] = [0, 1, 0, 1]
+        elif wall_cutout == 'both':
+            params['wallcutout_walls'] = [1, 1, 1, 1]
 
     return params
 
