@@ -7,6 +7,7 @@ Usage:
 manifest.json: [{"filename": "bin_2x3x8.stl", "widthUnits": 2, "heightUnits": 3, "qty": 4, "customization": {...}}]
 """
 import json
+import os
 import struct
 import sys
 import textwrap
@@ -52,7 +53,7 @@ def parse_binary_stl(path: str) -> tuple:
                     vertices.append(xyz)
                 tri_indices.append(vertex_map[xyz])
             f.read(2)  # attribute byte count
-            triangles.append(tri_indices)
+            triangles.append(tuple(tri_indices))
 
     return vertices, triangles
 
@@ -133,7 +134,6 @@ def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
     stl_dir: directory containing the STL files
     output_path: path to write the .3mf file
     """
-    import os
     objects_xml = []
     items_xml = []
     x_offset = 0.0
