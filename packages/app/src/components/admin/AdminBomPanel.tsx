@@ -51,6 +51,21 @@ export function AdminBomPanel({ submissionId, accessToken }: AdminBomPanelProps)
     }
   };
 
+  const handleDownload = async (submissionId: number, filename: string, accessToken: string) => {
+    const url = getFileDownloadUrl(submissionId, filename);
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(objectUrl);
+  };
+
   const isGenerating = generation?.status === 'generating';
   const isReady = generation?.status === 'ready';
   const isError = generation?.status === 'error' || !!error;
@@ -97,13 +112,13 @@ export function AdminBomPanel({ submissionId, accessToken }: AdminBomPanelProps)
             {isGenerating ? '\u23f3 Generating\u2026' : generation ? '\u21ba Regenerate' : '\u2699 Generate Files'}
           </button>
           {isReady && threeMfFilename && (
-            <a
-              href={getFileDownloadUrl(submissionId, threeMfFilename)}
-              download={threeMfFilename}
+            <button
+              type="button"
               className="admin-bom-panel__btn admin-bom-panel__btn--download-3mf"
+              onClick={() => { void handleDownload(submissionId, threeMfFilename, accessToken); }}
             >
-              \u2b07 Download 3MF ({totalItems} items)
-            </a>
+              ⬇ Download 3MF ({totalItems} items)
+            </button>
           )}
         </div>
       </div>
@@ -111,14 +126,14 @@ export function AdminBomPanel({ submissionId, accessToken }: AdminBomPanelProps)
       {isReady && generation.fileManifest && (
         <div className="admin-bom-panel__stl-links">
           {generation.fileManifest.map((entry) => (
-            <a
+            <button
               key={entry.filename}
-              href={getFileDownloadUrl(submissionId, entry.filename)}
-              download={entry.filename}
+              type="button"
               className="admin-bom-panel__stl-chip"
+              onClick={() => { void handleDownload(submissionId, entry.filename, accessToken); }}
             >
-              \u2b07 {entry.filename} \u00d7{entry.qty}
-            </a>
+              ⬇ {entry.filename} ×{entry.qty}
+            </button>
           ))}
         </div>
       )}

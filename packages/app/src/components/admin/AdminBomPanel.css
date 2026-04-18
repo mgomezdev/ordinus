@@ -86,3 +86,10 @@
 .admin-bom-panel__stl-chip:hover {
   background: var(--blue-50);
 }
+
+button.admin-bom-panel__stl-chip {
+  background: white;
+  border: 1px solid var(--blue-300);
+  cursor: pointer;
+  font-family: inherit;
+}

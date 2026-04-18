@@ -97,6 +97,7 @@ function runPython(args: string[]): Promise<string> {
     let stdout = '';
     let stderr = '';
     const child = spawn(PYTHON_CMD, args);
+    child.on('error', (err) => { reject(err); });
     child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
     child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
     child.on('close', (code) => {
