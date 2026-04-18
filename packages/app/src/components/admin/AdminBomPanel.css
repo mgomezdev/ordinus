@@ -1,0 +1,88 @@
+.admin-bom-panel {
+  background: var(--blue-50);
+  border-bottom: 1px solid var(--blue-200);
+  padding: 14px 20px;
+}
+
+.admin-bom-panel--error {
+  background: #fef2f2;
+  border-bottom-color: #fca5a5;
+}
+
+.admin-bom-panel--generating {
+  background: #fefce8;
+  border-bottom-color: #fde68a;
+}
+
+.admin-bom-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-bom-panel__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--blue-700);
+}
+
+.admin-bom-panel__status {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.admin-bom-panel__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-bom-panel__btn {
+  padding: 7px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.admin-bom-panel__btn--generate {
+  background: var(--blue-700);
+  color: white;
+}
+
+.admin-bom-panel__btn--generate:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-bom-panel__btn--download-3mf {
+  background: #059669;
+  color: white;
+}
+
+.admin-bom-panel__stl-links {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-bom-panel__stl-chip {
+  font-size: 12px;
+  background: white;
+  border: 1px solid var(--blue-300);
+  border-radius: 4px;
+  padding: 3px 10px;
+  color: var(--blue-700);
+  text-decoration: none;
+}
+
+.admin-bom-panel__stl-chip:hover {
+  background: var(--blue-50);
+}
