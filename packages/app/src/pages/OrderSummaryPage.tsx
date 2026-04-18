@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { AdminBomPanel } from '../components/admin/AdminBomPanel';
 import { exportOrderSummaryPdf, calculateOrderTotal } from '../utils/exportOrderSummaryPdf';
 import { formatCustomizationDescription } from '../utils/customizationDescription';
 import { getBOMKey } from '../types/gridfinity';
@@ -27,7 +28,11 @@ export function OrderSummaryPage() {
     dialogDispatch,
     exportPdfError,
     setExportPdfError,
+    isAdmin,
+    getAccessToken,
   } = useWorkspace();
+
+  const accessToken = getAccessToken();
 
   const [isConfiguredOpen, setIsConfiguredOpen] = useState(true);
   const [isExtrasOpen, setIsExtrasOpen] = useState(true);
@@ -122,6 +127,13 @@ export function OrderSummaryPage() {
               Save Now
             </button>
           </div>
+        )}
+
+        {isAdmin && layoutMeta.id !== null && accessToken && (
+          <AdminBomPanel
+            submissionId={layoutMeta.id}
+            accessToken={accessToken}
+          />
         )}
 
         {/* ── As Configured section ── */}
