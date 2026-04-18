@@ -24,6 +24,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrender1 \
     libfontconfig1 \
     libfreetype6 \
+    libharfbuzz0b \
+    libegl1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Download OpenSCAD AppImage, extract it (FUSE not available in Docker)
