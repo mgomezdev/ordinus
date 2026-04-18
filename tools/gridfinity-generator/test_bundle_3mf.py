@@ -101,8 +101,17 @@ class TestBuildParams:
                                   'fingerSlide': 'none', 'wallPattern': 'none',
                                   'wallCutout': 'vertical'}}
         params = bundle_3mf.build_generate_params(item)
-        assert params['wallcutout_vertical'] == 'enabled'
-        assert params.get('wallcutout_horizontal') is None
+        assert params['wallcutout_enabled'] is True
+        assert params['wallcutout_walls'] == [1, 0, 1, 0]
+
+    def test_wall_cutout_horizontal(self):
+        item = {'widthUnits': 1, 'heightUnits': 1, 'qty': 1,
+                'customization': {'height': 8, 'lipStyle': 'normal',
+                                  'fingerSlide': 'none', 'wallPattern': 'none',
+                                  'wallCutout': 'horizontal'}}
+        params = bundle_3mf.build_generate_params(item)
+        assert params['wallcutout_enabled'] is True
+        assert params['wallcutout_walls'] == [0, 1, 0, 1]
 
     def test_wall_cutout_both(self):
         item = {'widthUnits': 1, 'heightUnits': 1, 'qty': 1,
@@ -110,8 +119,16 @@ class TestBuildParams:
                                   'fingerSlide': 'none', 'wallPattern': 'none',
                                   'wallCutout': 'both'}}
         params = bundle_3mf.build_generate_params(item)
-        assert params['wallcutout_vertical'] == 'enabled'
-        assert params['wallcutout_horizontal'] == 'enabled'
+        assert params['wallcutout_enabled'] is True
+        assert params['wallcutout_walls'] == [1, 1, 1, 1]
+
+    def test_wall_cutout_none_not_set(self):
+        item = {'widthUnits': 1, 'heightUnits': 1, 'qty': 1,
+                'customization': {'height': 8, 'lipStyle': 'normal',
+                                  'fingerSlide': 'none', 'wallPattern': 'none',
+                                  'wallCutout': 'none'}}
+        params = bundle_3mf.build_generate_params(item)
+        assert 'wallcutout_enabled' not in params
 
 
 class TestBundle3mf:
