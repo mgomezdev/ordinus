@@ -66,7 +66,10 @@ function buildStlFilename(w: number, d: number, c: BinCustomization): string {
 
 // ── DB helpers ────────────────────────────────────────────────────────────
 
-type RawGenRow = typeof bomGenerations.$inferSelect;
+type RawGenRow = Pick<
+  typeof bomGenerations.$inferSelect,
+  'id' | 'submissionId' | 'status' | 'fileManifest' | 'threeMfPath' | 'generatedAt' | 'errorMessage'
+>;
 
 export function formatBomGeneration(row: RawGenRow): ApiBomGeneration {
   return {
