@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createClient } from '@libsql/client';
 import { runMigrations } from '../db/migrate.js';
+import type { BOMItem } from '@gridfinity/shared';
 
 // We test the pure extraction logic without spawning real subprocesses
 import { extractUniqueConfigs, formatBomGeneration } from './bomGeneration.service.js';
@@ -35,7 +36,7 @@ describe('extractUniqueConfigs', () => {
   });
 
   it('separates items with different customizations', () => {
-    const bomItems = [
+    const bomItems: BOMItem[] = [
       { itemId: 'bin', name: 'Bin', widthUnits: 2, heightUnits: 2,
         color: '#000', categories: [], quantity: 1,
         customization: { wallPattern: 'none', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 8 } },
@@ -48,7 +49,7 @@ describe('extractUniqueConfigs', () => {
   });
 
   it('treats undefined customization same as default', () => {
-    const bomItems = [
+    const bomItems: BOMItem[] = [
       { itemId: 'bin', name: 'Bin', widthUnits: 1, heightUnits: 1,
         color: '#000', categories: [], quantity: 2, customization: undefined },
       { itemId: 'bin', name: 'Bin', widthUnits: 1, heightUnits: 1,
