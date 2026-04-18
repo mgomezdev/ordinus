@@ -60,17 +60,28 @@ export function serveFileHandler(
     }
 
     const filePath = path.resolve(config.GENERATED_STL_DIR, `bom-${submissionId}`, filename);
+
+    // Ensure path is contained within base directory
+    const baseDir = path.resolve(config.GENERATED_STL_DIR);
+    if (!filePath.startsWith(baseDir + path.sep)) {
+      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid filename');
+    }
+
     if (!existsSync(filePath)) {
       throw new AppError(ErrorCodes.NOT_FOUND, 'File not found');
     }
 
     const contentType = filename.endsWith('.3mf')
       ? 'application/vnd.ms-package.3dmanufacturing-3dmodel+xml'
-      : 'application/octet-stream';
+      : filename.endsWith('.stl')
+        ? 'model/stl'
+        : 'application/octet-stream';
 
     res.setHeader('Content-Type', contentType);
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    createReadStream(filePath).pipe(res);
+    const stream = createReadStream(filePath);
+    stream.on('error', (err) => { next(err); });
+    stream.pipe(res);
   } catch (err) {
     next(err);
   }
