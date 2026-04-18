@@ -180,7 +180,7 @@ async function runGenerationPipeline(
   }
 }
 
-function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> {
+export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> {
   const c = cfg.customization;
   const params: Record<string, unknown> = {
     width: [cfg.widthUnits, 0],
@@ -193,11 +193,11 @@ function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> {
     params.wallpattern_enabled = true;
     params.wallpattern_style = c.wallPattern;
   }
-  if (c.wallCutout === 'vertical' || c.wallCutout === 'both') {
-    params.wallcutout_vertical = 'enabled';
-  }
-  if (c.wallCutout === 'horizontal' || c.wallCutout === 'both') {
-    params.wallcutout_horizontal = 'enabled';
+  if (c.wallCutout !== 'none') {
+    params.wallcutout_enabled = true;
+    if (c.wallCutout === 'vertical') params.wallcutout_walls = [1, 0, 1, 0];
+    else if (c.wallCutout === 'horizontal') params.wallcutout_walls = [0, 1, 0, 1];
+    else if (c.wallCutout === 'both') params.wallcutout_walls = [1, 1, 1, 1];
   }
   return params;
 }
