@@ -129,9 +129,9 @@ export function OrderSummaryPage() {
           </div>
         )}
 
-        {isAdmin && layoutMeta.id !== null && accessToken && (
+        {isAdmin && layoutMeta.submissionId !== null && accessToken && (
           <AdminBomPanel
-            submissionId={layoutMeta.id}
+            submissionId={layoutMeta.submissionId}
             accessToken={accessToken}
           />
         )}

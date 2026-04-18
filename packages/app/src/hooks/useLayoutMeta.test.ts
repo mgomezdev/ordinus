@@ -12,6 +12,7 @@ describe('useLayoutMeta', () => {
         description: '',
         status: null,
         owner: '',
+        submissionId: null,
       });
     });
 
@@ -87,6 +88,7 @@ describe('useLayoutMeta', () => {
         description: 'A test layout',
         status: 'submitted',
         owner: 'alice',
+        submissionId: null,
       });
     });
   });
@@ -108,6 +110,7 @@ describe('useLayoutMeta', () => {
         description: '',
         status: null,
         owner: '',
+        submissionId: null,
       });
     });
   });
@@ -147,6 +150,31 @@ describe('useLayoutMeta', () => {
       });
 
       expect(result.current.isReadOnly).toBe(false);
+    });
+  });
+
+  describe('handleSetSubmissionId', () => {
+    it('should set the submissionId', () => {
+      const { result } = renderHook(() => useLayoutMeta());
+
+      act(() => {
+        result.current.handleSetSubmissionId(42);
+      });
+
+      expect(result.current.layoutMeta.submissionId).toBe(42);
+    });
+
+    it('should allow clearing the submissionId back to null', () => {
+      const { result } = renderHook(() => useLayoutMeta());
+
+      act(() => {
+        result.current.handleSetSubmissionId(7);
+      });
+      act(() => {
+        result.current.handleSetSubmissionId(null);
+      });
+
+      expect(result.current.layoutMeta.submissionId).toBeNull();
     });
   });
 
