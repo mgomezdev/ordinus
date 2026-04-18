@@ -342,7 +342,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
   const {
     handleSubmitLayout: rawHandleSubmitLayout,
-    handleSubmitClick,
+    handleSubmitClick: _rawHandleSubmitClick,
     handleSaveComplete,
     handleWithdrawLayout,
     handleCloneCurrentLayout,
@@ -386,6 +386,15 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     gridResult.gridX, gridResult.gridY, drawerWidth, drawerDepth,
     bomItems, handleSetSubmissionId,
   ]);
+
+  // BOM-inclusive submit: for new layouts, falls back to save-first flow
+  const handleSubmitClick = useCallback(() => {
+    if (!layoutMeta.id) {
+      _rawHandleSubmitClick();
+    } else {
+      void handleSubmitLayout();
+    }
+  }, [layoutMeta.id, _rawHandleSubmitClick, handleSubmitLayout]);
 
   const { handleLoadLayout, loadLayout } = useLayoutLoader({
     unitSystem, setWidth, setDepth, setSpacerConfig,

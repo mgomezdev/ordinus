@@ -34,6 +34,7 @@ services:
       - OPENSCAD_PATH=/app/openscad/AppRun
       - OPENSCAD_BACKEND=Manifold
       - SCAD_FILE=/app/tools/gridfinity-generator/gridfinity_basic_cup.scad
+      - ADMIN_INITIAL_PASSWORD=admin
     volumes:
       - gridfinity-data:/data
     healthcheck:
