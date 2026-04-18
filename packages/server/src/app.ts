@@ -18,6 +18,7 @@ import refImagesRoutes from './routes/refImages.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import userStlsRouter from './routes/userStls.routes.js';
 import adminUserStlsRouter from './routes/adminUserStls.routes.js';
+import bomGenerationRoutes from './routes/bomGeneration.routes.js';
 
 export function createApp(): express.Express {
   const app = express();
@@ -66,6 +67,7 @@ export function createApp(): express.Express {
   app.use('/api/v1', adminRoutes);
   app.use('/api/v1/user-stls', userStlsRouter);
   app.use('/api/v1', adminUserStlsRouter);
+  app.use('/api/v1', bomGenerationRoutes);
 
   // Global error handler (must be last)
   app.use(errorHandler);
