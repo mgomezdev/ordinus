@@ -87,18 +87,20 @@ export async function getGeneration(submissionId: number): Promise<ApiBomGenerat
 
 // ── Subprocess helpers ────────────────────────────────────────────────────
 
+const PYTHON_CMD = process.platform === 'win32' ? 'python' : 'python3';
+
 function runPython(args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
     let stdout = '';
     let stderr = '';
-    const child = spawn('python3', args);
+    const child = spawn(PYTHON_CMD, args);
     child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
     child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
     child.on('close', (code) => {
       if (code === 0) {
         resolve(stdout.trim());
       } else {
-        reject(new Error(`python3 ${args[0]} exited ${code}: ${stderr.trim()}`));
+        reject(new Error(`${PYTHON_CMD} ${args[0]} exited ${code}: ${stderr.trim()}`));
       }
     });
   });
@@ -121,13 +123,11 @@ export async function triggerGeneration(submissionId: number): Promise<ApiBomGen
 
   // Upsert generation record with 'generating' status
   await db.delete(bomGenerations).where(eq(bomGenerations.submissionId, submissionId));
-  await db.insert(bomGenerations).values({ submissionId, status: 'generating' });
+  const genRows = await db.insert(bomGenerations).values({ submissionId, status: 'generating' }).returning();
 
-  // Run generation asynchronously (do not await — returns immediately to caller)
   void runGenerationPipeline(submissionId, uniqueConfigs, outDir);
 
-  const rows = await db.select().from(bomGenerations).where(eq(bomGenerations.submissionId, submissionId)).limit(1);
-  return formatBomGeneration(rows[0]);
+  return formatBomGeneration(genRows[0]);
 }
 
 async function runGenerationPipeline(
