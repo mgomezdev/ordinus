@@ -188,6 +188,7 @@ export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> 
     height: [c.height, 0],
     lip_style: c.lipStyle,
     fingerslide: c.fingerSlide,
+    label_style: 'disabled',
   };
   if (c.wallPattern !== 'none') {
     params.wallpattern_enabled = true;

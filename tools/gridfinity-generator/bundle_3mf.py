@@ -93,6 +93,7 @@ def build_generate_params(item: dict) -> dict:
         'height': [c.get('height', DEFAULT_HEIGHT), 0],
         'lip_style': c.get('lipStyle', 'normal'),
         'fingerslide': c.get('fingerSlide', 'none'),
+        'label_style': 'disabled',
     }
 
     wall_pattern = c.get('wallPattern', 'none')

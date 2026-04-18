@@ -90,6 +90,10 @@ describe('buildGenerateParams', () => {
     expect(params.height).toEqual([8, 0]);
   });
 
+  it('always sets label_style to disabled', () => {
+    expect(buildGenerateParams(baseConfig()).label_style).toBe('disabled');
+  });
+
   it('passes lip_style and fingerslide through', () => {
     const params = buildGenerateParams(baseConfig({ lipStyle: 'reduced', fingerSlide: 'rounded' }));
     expect(params.lip_style).toBe('reduced');

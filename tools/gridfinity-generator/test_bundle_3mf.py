@@ -84,6 +84,7 @@ class TestBuildParams:
         assert params['height'] == [8, 0]
         assert params['lip_style'] == 'normal'
         assert params['fingerslide'] == 'none'
+        assert params['label_style'] == 'disabled'
         assert params.get('wallpattern_enabled') is None  # not set when 'none'
 
     def test_wall_pattern_enables_flag(self):
