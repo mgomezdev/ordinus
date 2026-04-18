@@ -393,6 +393,26 @@ export interface ApiBomSubmission {
   createdAt: string;
 }
 
+export type BomGenerationStatus = 'pending' | 'generating' | 'ready' | 'error';
+
+export interface BomGenerationManifestEntry {
+  filename: string;
+  widthUnits: number;
+  heightUnits: number;
+  customization?: BinCustomization;
+  qty: number;
+}
+
+export interface ApiBomGeneration {
+  id: number;
+  submissionId: number;
+  status: BomGenerationStatus;
+  fileManifest: BomGenerationManifestEntry[] | null;
+  threeMfPath: string | null;
+  generatedAt: string | null;
+  errorMessage: string | null;
+}
+
 // ============================================================
 // User STL upload types
 // ============================================================
