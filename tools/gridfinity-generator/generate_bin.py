@@ -62,7 +62,7 @@ PARAM_REGISTRY = {
     "floor_thickness":            {"default": 0.7,    "type": "number"},
     "cavity_floor_radius":        {"default": -1,     "type": "number"},
     "efficient_floor":            {"default": "off",  "type": "string"},
-    "half_pitch":                 {"default": False,  "type": "bool"},
+    "half_pitch":                 {"default": False,  "type": "bool"},  # subdivide base pads for half-cell offsets
     "flat_base":                  {"default": False,  "type": "bool"},
     "spacer":                     {"default": False,  "type": "bool"},
 
