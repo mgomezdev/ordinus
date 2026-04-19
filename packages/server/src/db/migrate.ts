@@ -310,4 +310,34 @@ export async function runMigrations(client: Client): Promise<void> {
   } catch {
     // ignore
   }
+
+  // BOM view refactor: drop status from layouts, migrate bom_generations to use layout_id
+  try {
+    await client.execute(`DROP INDEX IF EXISTS idx_layouts_status;`);
+  } catch {}
+  try {
+    await client.execute(`ALTER TABLE layouts DROP COLUMN status;`);
+  } catch {}
+
+  // Migrate bom_generations from submission_id to layout_id (idempotent)
+  try {
+    // Probe for layout_id column — if it exists, table is already migrated
+    await client.execute(`SELECT layout_id FROM bom_generations LIMIT 1;`);
+  } catch {
+    // layout_id doesn't exist yet — recreate the table
+    try { await client.execute(`DROP TABLE IF EXISTS bom_generations;`); } catch {}
+    try { await client.execute(`DROP TABLE IF EXISTS bom_submissions;`); } catch {}
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS bom_generations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        layout_id INTEGER NOT NULL UNIQUE REFERENCES layouts(id) ON DELETE CASCADE,
+        status TEXT NOT NULL DEFAULT 'pending',
+        export_json TEXT,
+        file_manifest TEXT,
+        three_mf_path TEXT,
+        generated_at TEXT,
+        error_message TEXT
+      );
+    `);
+  }
 }

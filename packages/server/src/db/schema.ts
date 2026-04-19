@@ -82,13 +82,11 @@ export const layouts = sqliteTable('layouts', {
   depthMm: real('depth_mm').notNull(),
   spacerHorizontal: text('spacer_horizontal').notNull().default('none'),
   spacerVertical: text('spacer_vertical').notNull().default('none'),
-  status: text('status').notNull().default('draft'),
   isPublic: integer('is_public', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull().default(''),
   updatedAt: text('updated_at').notNull().default(''),
 }, (table) => [
   index('idx_layouts_user').on(table.userId),
-  index('idx_layouts_status').on(table.status),
 ]);
 
 export const placedItems = sqliteTable('placed_items', {
@@ -186,24 +184,11 @@ export const sharedProjects = sqliteTable('shared_projects', {
 ]);
 
 // BOM tables
-export const bomSubmissions = sqliteTable('bom_submissions', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  layoutId: integer('layout_id').references(() => layouts.id, { onDelete: 'set null' }),
-  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
-  gridX: integer('grid_x').notNull(),
-  gridY: integer('grid_y').notNull(),
-  widthMm: real('width_mm').notNull(),
-  depthMm: real('depth_mm').notNull(),
-  totalItems: integer('total_items').notNull(),
-  totalUnique: integer('total_unique').notNull(),
-  exportJson: text('export_json').notNull(),
-  createdAt: text('created_at').notNull().default(''),
-});
-
 export const bomGenerations = sqliteTable('bom_generations', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  submissionId: integer('submission_id').notNull().unique().references(() => bomSubmissions.id, { onDelete: 'cascade' }),
+  layoutId: integer('layout_id').notNull().unique().references(() => layouts.id, { onDelete: 'cascade' }),
   status: text('status').notNull().default('pending'),
+  exportJson: text('export_json'),
   fileManifest: text('file_manifest'),
   threeMfPath: text('three_mf_path'),
   generatedAt: text('generated_at'),
@@ -307,20 +292,9 @@ export const sharedProjectsRelations = relations(sharedProjects, ({ one }) => ({
   }),
 }));
 
-export const bomSubmissionsRelations = relations(bomSubmissions, ({ one }) => ({
-  layout: one(layouts, {
-    fields: [bomSubmissions.layoutId],
-    references: [layouts.id],
-  }),
-  user: one(users, {
-    fields: [bomSubmissions.userId],
-    references: [users.id],
-  }),
-}));
-
 export const bomGenerationsRelations = relations(bomGenerations, ({ one }) => ({
-  submission: one(bomSubmissions, {
-    fields: [bomGenerations.submissionId],
-    references: [bomSubmissions.id],
+  layout: one(layouts, {
+    fields: [bomGenerations.layoutId],
+    references: [layouts.id],
   }),
 }));
