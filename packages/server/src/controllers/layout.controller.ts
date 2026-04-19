@@ -381,8 +381,8 @@ export async function listAdminUserLayouts(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const userIdStr = (req.params?.userId ?? req.query.userId) as string | undefined;
-    if (!userIdStr) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'userId param required');
+    const userIdStr = req.query.userId as string | undefined;
+    if (!userIdStr) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'userId query param required');
     const userId = parseInt(userIdStr, 10);
     if (isNaN(userId)) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid userId');
 
