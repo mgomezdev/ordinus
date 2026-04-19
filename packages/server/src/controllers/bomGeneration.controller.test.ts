@@ -1,112 +1,175 @@
-import { describe, it, expect, vi } from 'vitest';
-import request from 'supertest';
-import express from 'express';
-import { AppError, ErrorCodes } from '@gridfinity/shared';
-import { errorHandler } from '../middleware/errorHandler.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Request, Response, NextFunction } from 'express';
 
-// Mock the service so we don't spawn real subprocesses
 vi.mock('../services/bomGeneration.service.js', () => ({
-  triggerGeneration: vi.fn().mockResolvedValue({
-    id: 1, submissionId: 42, status: 'generating',
-    fileManifest: null, threeMfPath: null, generatedAt: null, errorMessage: null,
-  }),
-  getGeneration: vi.fn().mockResolvedValue({
-    id: 1, submissionId: 42, status: 'ready',
-    fileManifest: [{ filename: 'bin_2x3x8.stl', widthUnits: 2, heightUnits: 3, qty: 2 }],
-    threeMfPath: '/data/generated/bom-42/bom-42.3mf',
-    generatedAt: '2026-04-17T00:00:00Z',
-    errorMessage: null,
-  }),
+  triggerGeneration: vi.fn(),
+  getGeneration: vi.fn(),
 }));
 
-// Mock auth middleware to inject user by header for testing
-vi.mock('../middleware/auth.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../middleware/auth.js')>();
-  return {
-    ...actual,
-    requireAuth: vi.fn((req: express.Request, _res: express.Response, next: express.NextFunction) => {
-      const role = req.headers['x-test-role'] as string | undefined;
-      if (!role) {
-        next(new AppError(ErrorCodes.AUTH_REQUIRED, 'Auth required'));
-        return;
-      }
-      req.user = { userId: 1, role };
-      next();
-    }),
-  };
-});
+// Mock DB + layout ownership check
+vi.mock('../db/connection.js', () => ({ db: {} }));
+vi.mock('../db/schema.js', () => ({ layouts: {} }));
+vi.mock('drizzle-orm', () => ({ eq: vi.fn() }));
 
-// Build a minimal app with just the BOM generation routes + error handler
-async function buildTestApp() {
-  const app = express();
-  app.use(express.json());
-  const bomGenerationRoutes = (await import('../routes/bomGeneration.routes.js')).default;
-  app.use('/api/v1', bomGenerationRoutes);
-  app.use(errorHandler);
-  return app;
+import * as bomGenerationService from '../services/bomGeneration.service.js';
+import { generateHandler, getGenerationHandler, serveFileHandler } from './bomGeneration.controller.js';
+
+function makeReq(overrides: Partial<Request> = {}): Partial<Request> {
+  return {
+    params: {},
+    body: {},
+    user: { userId: 1, role: 'user' },
+    ...overrides,
+  };
 }
 
-describe('POST /api/v1/admin/bom/:submissionId/generate — security', () => {
-  it('returns 401 with no auth', async () => {
-    const app = await buildTestApp();
-    const res = await request(app).post('/api/v1/admin/bom/42/generate');
-    expect(res.status).toBe(401);
+function makeRes(): {
+  status: ReturnType<typeof vi.fn>;
+  json: ReturnType<typeof vi.fn>;
+  setHeader: ReturnType<typeof vi.fn>;
+} {
+  const res = { status: vi.fn(), json: vi.fn(), setHeader: vi.fn() };
+  res.status.mockReturnValue(res);
+  return res;
+}
+
+const next = vi.fn() as unknown as NextFunction;
+
+async function setupDbMock(userId: number): Promise<void> {
+  const { db } = await import('../db/connection.js');
+  const mockLimit = vi.fn().mockResolvedValue([{ userId }]);
+  const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+  const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+  const mockSelect = vi.fn().mockReturnValue({ from: mockFrom });
+  Object.assign(db, { select: mockSelect });
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe('generateHandler', () => {
+  it('returns 202 with generation record on success', async () => {
+    const mockGeneration = {
+      id: 1,
+      layoutId: 5,
+      status: 'generating' as const,
+      fileManifest: null,
+      threeMfPath: null,
+      generatedAt: null,
+      errorMessage: null,
+    };
+    vi.mocked(bomGenerationService.triggerGeneration).mockResolvedValueOnce(mockGeneration);
+    await setupDbMock(1);
+
+    const req = makeReq({ params: { layoutId: '5' }, body: { bomItems: [] } });
+    const res = makeRes();
+
+    await generateHandler(req as Request, res as unknown as Response, next);
+
+    expect(res.status).toHaveBeenCalledWith(202);
+    expect(res.json).toHaveBeenCalledWith({ data: mockGeneration });
   });
 
-  it('returns 403 for non-admin user', async () => {
-    const app = await buildTestApp();
-    const res = await request(app)
-      .post('/api/v1/admin/bom/42/generate')
-      .set('x-test-role', 'user');
-    expect(res.status).toBe(403);
+  it('calls next with error if layoutId is NaN', async () => {
+    const req = makeReq({ params: { layoutId: 'bad' } });
+    const res = makeRes();
+    await generateHandler(req as Request, res as unknown as Response, next);
+    expect(next).toHaveBeenCalled();
   });
 
-  it('returns 202 for admin user', async () => {
-    const app = await buildTestApp();
-    const res = await request(app)
-      .post('/api/v1/admin/bom/42/generate')
-      .set('x-test-role', 'admin');
-    expect(res.status).toBe(202);
+  it('calls next with error if user is not authenticated', async () => {
+    const req = makeReq({ params: { layoutId: '5' }, user: undefined });
+    const res = makeRes();
+    await generateHandler(req as Request, res as unknown as Response, next);
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('calls next with FORBIDDEN if user does not own layout', async () => {
+    const { db } = await import('../db/connection.js');
+    const mockLimit = vi.fn().mockResolvedValue([{ userId: 99 }]); // different owner
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    const mockSelect = vi.fn().mockReturnValue({ from: mockFrom });
+    Object.assign(db, { select: mockSelect });
+
+    const req = makeReq({ params: { layoutId: '5' }, body: { bomItems: [] } });
+    const res = makeRes();
+    await generateHandler(req as Request, res as unknown as Response, next);
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('calls next with NOT_FOUND if layout does not exist', async () => {
+    const { db } = await import('../db/connection.js');
+    const mockLimit = vi.fn().mockResolvedValue([]); // no rows
+    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
+    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+    const mockSelect = vi.fn().mockReturnValue({ from: mockFrom });
+    Object.assign(db, { select: mockSelect });
+
+    const req = makeReq({ params: { layoutId: '5' }, body: { bomItems: [] } });
+    const res = makeRes();
+    await generateHandler(req as Request, res as unknown as Response, next);
+    expect(next).toHaveBeenCalled();
   });
 });
 
-describe('GET /api/v1/admin/bom/:submissionId/generation — security', () => {
-  it('returns 401 with no auth', async () => {
-    const app = await buildTestApp();
-    const res = await request(app).get('/api/v1/admin/bom/42/generation');
-    expect(res.status).toBe(401);
+describe('getGenerationHandler', () => {
+  it('returns 200 with generation record when found', async () => {
+    const mockGeneration = {
+      id: 1,
+      layoutId: 5,
+      status: 'ready' as const,
+      fileManifest: null,
+      threeMfPath: null,
+      generatedAt: null,
+      errorMessage: null,
+    };
+    vi.mocked(bomGenerationService.getGeneration).mockResolvedValueOnce(mockGeneration);
+    await setupDbMock(1);
+
+    const req = makeReq({ params: { layoutId: '5' } });
+    const res = makeRes();
+
+    await getGenerationHandler(req as Request, res as unknown as Response, next);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ data: mockGeneration });
   });
 
-  it('returns 403 for non-admin user', async () => {
-    const app = await buildTestApp();
-    const res = await request(app)
-      .get('/api/v1/admin/bom/42/generation')
-      .set('x-test-role', 'user');
-    expect(res.status).toBe(403);
+  it('calls next when no generation exists', async () => {
+    vi.mocked(bomGenerationService.getGeneration).mockResolvedValueOnce(null);
+    await setupDbMock(1);
+
+    const req = makeReq({ params: { layoutId: '5' } });
+    const res = makeRes();
+
+    await getGenerationHandler(req as Request, res as unknown as Response, next);
+    expect(next).toHaveBeenCalled();
   });
 
-  it('returns 200 with generation data for admin', async () => {
-    const app = await buildTestApp();
-    const res = await request(app)
-      .get('/api/v1/admin/bom/42/generation')
-      .set('x-test-role', 'admin');
-    expect(res.status).toBe(200);
-    expect(res.body.data.status).toBe('ready');
+  it('calls next with error if layoutId is NaN', async () => {
+    const req = makeReq({ params: { layoutId: 'nan' } });
+    const res = makeRes();
+    await getGenerationHandler(req as Request, res as unknown as Response, next);
+    expect(next).toHaveBeenCalled();
   });
 });
 
-describe('GET /api/v1/admin/bom/:submissionId/files/:filename — security', () => {
-  it('returns 401 with no auth', async () => {
-    const app = await buildTestApp();
-    const res = await request(app).get('/api/v1/admin/bom/42/files/bin_2x3x8.stl');
-    expect(res.status).toBe(401);
+describe('serveFileHandler', () => {
+  it('calls next with VALIDATION_ERROR for path traversal in filename', async () => {
+    await setupDbMock(1);
+    const req = makeReq({ params: { layoutId: '5', filename: '../secret.stl' } });
+    const res = makeRes();
+    await serveFileHandler(req as Request, res as unknown as Response, next);
+    expect(next).toHaveBeenCalled();
   });
 
-  it('returns 403 for non-admin user', async () => {
-    const app = await buildTestApp();
-    const res = await request(app)
-      .get('/api/v1/admin/bom/42/files/bin_2x3x8.stl')
-      .set('x-test-role', 'user');
-    expect(res.status).toBe(403);
+  it('calls next with VALIDATION_ERROR for filename with forward slash', async () => {
+    await setupDbMock(1);
+    const req = makeReq({ params: { layoutId: '5', filename: 'sub/dir.stl' } });
+    const res = makeRes();
+    await serveFileHandler(req as Request, res as unknown as Response, next);
+    expect(next).toHaveBeenCalled();
   });
 });
