@@ -89,7 +89,7 @@ function AppShellInner() {
             to="/order"
             className={({ isActive }) => `nav-tab${isActive ? ' nav-tab-active' : ''}`}
           >
-            Order Summary
+            BOM
           </NavLink>
         </div>
 
@@ -140,16 +140,6 @@ function AppShellInner() {
           <span className="status-cost-label">Est.</span>
           <strong>{costLabel}</strong>
         </div>
-        {isAuthenticated && (
-          <NavLink
-            to="/order"
-            className="status-submit-btn"
-            style={{ pointerEvents: totalPlaced === 0 ? 'none' : undefined }}
-            aria-disabled={totalPlaced === 0}
-          >
-            Review &amp; Submit &rarr;
-          </NavLink>
-        )}
         {isAdmin && (
           <button
             type="button"

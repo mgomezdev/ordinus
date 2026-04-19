@@ -5,6 +5,7 @@ import { exportOrderSummaryPdf, calculateOrderTotal } from '../utils/exportOrder
 import { formatCustomizationDescription } from '../utils/customizationDescription';
 import { getBOMKey } from '../types/gridfinity';
 import type { BOMItem } from '../types/gridfinity';
+import { BomGenerationPanel } from '../components/BomGenerationPanel';
 import './OrderSummaryPage.css';
 
 export function OrderSummaryPage() {
@@ -23,6 +24,8 @@ export function OrderSummaryPage() {
     dialogDispatch,
     exportPdfError,
     setExportPdfError,
+    isAuthenticated,
+    getAccessToken,
   } = useWorkspace();
 
   const [isConfiguredOpen, setIsConfiguredOpen] = useState(true);
@@ -89,13 +92,12 @@ export function OrderSummaryPage() {
         <div className="order-breadcrumb">
           <Link to="/">Workspace</Link>
           <span className="order-breadcrumb-sep">›</span>
-          <span>Order Summary</span>
+          <span>BOM</span>
         </div>
 
-        <h2 className="order-summary-title">Order Summary &amp; BOM</h2>
+        <h2 className="order-summary-title">Bill of Materials</h2>
         <p className="order-summary-subtitle">
-          Review your layout before submitting. Items marked &quot;Price TBD&quot; will receive a confirmed quote before
-          any build or shipment.
+          Review your layout and generate STL files for printing.
         </p>
 
         {hasNoId && (
@@ -396,6 +398,20 @@ export function OrderSummaryPage() {
           <span>Total ({totalItems})</span>
           <span>{hasTbd ? 'Pending quote' : `$${grandTotal.toFixed(2)}`}</span>
         </div>
+
+        {isAuthenticated && layoutMeta.id !== null && (
+          <>
+            <hr className="order-panel-divider" />
+            <div className="order-panel-section">
+              <p className="order-panel-section-title">Generate STL Files</p>
+              <BomGenerationPanel
+                layoutId={layoutMeta.id}
+                bomItems={bomItems}
+                accessToken={getAccessToken()}
+              />
+            </div>
+          </>
+        )}
 
         <div className="order-panel-actions">
           <button className="order-panel-btn" onClick={handleDownloadPdf} type="button">

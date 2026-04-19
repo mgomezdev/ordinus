@@ -137,7 +137,7 @@ describe('handleLoadLayout', () => {
 
     expect(params.layoutDispatch).toHaveBeenCalledWith({
       type: 'LOAD_LAYOUT',
-      payload: { id: 99, name: 'My Layout', description: 'cool', status: 'draft', owner: '' },
+      payload: { id: 99, name: 'My Layout', description: 'cool', owner: '' },
     });
     expect(params.setSpacerConfig).toHaveBeenCalledWith({ horizontal: 'left', vertical: 'none' });
   });

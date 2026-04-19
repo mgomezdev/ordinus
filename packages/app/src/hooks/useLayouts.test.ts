@@ -11,12 +11,7 @@ vi.mock('../api/layouts.api.js', () => ({
   updateLayout: vi.fn(),
   updateLayoutMeta: vi.fn(),
   deleteLayoutApi: vi.fn(),
-  submitLayout: vi.fn(),
-  withdrawLayout: vi.fn(),
   cloneLayout: vi.fn(),
-  fetchAdminLayouts: vi.fn(),
-  fetchSubmittedCount: vi.fn(),
-  deliverLayout: vi.fn(),
 }));
 
 vi.mock('../contexts/AuthContext.js', () => ({
@@ -25,13 +20,11 @@ vi.mock('../contexts/AuthContext.js', () => ({
 
 import { useAuth } from '../contexts/AuthContext.js';
 import {
-  fetchLayouts, createLayout, updateLayout, deleteLayoutApi,
-  submitLayout, withdrawLayout, cloneLayout, fetchSubmittedCount,
+  fetchLayouts, createLayout, updateLayout, deleteLayoutApi, cloneLayout,
 } from '../api/layouts.api.js';
 import {
   useLayoutsQuery, useSaveLayoutMutation, useUpdateLayoutMutation,
-  useDeleteLayoutMutation, useSubmitLayoutMutation, useWithdrawLayoutMutation,
-  useCloneLayoutMutation, useSubmittedCountQuery,
+  useDeleteLayoutMutation, useCloneLayoutMutation,
 } from './useLayouts';
 
 const MOCK_TOKEN = 'test-token';
@@ -141,36 +134,6 @@ describe('useDeleteLayoutMutation', () => {
   });
 });
 
-describe('useSubmitLayoutMutation', () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it('calls submitLayout and returns updated layout', async () => {
-    vi.mocked(useAuth).mockReturnValue(makeAuth());
-    vi.mocked(submitLayout).mockResolvedValue({ ...MOCK_LAYOUT, status: 'submitted' } as never);
-
-    const { result } = renderHook(() => useSubmitLayoutMutation(), { wrapper: createWrapper() });
-    let res: unknown;
-    await act(async () => { res = await result.current.mutateAsync(1); });
-    expect(submitLayout).toHaveBeenCalledWith(MOCK_TOKEN, 1);
-    expect((res as typeof MOCK_LAYOUT).status).toBe('submitted');
-  });
-});
-
-describe('useWithdrawLayoutMutation', () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it('calls withdrawLayout and returns draft status', async () => {
-    vi.mocked(useAuth).mockReturnValue(makeAuth());
-    vi.mocked(withdrawLayout).mockResolvedValue({ ...MOCK_LAYOUT, status: 'draft' } as never);
-
-    const { result } = renderHook(() => useWithdrawLayoutMutation(), { wrapper: createWrapper() });
-    let res: unknown;
-    await act(async () => { res = await result.current.mutateAsync(1); });
-    expect(withdrawLayout).toHaveBeenCalledWith(MOCK_TOKEN, 1);
-    expect((res as typeof MOCK_LAYOUT).status).toBe('draft');
-  });
-});
-
 describe('useCloneLayoutMutation', () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -181,27 +144,5 @@ describe('useCloneLayoutMutation', () => {
     const { result } = renderHook(() => useCloneLayoutMutation(), { wrapper: createWrapper() });
     await act(async () => { await result.current.mutateAsync(1); });
     expect(cloneLayout).toHaveBeenCalledWith(MOCK_TOKEN, 1);
-  });
-});
-
-describe('useSubmittedCountQuery', () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it('fetches count when user is admin', async () => {
-    vi.mocked(useAuth).mockReturnValue(makeAuth({ user: { role: 'admin' } }));
-    vi.mocked(fetchSubmittedCount).mockResolvedValue({ submitted: 3 } as never);
-
-    const { result } = renderHook(() => useSubmittedCountQuery(), { wrapper: createWrapper() });
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.submitted).toBe(3);
-  });
-
-  it('does not fetch when user is not admin', async () => {
-    vi.mocked(useAuth).mockReturnValue(makeAuth({ user: { role: 'user' } }));
-
-    const { result } = renderHook(() => useSubmittedCountQuery(), { wrapper: createWrapper() });
-    await new Promise(r => setTimeout(r, 50));
-    expect(result.current.isFetching).toBe(false);
-    expect(fetchSubmittedCount).not.toHaveBeenCalled();
   });
 });

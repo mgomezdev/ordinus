@@ -4,12 +4,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AdminSubmissionsDialog } from './AdminSubmissionsDialog';
 import type { ApiLayout } from '@gridfinity/shared';
 
-vi.mock('../../hooks/useLayouts', () => ({
+vi.mock('../../hooks/useAdminLayouts', () => ({
   useAdminLayoutsQuery: vi.fn(),
   useDeliverLayoutMutation: vi.fn(() => ({
     mutateAsync: vi.fn(),
     isPending: false,
   })),
+}));
+
+vi.mock('../../hooks/useLayouts', () => ({
   useCloneLayoutMutation: vi.fn(() => ({
     mutateAsync: vi.fn(),
     isPending: false,
@@ -42,7 +45,7 @@ vi.mock('../../api/layouts.api', () => ({
   fetchLayout: vi.fn(),
 }));
 
-import { useAdminLayoutsQuery } from '../../hooks/useLayouts';
+import { useAdminLayoutsQuery } from '../../hooks/useAdminLayouts';
 import { useAdminUserStlsQuery } from '../../hooks/useUserStls';
 import type { ApiUserStlAdmin } from '@gridfinity/shared';
 

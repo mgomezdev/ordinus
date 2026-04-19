@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import type { LayoutStatus } from '@gridfinity/shared';
 import { layoutMetaReducer, initialLayoutMetaState } from './layoutMetaReducer';
 import type { LayoutMetaState, LayoutMetaAction } from './layoutMetaReducer';
 
@@ -17,16 +16,8 @@ describe('layoutMetaReducer', () => {
       expect(initialLayoutMetaState.description).toBe('');
     });
 
-    it('has null status', () => {
-      expect(initialLayoutMetaState.status).toBeNull();
-    });
-
     it('has empty owner', () => {
       expect(initialLayoutMetaState.owner).toBe('');
-    });
-
-    it('has null submissionId', () => {
-      expect(initialLayoutMetaState.submissionId).toBeNull();
     });
   });
 
@@ -38,7 +29,6 @@ describe('layoutMetaReducer', () => {
           id: 42,
           name: 'My Layout',
           description: 'A description',
-          status: 'draft' as LayoutStatus,
           owner: 'alice<alice@example.com>',
         },
       };
@@ -48,7 +38,6 @@ describe('layoutMetaReducer', () => {
       expect(state.id).toBe(42);
       expect(state.name).toBe('My Layout');
       expect(state.description).toBe('A description');
-      expect(state.status).toBe('draft');
       expect(state.owner).toBe('alice<alice@example.com>');
     });
 
@@ -57,9 +46,7 @@ describe('layoutMetaReducer', () => {
         id: 1,
         name: 'Old',
         description: 'Old desc',
-        status: 'submitted',
         owner: 'bob',
-        submissionId: null,
       };
 
       const action: LayoutMetaAction = {
@@ -68,7 +55,6 @@ describe('layoutMetaReducer', () => {
           id: 99,
           name: 'New',
           description: 'New desc',
-          status: 'delivered' as LayoutStatus,
           owner: 'charlie',
         },
       };
@@ -77,7 +63,6 @@ describe('layoutMetaReducer', () => {
       expect(state.id).toBe(99);
       expect(state.name).toBe('New');
       expect(state.description).toBe('New desc');
-      expect(state.status).toBe('delivered');
       expect(state.owner).toBe('charlie');
     });
   });
@@ -88,9 +73,7 @@ describe('layoutMetaReducer', () => {
         id: 42,
         name: 'Test Layout',
         description: 'Some desc',
-        status: 'draft',
         owner: 'user1',
-        submissionId: null,
       };
 
       const state = layoutMetaReducer(existing, { type: 'CLEAR_LAYOUT' });
@@ -100,24 +83,21 @@ describe('layoutMetaReducer', () => {
   });
 
   describe('SAVE_COMPLETE action', () => {
-    it('updates id, name, and status', () => {
+    it('updates id and name', () => {
       const existing: LayoutMetaState = {
         id: null,
         name: '',
         description: '',
-        status: null,
         owner: '',
-        submissionId: null,
       };
 
       const state = layoutMetaReducer(existing, {
         type: 'SAVE_COMPLETE',
-        payload: { id: 77, name: 'Saved Layout', status: 'draft' as LayoutStatus },
+        payload: { id: 77, name: 'Saved Layout' },
       });
 
       expect(state.id).toBe(77);
       expect(state.name).toBe('Saved Layout');
-      expect(state.status).toBe('draft');
       expect(state.description).toBe('');
       expect(state.owner).toBe('');
     });
@@ -127,14 +107,12 @@ describe('layoutMetaReducer', () => {
         id: 10,
         name: 'Old',
         description: 'Keep this',
-        status: 'draft',
         owner: 'keep-owner',
-        submissionId: null,
       };
 
       const state = layoutMetaReducer(existing, {
         type: 'SAVE_COMPLETE',
-        payload: { id: 10, name: 'Updated', status: 'submitted' as LayoutStatus },
+        payload: { id: 10, name: 'Updated' },
       });
 
       expect(state.description).toBe('Keep this');
@@ -143,24 +121,21 @@ describe('layoutMetaReducer', () => {
   });
 
   describe('CLONE_COMPLETE action', () => {
-    it('updates id, name, and status', () => {
+    it('updates id and name', () => {
       const existing: LayoutMetaState = {
         id: 10,
         name: 'Original',
         description: 'Desc',
-        status: 'delivered',
         owner: 'alice',
-        submissionId: 5,
       };
 
       const state = layoutMetaReducer(existing, {
         type: 'CLONE_COMPLETE',
-        payload: { id: 20, name: 'Original (Copy)', status: 'draft' as LayoutStatus },
+        payload: { id: 20, name: 'Original (Copy)' },
       });
 
       expect(state.id).toBe(20);
       expect(state.name).toBe('Original (Copy)');
-      expect(state.status).toBe('draft');
     });
 
     it('preserves description and owner from existing state', () => {
@@ -168,120 +143,16 @@ describe('layoutMetaReducer', () => {
         id: 10,
         name: 'Original',
         description: 'Keep desc',
-        status: 'delivered',
         owner: 'alice',
-        submissionId: null,
       };
 
       const state = layoutMetaReducer(existing, {
         type: 'CLONE_COMPLETE',
-        payload: { id: 20, name: 'Clone', status: 'draft' as LayoutStatus },
+        payload: { id: 20, name: 'Clone' },
       });
 
       expect(state.description).toBe('Keep desc');
       expect(state.owner).toBe('alice');
-    });
-  });
-
-  describe('SET_STATUS action', () => {
-    it('updates only the status field', () => {
-      const existing: LayoutMetaState = {
-        id: 42,
-        name: 'Test Layout',
-        description: 'Desc',
-        status: 'draft',
-        owner: 'alice',
-        submissionId: null,
-      };
-
-      const state = layoutMetaReducer(existing, {
-        type: 'SET_STATUS',
-        payload: 'submitted',
-      });
-
-      expect(state.status).toBe('submitted');
-      expect(state.id).toBe(42);
-      expect(state.name).toBe('Test Layout');
-      expect(state.description).toBe('Desc');
-      expect(state.owner).toBe('alice');
-    });
-
-    it('can set status to null', () => {
-      const existing: LayoutMetaState = {
-        id: 42,
-        name: 'Test',
-        description: '',
-        status: 'draft',
-        owner: '',
-        submissionId: null,
-      };
-
-      const state = layoutMetaReducer(existing, {
-        type: 'SET_STATUS',
-        payload: null,
-      });
-
-      expect(state.status).toBeNull();
-    });
-  });
-
-  describe('SET_SUBMISSION_ID action', () => {
-    it('sets submissionId and preserves other fields', () => {
-      const existing: LayoutMetaState = {
-        id: 42,
-        name: 'Test Layout',
-        description: 'Desc',
-        status: 'submitted',
-        owner: 'alice',
-        submissionId: null,
-      };
-
-      const state = layoutMetaReducer(existing, {
-        type: 'SET_SUBMISSION_ID',
-        payload: 99,
-      });
-
-      expect(state.submissionId).toBe(99);
-      expect(state.id).toBe(42);
-      expect(state.status).toBe('submitted');
-    });
-
-    it('can set submissionId to null', () => {
-      const existing: LayoutMetaState = {
-        id: 42,
-        name: 'Test',
-        description: '',
-        status: 'submitted',
-        owner: '',
-        submissionId: 7,
-      };
-
-      const state = layoutMetaReducer(existing, {
-        type: 'SET_SUBMISSION_ID',
-        payload: null,
-      });
-
-      expect(state.submissionId).toBeNull();
-    });
-  });
-
-  describe('CLONE_COMPLETE submissionId reset', () => {
-    it('resets submissionId to null on clone', () => {
-      const existing: LayoutMetaState = {
-        id: 10,
-        name: 'Original',
-        description: 'Desc',
-        status: 'submitted',
-        owner: 'alice',
-        submissionId: 5,
-      };
-
-      const state = layoutMetaReducer(existing, {
-        type: 'CLONE_COMPLETE',
-        payload: { id: 20, name: 'Clone', status: 'draft' as LayoutStatus },
-      });
-
-      expect(state.submissionId).toBeNull();
     });
   });
 
@@ -291,9 +162,7 @@ describe('layoutMetaReducer', () => {
         id: 42,
         name: 'Test',
         description: 'Desc',
-        status: 'draft',
         owner: 'alice',
-        submissionId: null,
       };
 
       const state = layoutMetaReducer(existing, { type: 'UNKNOWN' } as unknown as LayoutMetaAction);
@@ -301,3 +170,4 @@ describe('layoutMetaReducer', () => {
     });
   });
 });
+

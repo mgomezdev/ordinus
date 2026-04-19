@@ -25,8 +25,6 @@ const defaultProps = {
   layout: mockLayout,
   onEdit: vi.fn(),
   onDelete: vi.fn(),
-  onSubmit: vi.fn(),
-  onWithdraw: vi.fn(),
   onDuplicate: vi.fn(),
   isDeleting: false,
 };
@@ -54,29 +52,10 @@ describe('SavedConfigCard', () => {
     expect(cells).toHaveLength(16);
   });
 
-  it('renders status badge', () => {
+  it('shows Edit and Duplicate buttons', () => {
     renderCard();
-    expect(screen.getByText('draft')).toBeInTheDocument();
-  });
-
-  it('shows Submit button for draft layouts', () => {
-    renderCard();
-    expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();
-  });
-
-  it('does not show Submit button for submitted layouts', () => {
-    renderCard({ layout: { ...mockLayout, status: 'submitted' } });
-    expect(screen.queryByRole('button', { name: /^submit$/i })).not.toBeInTheDocument();
-  });
-
-  it('shows Withdraw button for submitted layouts', () => {
-    renderCard({ layout: { ...mockLayout, status: 'submitted' } });
-    expect(screen.getByRole('button', { name: /withdraw/i })).toBeInTheDocument();
-  });
-
-  it('does not show Delete button for delivered layouts', () => {
-    renderCard({ layout: { ...mockLayout, status: 'delivered' } });
-    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /duplicate/i })).toBeInTheDocument();
   });
 
   it('calls onEdit when Edit is clicked', () => {

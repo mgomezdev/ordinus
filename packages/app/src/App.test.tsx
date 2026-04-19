@@ -143,15 +143,11 @@ vi.mock('./components/UserStlLibrarySection', () => ({
   UserStlLibrarySection: () => <div data-testid="user-stl-library-section" />,
 }));
 
-const mockSubmitMutate = vi.fn();
 const mockUpdateMutateAsync = vi.fn();
 vi.mock('./hooks/useLayouts', () => ({
-  useSubmitLayoutMutation: () => ({ mutate: mockSubmitMutate, mutateAsync: vi.fn(), isPending: false }),
-  useWithdrawLayoutMutation: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
   useCloneLayoutMutation: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
   useUpdateLayoutMutation: () => ({ mutateAsync: mockUpdateMutateAsync, isPending: false }),
   useSaveLayoutMutation: () => ({ mutateAsync: vi.fn(), isPending: false, isError: false, error: null }),
-  useSubmittedCountQuery: () => ({ data: null, isLoading: false }),
 }));
 
 vi.mock('./components/DimensionInput', () => ({
@@ -262,7 +258,7 @@ function TestAppShellInner({ children }: { children: React.ReactNode }) {
     isWalkthroughActive, walkthroughCurrentStep, walkthroughSteps, nextStep, dismissTour,
     gridResult, drawerWidth, drawerDepth, spacerConfig,
     placedItems, refImagePlacements, layoutMeta, handleSaveComplete,
-    handleRebindSelect, closeRebind, isReadOnly,
+    handleRebindSelect, closeRebind,
   } = useWorkspace();
 
   return (
@@ -300,11 +296,6 @@ function TestAppShellInner({ children }: { children: React.ReactNode }) {
         onNext={nextStep}
         onDismiss={dismissTour}
       />
-      {isReadOnly && (
-        <div className="read-only-banner">
-          This layout has been delivered and is read-only. Use "Build from This" to create an editable copy.
-        </div>
-      )}
     </>
   );
 }
@@ -525,17 +516,6 @@ describe('App Integration Tests', () => {
       expect(screen.getByRole('button', { name: /save as new/i })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /^save$/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /build from this/i })).not.toBeInTheDocument();
-    });
-
-    it('shows only Build from This when layout is delivered', () => {
-      renderApp();
-      act(() => {
-        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, status: string) => void;
-        onSaveComplete(20, 'Delivered Layout', 'delivered');
-      });
-      expect(screen.getByRole('button', { name: /build from this/i })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /save changes/i })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /save as new/i })).not.toBeInTheDocument();
     });
 
     it('Save Changes success shows Saved! toast that auto-dismisses', async () => {
@@ -1124,27 +1104,6 @@ describe('App Integration Tests', () => {
       expect(capturedSaveLayoutDialogProps.isOpen).toBe(true);
     });
 
-    it('completing save after Submit click fires submitLayoutMutation.mutate with the new layoutId', () => {
-      mockIsAuthenticated = true;
-      renderApp();
-
-      // Click Submit with no saved layout — sets ref and opens save dialog
-      fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
-      expect(capturedSaveLayoutDialogProps.isOpen).toBe(true);
-
-      // Simulate the save dialog completing (user saved successfully)
-      const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (
-        layoutId: number,
-        name: string,
-        status: import('@gridfinity/shared').LayoutStatus
-      ) => void;
-      act(() => {
-        onSaveComplete(99, 'My New Layout', 'draft');
-      });
-
-      // submitLayoutMutation.mutate should have been called with the new layoutId
-      expect(mockSubmitMutate).toHaveBeenCalledWith(99, expect.objectContaining({ onSuccess: expect.any(Function) }));
-    });
   });
 
   // ==========================================
