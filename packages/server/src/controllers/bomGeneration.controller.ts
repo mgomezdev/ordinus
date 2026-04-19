@@ -56,7 +56,7 @@ export async function serveFileHandler(req: Request, res: Response, next: NextFu
     await assertLayoutOwnership(layoutId, req.user.userId);
     const filename = req.params.filename as string;
 
-    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    if (!/^[a-zA-Z0-9._-]+$/.test(filename)) {
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid filename');
     }
 

@@ -10,6 +10,7 @@ vi.mock('../services/bomGeneration.service.js', () => ({
 vi.mock('../db/connection.js', () => ({ db: {} }));
 vi.mock('../db/schema.js', () => ({ layouts: {} }));
 vi.mock('drizzle-orm', () => ({ eq: vi.fn() }));
+vi.mock('fs', () => ({ createReadStream: vi.fn(), existsSync: vi.fn() }));
 
 import * as bomGenerationService from '../services/bomGeneration.service.js';
 import { generateHandler, getGenerationHandler, serveFileHandler } from './bomGeneration.controller.js';
@@ -75,14 +76,14 @@ describe('generateHandler', () => {
     const req = makeReq({ params: { layoutId: 'bad' } });
     const res = makeRes();
     await generateHandler(req as Request, res as unknown as Response, next);
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'VALIDATION_ERROR' }));
   });
 
   it('calls next with error if user is not authenticated', async () => {
     const req = makeReq({ params: { layoutId: '5' }, user: undefined });
     const res = makeRes();
     await generateHandler(req as Request, res as unknown as Response, next);
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'AUTH_REQUIRED' }));
   });
 
   it('calls next with FORBIDDEN if user does not own layout', async () => {
@@ -96,7 +97,7 @@ describe('generateHandler', () => {
     const req = makeReq({ params: { layoutId: '5' }, body: { bomItems: [] } });
     const res = makeRes();
     await generateHandler(req as Request, res as unknown as Response, next);
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'FORBIDDEN' }));
   });
 
   it('calls next with NOT_FOUND if layout does not exist', async () => {
@@ -110,7 +111,7 @@ describe('generateHandler', () => {
     const req = makeReq({ params: { layoutId: '5' }, body: { bomItems: [] } });
     const res = makeRes();
     await generateHandler(req as Request, res as unknown as Response, next);
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'NOT_FOUND' }));
   });
 });
 
@@ -137,7 +138,7 @@ describe('getGenerationHandler', () => {
     expect(res.json).toHaveBeenCalledWith({ data: mockGeneration });
   });
 
-  it('calls next when no generation exists', async () => {
+  it('calls next with NOT_FOUND when no generation exists', async () => {
     vi.mocked(bomGenerationService.getGeneration).mockResolvedValueOnce(null);
     await setupDbMock(1);
 
@@ -145,14 +146,14 @@ describe('getGenerationHandler', () => {
     const res = makeRes();
 
     await getGenerationHandler(req as Request, res as unknown as Response, next);
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'NOT_FOUND' }));
   });
 
-  it('calls next with error if layoutId is NaN', async () => {
+  it('calls next with VALIDATION_ERROR if layoutId is NaN', async () => {
     const req = makeReq({ params: { layoutId: 'nan' } });
     const res = makeRes();
     await getGenerationHandler(req as Request, res as unknown as Response, next);
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'VALIDATION_ERROR' }));
   });
 });
 
@@ -162,7 +163,7 @@ describe('serveFileHandler', () => {
     const req = makeReq({ params: { layoutId: '5', filename: '../secret.stl' } });
     const res = makeRes();
     await serveFileHandler(req as Request, res as unknown as Response, next);
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'VALIDATION_ERROR' }));
   });
 
   it('calls next with VALIDATION_ERROR for filename with forward slash', async () => {
@@ -170,6 +171,33 @@ describe('serveFileHandler', () => {
     const req = makeReq({ params: { layoutId: '5', filename: 'sub/dir.stl' } });
     const res = makeRes();
     await serveFileHandler(req as Request, res as unknown as Response, next);
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'VALIDATION_ERROR' }));
+  });
+
+  it('calls next with VALIDATION_ERROR for filename with double-quote (header injection)', async () => {
+    await setupDbMock(1);
+    const req = makeReq({ params: { layoutId: '5', filename: 'file"name.stl' } });
+    const res = makeRes();
+    await serveFileHandler(req as Request, res as unknown as Response, next);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'VALIDATION_ERROR' }));
+  });
+
+  it('calls next with VALIDATION_ERROR for filename with newline (header injection)', async () => {
+    await setupDbMock(1);
+    const req = makeReq({ params: { layoutId: '5', filename: 'file\nname.stl' } });
+    const res = makeRes();
+    await serveFileHandler(req as Request, res as unknown as Response, next);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'VALIDATION_ERROR' }));
+  });
+
+  it('calls next with NOT_FOUND when file does not exist', async () => {
+    await setupDbMock(1);
+    const { existsSync } = await import('fs');
+    vi.mocked(existsSync).mockReturnValue(false);
+
+    const req = makeReq({ params: { layoutId: '5', filename: 'bin_2x3x4.stl' } });
+    const res = makeRes();
+    await serveFileHandler(req as Request, res as unknown as Response, next);
+    expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'NOT_FOUND' }));
   });
 });
