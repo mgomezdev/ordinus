@@ -186,9 +186,13 @@ async function runGenerationPipeline(
     await fs.writeFile(manifestPath, JSON.stringify(manifest));
     await runPython([bundleScript, manifestPath, outDir, threeMfPath]);
 
-    await db.update(bomGenerations)
-      .set({ status: 'ready', fileManifest: JSON.stringify(manifest), threeMfPath, generatedAt: new Date().toISOString() })
-      .where(eq(bomGenerations.layoutId, layoutId));
+    try {
+      await db.update(bomGenerations)
+        .set({ status: 'ready', fileManifest: JSON.stringify(manifest), threeMfPath, generatedAt: new Date().toISOString() })
+        .where(eq(bomGenerations.layoutId, layoutId));
+    } catch (dbErr) {
+      logger.error({ layoutId, err: dbErr }, 'Failed to update generation status to ready');
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error({ layoutId, err: msg }, 'BOM generation failed');

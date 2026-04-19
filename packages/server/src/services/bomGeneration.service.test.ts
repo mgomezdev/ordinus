@@ -1,25 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { createClient } from '@libsql/client';
-import { runMigrations } from '../db/migrate.js';
+import { describe, it, expect } from 'vitest';
 import type { BOMItem } from '@gridfinity/shared';
 
 // We test the pure extraction logic without spawning real subprocesses
 import { extractUniqueConfigs, formatBomGeneration, buildGenerateParams } from './bomGeneration.service.js';
 import type { UniqueConfig } from './bomGeneration.service.js';
-
-let client: ReturnType<typeof createClient>;
-
-beforeEach(async () => {
-  client = createClient({ url: ':memory:' });
-  await runMigrations(client);
-  await client.execute(
-    `INSERT INTO users (id, email, username, password_hash) VALUES (1, 'a@b.com', 'admin', 'hash')`,
-  );
-  await client.execute(
-    `INSERT INTO layouts (id, user_id, name, grid_x, grid_y, width_mm, depth_mm, created_at, updated_at)
-     VALUES (1, 1, 'Test Layout', 4, 4, 168, 168, datetime('now'), datetime('now'))`,
-  );
-});
 
 describe('extractUniqueConfigs', () => {
   it('groups identical items and sums quantities', () => {
