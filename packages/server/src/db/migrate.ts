@@ -276,10 +276,14 @@ export async function runMigrations(client: Client): Promise<void> {
   // BOM view refactor: drop status from layouts, migrate bom_generations to use layout_id
   try {
     await client.execute(`DROP INDEX IF EXISTS idx_layouts_status;`);
-  } catch {}
+  } catch {
+    // ignore — index may not exist
+  }
   try {
     await client.execute(`ALTER TABLE layouts DROP COLUMN status;`);
-  } catch {}
+  } catch {
+    // ignore — column may not exist
+  }
 
   // Migrate bom_generations from submission_id to layout_id (idempotent)
   try {
@@ -287,8 +291,8 @@ export async function runMigrations(client: Client): Promise<void> {
     await client.execute(`SELECT layout_id FROM bom_generations LIMIT 1;`);
   } catch {
     // layout_id doesn't exist yet — recreate the table
-    try { await client.execute(`DROP TABLE IF EXISTS bom_generations;`); } catch {}
-    try { await client.execute(`DROP TABLE IF EXISTS bom_submissions;`); } catch {}
+    try { await client.execute(`DROP TABLE IF EXISTS bom_generations;`); } catch { /* ignore */ }
+    try { await client.execute(`DROP TABLE IF EXISTS bom_submissions;`); } catch { /* ignore */ }
     await client.execute(`
       CREATE TABLE IF NOT EXISTS bom_generations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
