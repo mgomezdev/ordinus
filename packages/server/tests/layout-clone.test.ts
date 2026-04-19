@@ -107,7 +107,6 @@ describe('Layout clone endpoint', () => {
       expect(res.status).toBe(201);
       expect(res.body.data.name).toBe('Copy of My Layout');
       expect(res.body.data.description).toBe('Original layout');
-      expect(res.body.data.status).toBe('draft');
       expect(res.body.data.id).not.toBe(source.id);
       expect(res.body.data.gridX).toBe(4);
       expect(res.body.data.gridY).toBe(4);
@@ -117,24 +116,6 @@ describe('Layout clone endpoint', () => {
       expect(res.body.data.placedItems[0].libraryId).toBe('bins_standard');
       expect(res.body.data.placedItems[0].itemId).toBe('bin-1x1');
       expect(res.body.data.placedItems[1].rotation).toBe(90);
-    });
-
-    it('clones a delivered layout', async () => {
-      const source = await createLayout(userToken, 'Delivered Source');
-      await request(app)
-        .patch(`/api/v1/layouts/${source.id}/submit`)
-        .set('Authorization', `Bearer ${userToken}`);
-      await request(app)
-        .patch(`/api/v1/admin/layouts/${source.id}/deliver`)
-        .set('Authorization', `Bearer ${adminToken}`);
-
-      const res = await request(app)
-        .post(`/api/v1/layouts/${source.id}/clone`)
-        .set('Authorization', `Bearer ${userToken}`);
-
-      expect(res.status).toBe(201);
-      expect(res.body.data.status).toBe('draft');
-      expect(res.body.data.name).toBe('Copy of Delivered Source');
     });
 
     it('admin can clone any layout', async () => {

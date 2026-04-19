@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
-import type { ApiResponse, ApiListResponse, ApiLayout, ApiLayoutDetail, LayoutStatusCount } from '@gridfinity/shared';
+import type { ApiResponse, ApiListResponse, ApiLayout, ApiLayoutDetail } from '@gridfinity/shared';
 import type { Request, Response, NextFunction } from 'express';
 import * as layoutService from '../services/layout.service.js';
 
@@ -216,57 +216,12 @@ export async function deleteLayout(
   }
 }
 
-// ============================================================
-// Status transition handlers
-// ============================================================
-
 function parseLayoutId(req: Request): number {
   const layoutId = parseInt(req.params.id as string, 10);
   if (isNaN(layoutId)) {
     throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
   }
   return layoutId;
-}
-
-export async function submitLayout(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    if (!req.user) {
-      throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    }
-
-    const layoutId = parseLayoutId(req);
-    const layout = await layoutService.submitLayout(layoutId, req.user.userId);
-
-    const body: ApiResponse<ApiLayout> = { data: layout };
-    res.json(body);
-  } catch (err) {
-    next(err);
-  }
-}
-
-export async function withdrawLayout(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    if (!req.user) {
-      throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    }
-
-    const layoutId = parseLayoutId(req);
-    const isAdmin = req.user.role === 'admin';
-    const layout = await layoutService.withdrawLayout(layoutId, req.user.userId, isAdmin);
-
-    const body: ApiResponse<ApiLayout> = { data: layout };
-    res.json(body);
-  } catch (err) {
-    next(err);
-  }
 }
 
 export async function cloneLayout(
@@ -285,78 +240,6 @@ export async function cloneLayout(
 
     const body: ApiResponse<ApiLayoutDetail> = { data: layout };
     res.status(201).json(body);
-  } catch (err) {
-    next(err);
-  }
-}
-
-export async function deliverLayout(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    if (!req.user) {
-      throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    }
-
-    const layoutId = parseLayoutId(req);
-    const layout = await layoutService.deliverLayout(layoutId);
-
-    const body: ApiResponse<ApiLayout> = { data: layout };
-    res.json(body);
-  } catch (err) {
-    next(err);
-  }
-}
-
-export async function listAdminLayouts(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    if (!req.user) {
-      throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    }
-
-    const statusFilter = typeof req.query.status === 'string' ? req.query.status : undefined;
-    const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
-    const limitStr = typeof req.query.limit === 'string' ? req.query.limit : '20';
-    const limit = Math.min(Math.max(parseInt(limitStr, 10) || 20, 1), 100);
-
-    // Validate status filter
-    if (statusFilter && !['draft', 'submitted', 'delivered'].includes(statusFilter)) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid status filter');
-    }
-
-    const result = await layoutService.getAdminLayouts(statusFilter, cursor, limit);
-
-    const body: ApiListResponse<ApiLayout> = {
-      data: result.data,
-      nextCursor: result.nextCursor,
-      hasMore: result.hasMore,
-    };
-    res.json(body);
-  } catch (err) {
-    next(err);
-  }
-}
-
-export async function getSubmittedCount(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    if (!req.user) {
-      throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    }
-
-    const submitted = await layoutService.getSubmittedCount();
-
-    const body: ApiResponse<LayoutStatusCount> = { data: { submitted } };
-    res.json(body);
   } catch (err) {
     next(err);
   }

@@ -1,6 +1,6 @@
-import { eq, and, lt, desc, sql, or, count } from 'drizzle-orm';
+import { eq, and, lt, desc, sql, or } from 'drizzle-orm';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
-import type { ApiLayout, ApiLayoutDetail, ApiPlacedItem, ApiRefImagePlacement, LayoutStatus, BinCustomization } from '@gridfinity/shared';
+import type { ApiLayout, ApiLayoutDetail, ApiPlacedItem, ApiRefImagePlacement, BinCustomization } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
 import { layouts, placedItems, userStorage, referenceImages, refImages, users } from '../db/schema.js';
 import * as referenceImageService from './referenceImage.service.js';
@@ -41,7 +41,6 @@ function formatLayout(row: typeof layouts.$inferSelect, ownerUsername?: string, 
     depthMm: row.depthMm,
     spacerHorizontal: row.spacerHorizontal,
     spacerVertical: row.spacerVertical,
-    status: row.status as LayoutStatus,
     isPublic: row.isPublic,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -577,175 +576,12 @@ export async function deleteLayout(
 }
 
 // ============================================================
-// Status transition methods
-// ============================================================
-
-export async function submitLayout(
-  layoutId: number,
-  userId: number,
-): Promise<ApiLayout> {
-  const existing = await db
-    .select()
-    .from(layouts)
-    .where(eq(layouts.id, layoutId))
-    .limit(1);
-
-  if (existing.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
-  }
-
-  if (existing[0].userId !== userId) {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
-  }
-
-  if (existing[0].status !== 'draft') {
-    throw new AppError(ErrorCodes.CONFLICT, 'Only draft layouts can be submitted');
-  }
-
-  const now = new Date().toISOString();
-  const updatedRows = await db
-    .update(layouts)
-    .set({ status: 'submitted', updatedAt: now })
-    .where(eq(layouts.id, layoutId))
-    .returning();
-
-  return formatLayout(updatedRows[0]);
-}
-
-export async function withdrawLayout(
-  layoutId: number,
-  userId: number,
-  isAdmin = false,
-): Promise<ApiLayout> {
-  const existing = await db
-    .select()
-    .from(layouts)
-    .where(eq(layouts.id, layoutId))
-    .limit(1);
-
-  if (existing.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
-  }
-
-  if (existing[0].status !== 'submitted') {
-    throw new AppError(ErrorCodes.CONFLICT, 'Only submitted layouts can be withdrawn');
-  }
-
-  if (existing[0].userId !== userId && !isAdmin) {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
-  }
-
-  const now = new Date().toISOString();
-  const updatedRows = await db
-    .update(layouts)
-    .set({ status: 'draft', updatedAt: now })
-    .where(eq(layouts.id, layoutId))
-    .returning();
-
-  return formatLayout(updatedRows[0]);
-}
-
-export async function deliverLayout(
-  layoutId: number,
-): Promise<ApiLayout> {
-  const existing = await db
-    .select()
-    .from(layouts)
-    .where(eq(layouts.id, layoutId))
-    .limit(1);
-
-  if (existing.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
-  }
-
-  if (existing[0].status !== 'submitted') {
-    throw new AppError(ErrorCodes.CONFLICT, 'Only submitted layouts can be delivered');
-  }
-
-  const now = new Date().toISOString();
-  const updatedRows = await db
-    .update(layouts)
-    .set({ status: 'delivered', updatedAt: now })
-    .where(eq(layouts.id, layoutId))
-    .returning();
-
-  return formatLayout(updatedRows[0]);
-}
-
-// ============================================================
 // Admin queries
 // ============================================================
 
 export async function getUsers(): Promise<Array<{ id: number; username: string }>> {
   const rows = await db.select({ id: users.id, username: users.username }).from(users).orderBy(users.username);
   return rows;
-}
-
-export async function getAdminLayouts(
-  statusFilter?: string,
-  cursor?: string,
-  limit: number = 20,
-): Promise<{ data: ApiLayout[]; nextCursor?: string; hasMore: boolean }> {
-  const safeLimit = Math.min(Math.max(limit, 1), 100);
-
-  let cursorCondition;
-  if (cursor) {
-    const cursorData = decodeCursor(cursor);
-    cursorCondition = or(
-      lt(layouts.createdAt, cursorData.createdAt),
-      and(
-        eq(layouts.createdAt, cursorData.createdAt),
-        lt(layouts.id, cursorData.id),
-      ),
-    );
-  }
-
-  const conditions = [];
-  if (statusFilter) {
-    conditions.push(eq(layouts.status, statusFilter));
-  }
-  if (cursorCondition) {
-    conditions.push(cursorCondition);
-  }
-
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-  const rows = await db
-    .select({
-      layout: layouts,
-      ownerUsername: users.username,
-      ownerEmail: users.email,
-    })
-    .from(layouts)
-    .leftJoin(users, eq(layouts.userId, users.id))
-    .where(whereClause)
-    .orderBy(desc(layouts.createdAt), desc(layouts.id))
-    .limit(safeLimit + 1);
-
-  const hasMore = rows.length > safeLimit;
-  const data = rows.slice(0, safeLimit).map(row =>
-    formatLayout(row.layout, row.ownerUsername ?? undefined, row.ownerEmail ?? undefined),
-  );
-
-  let nextCursor: string | undefined;
-  if (hasMore && data.length > 0) {
-    const lastItem = data[data.length - 1];
-    nextCursor = encodeCursor({
-      createdAt: lastItem.createdAt,
-      id: lastItem.id,
-    });
-  }
-
-  return { data, nextCursor, hasMore };
-}
-
-export async function getSubmittedCount(): Promise<number> {
-  const result = await db
-    .select({ value: count() })
-    .from(layouts)
-    .where(eq(layouts.status, 'submitted'));
-
-  return result[0]?.value ?? 0;
 }
 
 export async function cloneLayout(
