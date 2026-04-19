@@ -34,7 +34,7 @@ async function seed(): Promise<void> {
   // Seed default users only if the table is empty (first-run only).
   // Never wipe existing users in production to prevent accidental data loss.
   const existingUsers = await client.execute('SELECT COUNT(*) as count FROM users;');
-  const userCount = Number((existingUsers.rows[0] as { count: number }).count);
+  const userCount = Number((existingUsers.rows[0] as unknown as { count: number }).count);
   if (userCount === 0) {
     await seedDefaultUsers(client, logger);
   } else {

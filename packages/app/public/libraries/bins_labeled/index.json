@@ -1,6 +1,10 @@
 {
   "version": "1.0.0",
   "customizableFields": ["lipStyle", "wallPattern", "fingerSlide", "wallCutout"],
+  "gridfinityExtendedParams": {
+    "label_style": "normal",
+    "label_walls": [0, 1, 0, 0]
+  },
   "items": [
     {
       "id": "bin-1x1-labeled",

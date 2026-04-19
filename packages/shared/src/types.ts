@@ -63,6 +63,11 @@ export type LipStyle = 'normal' | 'reduced' | 'minimum' | 'none';
 export type FingerSlide = 'none' | 'rounded' | 'chamfered';
 export type WallCutout = 'none' | 'vertical' | 'horizontal' | 'both';
 
+export type GeneratorParams = Record<string, unknown>;
+
+import gridfinityExtendedDefaultParamsJson from './gridfinity-extended-default-params.json' with { type: 'json' };
+export const gridfinityExtendedDefaultParams: GeneratorParams = gridfinityExtendedDefaultParamsJson;
+
 export interface BinCustomization {
   wallPattern: WallPattern;
   lipStyle: LipStyle;
@@ -104,6 +109,7 @@ export interface BOMItem {
   categories: string[];
   quantity: number;
   customization?: BinCustomization;
+  gridfinityExtendedParams?: GeneratorParams;
 }
 
 export interface ReferenceImage {
@@ -391,6 +397,26 @@ export interface ApiBomSubmission {
   totalItems: number;
   totalUnique: number;
   createdAt: string;
+}
+
+export type BomGenerationStatus = 'pending' | 'generating' | 'ready' | 'error';
+
+export interface BomGenerationManifestEntry {
+  filename: string;
+  widthUnits: number;
+  heightUnits: number;
+  customization?: BinCustomization;
+  qty: number;
+}
+
+export interface ApiBomGeneration {
+  id: number;
+  submissionId: number;
+  status: BomGenerationStatus;
+  fileManifest: BomGenerationManifestEntry[] | null;
+  threeMfPath: string | null;
+  generatedAt: string | null;
+  errorMessage: string | null;
 }
 
 // ============================================================

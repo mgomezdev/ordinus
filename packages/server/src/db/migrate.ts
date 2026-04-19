@@ -292,6 +292,18 @@ export async function runMigrations(client: Client): Promise<void> {
     );
   `);
 
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS bom_generations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      submission_id INTEGER NOT NULL UNIQUE REFERENCES bom_submissions(id) ON DELETE CASCADE,
+      status TEXT NOT NULL DEFAULT 'pending',
+      file_manifest TEXT,
+      three_mf_path TEXT,
+      generated_at TEXT,
+      error_message TEXT
+    );
+  `);
+
   // Drop legacy shadowboxes table (replaced by user_stl_uploads)
   try {
     await client.execute(`DROP TABLE IF EXISTS shadowboxes;`);

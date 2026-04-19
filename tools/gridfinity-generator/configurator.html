@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gridfinity Bin Configurator</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; height: 100vh; background: #1a1a2e; color: #e0e0e0; }
+
+  /* Sidebar */
+  #sidebar { width: 320px; min-width: 320px; background: #16213e; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; border-right: 1px solid #0f3460; }
+  #sidebar h1 { font-size: 18px; color: #e94560; margin-bottom: 4px; }
+  #sidebar h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #e94560; margin-bottom: 4px; border-bottom: 1px solid #0f3460; padding-bottom: 4px; }
+
+  .control-group { display: flex; flex-direction: column; gap: 8px; }
+  .control-row { display: flex; align-items: center; gap: 8px; }
+  .control-row label { flex: 0 0 80px; font-size: 13px; color: #a0a0b8; }
+  .control-row input[type="range"] { flex: 1; accent-color: #e94560; }
+  .control-row input[type="number"] { width: 52px; background: #0f3460; border: 1px solid #1a4080; color: #e0e0e0; padding: 4px 6px; border-radius: 4px; font-size: 13px; }
+  .control-row select { flex: 1; background: #0f3460; border: 1px solid #1a4080; color: #e0e0e0; padding: 4px 6px; border-radius: 4px; font-size: 13px; }
+
+  .toggle-row { display: flex; align-items: center; gap: 10px; }
+  .toggle-row label { font-size: 13px; color: #a0a0b8; cursor: pointer; }
+  .toggle { position: relative; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle .slider { position: absolute; inset: 0; background: #0f3460; border-radius: 11px; cursor: pointer; transition: 0.2s; }
+  .toggle .slider::before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #a0a0b8; border-radius: 50%; transition: 0.2s; }
+  .toggle input:checked + .slider { background: #e94560; }
+  .toggle input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+
+  .wall-select { display: flex; gap: 6px; }
+  .wall-btn { padding: 4px 10px; font-size: 12px; background: #0f3460; border: 1px solid #1a4080; color: #a0a0b8; border-radius: 4px; cursor: pointer; transition: 0.15s; }
+  .wall-btn.active { background: #e94560; color: #fff; border-color: #e94560; }
+
+  .conditional { display: none; }
+  .conditional.visible { display: flex; flex-direction: column; gap: 8px; }
+
+  .btn-row { display: flex; gap: 8px; margin-top: auto; }
+  #preview-btn { flex: 1; padding: 12px; background: #e94560; color: #fff; border: none; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.15s; }
+  #preview-btn:hover { background: #c73650; }
+  #preview-btn:disabled { background: #555; cursor: wait; }
+  #download-btn { flex: 1; padding: 12px; background: #0f3460; color: #e0e0e0; border: 1px solid #1a4080; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.15s; }
+  #download-btn:hover { background: #1a4080; }
+  #download-btn:disabled { background: #555; cursor: wait; }
+
+  /* Viewer */
+  #viewer { flex: 1; position: relative; }
+  #viewer canvas { display: block; width: 100%; height: 100%; }
+
+  #status { position: absolute; top: 12px; left: 12px; padding: 6px 14px; border-radius: 4px; font-size: 13px; pointer-events: none; z-index: 10; }
+  #status.loading { background: rgba(233, 69, 96, 0.85); color: #fff; }
+  #status.error { background: rgba(200, 40, 40, 0.9); color: #fff; }
+  #status.ready { background: rgba(40, 167, 69, 0.8); color: #fff; }
+  #status.hidden { display: none; }
+
+  #render-time { position: absolute; bottom: 12px; left: 12px; font-size: 12px; color: #888; z-index: 10; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <h1>Gridfinity Configurator</h1>
+
+  <!-- Dimensions -->
+  <h2>Dimensions</h2>
+  <div class="control-group">
+    <div class="control-row">
+      <label>Width</label>
+      <input type="range" id="width" min="1" max="6" step="1" value="2">
+      <input type="number" id="width-num" min="1" max="6" step="1" value="2">
+    </div>
+    <div class="control-row">
+      <label>Depth</label>
+      <input type="range" id="depth" min="1" max="6" step="1" value="1">
+      <input type="number" id="depth-num" min="1" max="6" step="1" value="1">
+    </div>
+    <div class="control-row">
+      <label>Height</label>
+      <input type="range" id="height" min="1" max="15" step="1" value="10">
+      <input type="number" id="height-num" min="1" max="15" step="1" value="10">
+    </div>
+  </div>
+
+  <!-- Lip -->
+  <h2>Stacking Lip</h2>
+  <div class="control-group">
+    <div class="toggle-row">
+      <label class="toggle"><input type="checkbox" id="lip-toggle"><span class="slider"></span></label>
+      <label for="lip-toggle">Stackable lip</label>
+    </div>
+  </div>
+
+  <!-- Label -->
+  <h2>Label</h2>
+  <div class="control-group">
+    <div class="toggle-row">
+      <label class="toggle"><input type="checkbox" id="label-toggle"><span class="slider"></span></label>
+      <label for="label-toggle">Add label</label>
+    </div>
+    <div id="label-options" class="conditional">
+      <div class="control-row">
+        <label>Position</label>
+        <select id="label-position">
+          <option value="left" selected>Left</option>
+          <option value="center">Center</option>
+          <option value="right">Right</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <label>Walls</label>
+        <div class="wall-select" id="label-walls">
+          <button class="wall-btn" data-wall="front">Front</button>
+          <button class="wall-btn active" data-wall="back">Back</button>
+          <button class="wall-btn" data-wall="left">Left</button>
+          <button class="wall-btn" data-wall="right">Right</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finger Slide -->
+  <h2>Finger Slide</h2>
+  <div class="control-group">
+    <div class="control-row">
+      <label>Style</label>
+      <select id="fingerslide-style">
+        <option value="none" selected>None</option>
+        <option value="rounded">Rounded</option>
+        <option value="chamfered">Chamfered</option>
+      </select>
+    </div>
+    <div id="fingerslide-options" class="conditional">
+      <div class="control-row">
+        <label>Walls</label>
+        <div class="wall-select" id="fingerslide-walls">
+          <button class="wall-btn active" data-wall="front">Front</button>
+          <button class="wall-btn" data-wall="back">Back</button>
+          <button class="wall-btn" data-wall="left">Left</button>
+          <button class="wall-btn" data-wall="right">Right</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wall Pattern -->
+  <h2>Wall Pattern</h2>
+  <div class="control-group">
+    <div class="control-row">
+      <label>Style</label>
+      <select id="wallpattern-style">
+        <option value="disabled" selected>Disabled</option>
+        <option value="grid">Grid</option>
+        <option value="hexgrid">Hexgrid</option>
+        <option value="voronoi">Voronoi</option>
+        <option value="voronoigrid">Voronoi Grid</option>
+        <option value="voronoihexgrid">Voronoi Hexgrid</option>
+        <option value="brick">Brick</option>
+        <option value="brickoffset">Brick Offset</option>
+      </select>
+    </div>
+    <div id="wallpattern-options" class="conditional">
+      <div class="control-row">
+        <label>Walls</label>
+        <div class="wall-select" id="wallpattern-walls">
+          <button class="wall-btn active" data-wall="front">Front</button>
+          <button class="wall-btn active" data-wall="back">Back</button>
+          <button class="wall-btn active" data-wall="left">Left</button>
+          <button class="wall-btn active" data-wall="right">Right</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wall Cutout -->
+  <h2>Wall Cutouts</h2>
+  <div class="control-group">
+    <div class="control-row">
+      <label>Vertical</label>
+      <select id="cutout-vertical">
+        <option value="disabled" selected>Disabled</option>
+        <option value="enabled">All walls</option>
+        <option value="frontonly">Front only</option>
+        <option value="backonly">Back only</option>
+      </select>
+    </div>
+    <div class="control-row">
+      <label>Horizontal</label>
+      <select id="cutout-horizontal">
+        <option value="disabled" selected>Disabled</option>
+        <option value="enabled">All walls</option>
+        <option value="leftonly">Left only</option>
+        <option value="rightonly">Right only</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button id="preview-btn">Generate Preview</button>
+    <button id="download-btn">Download STL</button>
+  </div>
+</div>
+
+<div id="viewer">
+  <div id="status" class="hidden"></div>
+  <div id="render-time"></div>
+</div>
+
+<!-- Three.js from CDN -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+
+// ── Three.js setup ──────────────────────────────────────────────
+const viewer = document.getElementById('viewer');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a2e);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 2000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+viewer.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+
+// Lighting
+const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambient);
+const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight1.position.set(5, 10, 7);
+scene.add(dirLight1);
+const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.3);
+dirLight2.position.set(-5, 5, -5);
+scene.add(dirLight2);
+
+// Grid helper
+const grid = new THREE.GridHelper(200, 20, 0x0f3460, 0x0f3460);
+scene.add(grid);
+
+// Material for the bin
+const material = new THREE.MeshStandardMaterial({
+  color: 0x4fc3f7,
+  roughness: 0.35,
+  metalness: 0.1,
+});
+
+let currentMesh = null;
+const stlLoader = new STLLoader();
+
+function fitCameraToMesh(mesh) {
+  const box = new THREE.Box3().setFromObject(mesh);
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const fov = camera.fov * (Math.PI / 180);
+  const dist = maxDim / (2 * Math.tan(fov / 2)) * 1.6;
+
+  camera.position.set(center.x + dist * 0.6, center.y + dist * 0.5, center.z + dist * 0.7);
+  controls.target.copy(center);
+  controls.update();
+}
+
+function loadSTL(buffer) {
+  const geometry = stlLoader.parse(buffer);
+  // OpenSCAD exports Z-up; Three.js uses Y-up. Rotate -90° around X.
+  geometry.rotateX(-Math.PI / 2);
+  geometry.computeVertexNormals();
+
+  if (currentMesh) scene.remove(currentMesh);
+  currentMesh = new THREE.Mesh(geometry, material);
+  scene.add(currentMesh);
+  fitCameraToMesh(currentMesh);
+}
+
+function onResize() {
+  const w = viewer.clientWidth;
+  const h = viewer.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', onResize);
+onResize();
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+// ── Status indicator ────────────────────────────────────────────
+const statusEl = document.getElementById('status');
+const renderTimeEl = document.getElementById('render-time');
+
+function showStatus(text, cls) {
+  statusEl.textContent = text;
+  statusEl.className = cls;
+}
+
+// ── Parameter collection ────────────────────────────────────────
+function getParams() {
+  const w = parseInt(document.getElementById('width').value);
+  const d = parseInt(document.getElementById('depth').value);
+  const h = parseInt(document.getElementById('height').value);
+
+  const params = {
+    width: [w, 0],
+    depth: [d, 0],
+    height: [h, 0],
+  };
+
+  // Lip
+  params.lip_style = document.getElementById('lip-toggle').checked ? 'normal' : 'none';
+
+  // Label
+  if (document.getElementById('label-toggle').checked) {
+    params.label_style = 'normal';
+    params.label_position = document.getElementById('label-position').value;
+    params.label_size = [1, 14, 0, 0.6];
+
+    const walls = [0, 0, 0, 0];
+    document.querySelectorAll('#label-walls .wall-btn').forEach((btn, i) => {
+      if (btn.classList.contains('active')) walls[i] = 1;
+    });
+    params.label_walls = walls;
+  }
+
+  // Finger slide
+  const fsStyle = document.getElementById('fingerslide-style').value;
+  if (fsStyle !== 'none') {
+    params.fingerslide = fsStyle;
+    const fsWalls = [0, 0, 0, 0];
+    document.querySelectorAll('#fingerslide-walls .wall-btn').forEach((btn, i) => {
+      if (btn.classList.contains('active')) fsWalls[i] = 1;
+    });
+    params.fingerslide_walls = fsWalls;
+  }
+
+  // Wall pattern
+  const wpStyle = document.getElementById('wallpattern-style').value;
+  if (wpStyle !== 'disabled') {
+    params.wallpattern_enabled = true;
+    params.wallpattern_style = wpStyle;
+    const wpWalls = [0, 0, 0, 0];
+    document.querySelectorAll('#wallpattern-walls .wall-btn').forEach((btn, i) => {
+      if (btn.classList.contains('active')) wpWalls[i] = 1;
+    });
+    params.wallpattern_walls = wpWalls;
+    // Voronoi styles need a seed for reproducibility
+    if (wpStyle.startsWith('voronoi')) {
+      params.random_seed = 42;
+    }
+  }
+
+  // Cutouts
+  const cv = document.getElementById('cutout-vertical').value;
+  if (cv !== 'disabled') params.wallcutout_vertical = cv;
+
+  const ch = document.getElementById('cutout-horizontal').value;
+  if (ch !== 'disabled') params.wallcutout_horizontal = ch;
+
+  return params;
+}
+
+// ── Preview generation ──────────────────────────────────────────
+let abortController = null;
+let requestId = 0;
+
+async function generatePreview() {
+  const myId = ++requestId;
+  if (abortController) abortController.abort();
+  abortController = new AbortController();
+
+  const previewBtn = document.getElementById('preview-btn');
+  previewBtn.disabled = true;
+  previewBtn.textContent = 'Generating...';
+  showStatus('Generating preview...', 'loading');
+  const startTime = performance.now();
+
+  try {
+    const resp = await fetch('/api/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getParams()),
+      signal: abortController.signal,
+    });
+
+    if (myId !== requestId) return; // superseded
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: 'Unknown error' }));
+      showStatus('Error: ' + (err.error || resp.statusText), 'error');
+      return;
+    }
+
+    const buf = await resp.arrayBuffer();
+    if (myId !== requestId) return;
+
+    loadSTL(buf);
+    const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+    showStatus('Ready', 'ready');
+    renderTimeEl.textContent = `Render: ${elapsed}s`;
+    setTimeout(() => { if (statusEl.className === 'ready') statusEl.className = 'hidden'; }, 2000);
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    showStatus('Connection error', 'error');
+  } finally {
+    previewBtn.disabled = false;
+    previewBtn.textContent = 'Generate Preview';
+  }
+}
+
+// ── Control wiring ──────────────────────────────────────────────
+
+// Sync slider <-> number input (no auto-render)
+function syncPair(sliderId, numId) {
+  const slider = document.getElementById(sliderId);
+  const num = document.getElementById(numId);
+  slider.addEventListener('input', () => { num.value = slider.value; });
+  num.addEventListener('change', () => {
+    const v = Math.max(+num.min, Math.min(+num.max, +num.value));
+    num.value = v; slider.value = v;
+  });
+}
+syncPair('width', 'width-num');
+syncPair('depth', 'depth-num');
+syncPair('height', 'height-num');
+
+// Label toggle — show/hide conditional options
+const labelToggle = document.getElementById('label-toggle');
+const labelOptions = document.getElementById('label-options');
+labelToggle.addEventListener('change', () => {
+  labelOptions.classList.toggle('visible', labelToggle.checked);
+});
+
+// Label wall multi-select
+document.querySelectorAll('#label-walls .wall-btn').forEach(btn => {
+  btn.addEventListener('click', () => { btn.classList.toggle('active'); });
+});
+
+// Finger slide style — show/hide wall selector
+const fsStyleSelect = document.getElementById('fingerslide-style');
+const fsOptions = document.getElementById('fingerslide-options');
+fsStyleSelect.addEventListener('change', () => {
+  fsOptions.classList.toggle('visible', fsStyleSelect.value !== 'none');
+});
+
+// Finger slide wall multi-select
+document.querySelectorAll('#fingerslide-walls .wall-btn').forEach(btn => {
+  btn.addEventListener('click', () => { btn.classList.toggle('active'); });
+});
+
+// Wall pattern style — show/hide wall selector
+const wpStyleSelect = document.getElementById('wallpattern-style');
+const wpOptions = document.getElementById('wallpattern-options');
+wpStyleSelect.addEventListener('change', () => {
+  wpOptions.classList.toggle('visible', wpStyleSelect.value !== 'disabled');
+});
+
+// Wall pattern wall multi-select
+document.querySelectorAll('#wallpattern-walls .wall-btn').forEach(btn => {
+  btn.addEventListener('click', () => { btn.classList.toggle('active'); });
+});
+
+// Preview button
+document.getElementById('preview-btn').addEventListener('click', generatePreview);
+
+// Download button
+document.getElementById('download-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('download-btn');
+  btn.disabled = true;
+  btn.textContent = 'Generating full quality...';
+
+  try {
+    const resp = await fetch('/api/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getParams()),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: 'Download failed' }));
+      alert('Error: ' + (err.error || resp.statusText));
+      return;
+    }
+
+    // Extract filename from Content-Disposition or generate one
+    const cd = resp.headers.get('Content-Disposition');
+    let filename = 'bin.stl';
+    if (cd) {
+      const match = cd.match(/filename=([^;]+)/);
+      if (match) filename = match[1].replace(/"/g, '');
+    }
+
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('Download failed: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Download STL';
+  }
+});
+
+// ── Initial load ────────────────────────────────────────────────
+generatePreview();
+</script>
+</body>
+</html>

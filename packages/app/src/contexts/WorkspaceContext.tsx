@@ -34,6 +34,7 @@ import {
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { useLayoutLoader } from '../hooks/useLayoutLoader';
 import { useLayoutActions } from '../hooks/useLayoutActions';
+import { submitBom } from '../api/bom.api';
 import { STORAGE_KEYS } from '../utils/storageKeys';
 import type { WalkthroughStep } from './WalkthroughContext';
 
@@ -210,7 +211,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const [exportPdfError, setExportPdfError] = useState<string | null>(null);
   const [selectedLibraryMeta, setSelectedLibraryMeta] = useState<LibraryMeta>({
     customizableFields: [],
-    customizationDefaults: {},
+    gridfinityExtendedParams: {},
   });
 
   // Hooks
@@ -219,6 +220,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     layoutMeta, layoutDispatch, isReadOnly,
     handleSaveComplete: rawHandleSaveComplete,
     handleSetStatus, handleCloneComplete, handleClearLayout,
+    handleSetSubmissionId,
   } = useLayoutMeta();
 
   const { isAuthenticated, user, getAccessToken } = useAuth();
@@ -339,8 +341,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   }, [unitSystem, width, depth]);
 
   const {
-    handleSubmitLayout,
-    handleSubmitClick,
+    handleSubmitLayout: rawHandleSubmitLayout,
+    handleSubmitClick: _rawHandleSubmitClick,
     handleSaveComplete,
     handleWithdrawLayout,
     handleCloneCurrentLayout,
@@ -354,6 +356,45 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     rawHandleSaveComplete,
     dialogDispatch,
   });
+
+  // After a successful layout submit, also create a BOM submission so
+  // AdminBomPanel gets the correct bom_submissions.id (not the layout ID).
+  const handleSubmitLayout = useCallback(async () => {
+    await rawHandleSubmitLayout();
+    const token = getAccessToken();
+    if (!token || !layoutMeta.id) return;
+    try {
+      const submission = await submitBom(
+        {
+          layoutId: layoutMeta.id,
+          gridX: gridResult.gridX,
+          gridY: gridResult.gridY,
+          widthMm: drawerWidth,
+          depthMm: drawerDepth,
+          totalItems: bomItems.reduce((s, i) => s + i.quantity, 0),
+          totalUnique: bomItems.length,
+          exportJson: JSON.stringify(bomItems),
+        },
+        token,
+      );
+      handleSetSubmissionId(submission.id);
+    } catch {
+      // BOM submission is best-effort; layout submit already succeeded
+    }
+  }, [
+    rawHandleSubmitLayout, getAccessToken, layoutMeta.id,
+    gridResult.gridX, gridResult.gridY, drawerWidth, drawerDepth,
+    bomItems, handleSetSubmissionId,
+  ]);
+
+  // BOM-inclusive submit: for new layouts, falls back to save-first flow
+  const handleSubmitClick = useCallback(() => {
+    if (!layoutMeta.id) {
+      _rawHandleSubmitClick();
+    } else {
+      void handleSubmitLayout();
+    }
+  }, [layoutMeta.id, _rawHandleSubmitClick, handleSubmitLayout]);
 
   const { handleLoadLayout, loadLayout } = useLayoutLoader({
     unitSystem, setWidth, setDepth, setSpacerConfig,

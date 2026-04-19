@@ -18,6 +18,8 @@ const envSchema = z.object({
   USER_STL_IMAGE_DIR: z.string().default('./data/user-stl-images'),
   MAX_STL_WORKERS: z.coerce.number().default(2),
   PYTHON_SCRIPT_DIR: z.string().default('./scripts/py'),
+  GRIDFINITY_GENERATOR_DIR: z.string().default('../../tools/gridfinity-generator'),
+  GENERATED_STL_DIR: z.string().default('./data/generated'),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production') {
     if (KNOWN_WEAK_SECRETS.has(data.JWT_SECRET)) {

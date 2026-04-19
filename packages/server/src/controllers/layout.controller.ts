@@ -4,6 +4,14 @@ import type { ApiResponse, ApiListResponse, ApiLayout, ApiLayoutDetail, LayoutSt
 import type { Request, Response, NextFunction } from 'express';
 import * as layoutService from '../services/layout.service.js';
 
+const binCustomizationSchema = z.object({
+  wallPattern: z.enum(['none', 'grid', 'hexgrid', 'voronoi', 'voronoigrid', 'voronoihexgrid']),
+  lipStyle: z.enum(['normal', 'reduced', 'minimum', 'none']),
+  fingerSlide: z.enum(['none', 'rounded', 'chamfered']),
+  wallCutout: z.enum(['none', 'vertical', 'horizontal', 'both']),
+  height: z.number().int().min(1).max(20),
+});
+
 const placedItemSchema = z.object({
   itemId: z.string().min(1),
   x: z.number().int().min(0),
@@ -13,6 +21,7 @@ const placedItemSchema = z.object({
   rotation: z.number().refine((v) => [0, 90, 180, 270].includes(v), {
     message: 'Rotation must be 0, 90, 180, or 270',
   }),
+  customization: binCustomizationSchema.optional(),
 });
 
 const refImagePlacementSchema = z.object({

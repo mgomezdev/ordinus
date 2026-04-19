@@ -200,6 +200,16 @@ export const bomSubmissions = sqliteTable('bom_submissions', {
   createdAt: text('created_at').notNull().default(''),
 });
 
+export const bomGenerations = sqliteTable('bom_generations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  submissionId: integer('submission_id').notNull().unique().references(() => bomSubmissions.id, { onDelete: 'cascade' }),
+  status: text('status').notNull().default('pending'),
+  fileManifest: text('file_manifest'),
+  threeMfPath: text('three_mf_path'),
+  generatedAt: text('generated_at'),
+  errorMessage: text('error_message'),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   refreshTokens: many(refreshTokens),
@@ -305,5 +315,12 @@ export const bomSubmissionsRelations = relations(bomSubmissions, ({ one }) => ({
   user: one(users, {
     fields: [bomSubmissions.userId],
     references: [users.id],
+  }),
+}));
+
+export const bomGenerationsRelations = relations(bomGenerations, ({ one }) => ({
+  submission: one(bomSubmissions, {
+    fields: [bomGenerations.submissionId],
+    references: [bomSubmissions.id],
   }),
 }));

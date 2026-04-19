@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Popover Placement Playground</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f1117;
+    color: #c9d1d9;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-size: 13px;
+  }
+
+  .app-header {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .app-header h1 { font-size: 15px; font-weight: 600; color: #e6edf3; }
+  .app-header .subtitle { color: #6e7681; font-size: 12px; }
+
+  .app-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .controls {
+    width: 240px;
+    background: #0d1018;
+    border-right: 1px solid #21262d;
+    overflow-y: auto;
+    flex-shrink: 0;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .ctrl-section { display: flex; flex-direction: column; gap: 6px; }
+  .ctrl-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6e7681;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #21262d;
+  }
+
+  .ctrl-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .ctrl-label { color: #8b949e; flex: 1; font-size: 12px; }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 88px;
+    height: 4px;
+    background: #30363d;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #388bfd;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .ctrl-value {
+    width: 26px;
+    text-align: right;
+    color: #e6edf3;
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+  }
+
+  select {
+    background: #161b22;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    border-radius: 4px;
+    padding: 3px 6px;
+    font-size: 12px;
+    cursor: pointer;
+    outline: none;
+    width: 100px;
+  }
+  select:focus { border-color: #388bfd; }
+
+  .toggle-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+  .toggle-btn {
+    background: #161b22;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 11px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .toggle-btn.active {
+    background: #0d419d;
+    border-color: #388bfd;
+    color: #e6edf3;
+  }
+
+  .presets-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+  .preset-btn {
+    background: #161b22;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    border-radius: 4px;
+    padding: 5px 4px;
+    font-size: 11px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .preset-btn:hover { border-color: #388bfd; color: #e6edf3; }
+
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .tabs {
+    display: flex;
+    background: #161b22;
+    border-bottom: 1px solid #21262d;
+    padding: 0 16px;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #8b949e;
+    padding: 10px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { color: #e6edf3; }
+  .tab-btn.active { color: #388bfd; border-bottom-color: #388bfd; }
+
+  .preview-area {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  .preview-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .preview-pane + .preview-pane {
+    border-left: 1px solid #21262d;
+  }
+
+  .pane-label {
+    background: #161b22;
+    padding: 6px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6e7681;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-bottom: 1px solid #21262d;
+    flex-shrink: 0;
+  }
+  .pane-label span { color: #e6edf3; }
+
+  .canvas-wrap {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+  }
+
+  /* Grid simulation */
+  .sim-root {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .sim-grid {
+    background: #1a2233;
+    border-radius: 4px;
+    padding: 8px;
+    position: absolute;
+  }
+
+  .sim-cells {
+    display: grid;
+    gap: 3px;
+  }
+
+  .sim-cell {
+    background: #0f172a;
+    border: 1px solid #1e2d45;
+    border-radius: 3px;
+  }
+
+  /* Bin */
+  .sim-bin-wrap {
+    position: absolute;
+  }
+
+  .sim-toolbar {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 2px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 2px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    white-space: nowrap;
+    z-index: 10;
+  }
+
+  .tb-btn {
+    background: none;
+    border: none;
+    color: #8b949e;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-size: 14px;
+    position: relative;
+  }
+  .tb-btn.gear-active {
+    background: #0d419d;
+    color: #e6edf3;
+  }
+  .tb-btn.gear-ring {
+    outline: 2px solid #388bfd;
+    outline-offset: 1px;
+  }
+
+  .sim-bin {
+    width: 100%;
+    height: 100%;
+    background: rgba(56, 139, 253, 0.15);
+    border: 2px solid rgba(56, 139, 253, 0.5);
+    border-radius: 4px;
+  }
+
+  /* Popover */
+  .sim-popover {
+    position: absolute;
+    background: #1a2233;
+    border: 1px solid #388bfd;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    z-index: 20;
+    width: 180px;
+  }
+
+  .pop-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px 6px;
+    border-bottom: 1px solid #21262d;
+  }
+  .pop-title { font-size: 12px; font-weight: 600; color: #e6edf3; }
+  .pop-close { color: #6e7681; font-size: 14px; }
+
+  .pop-body { padding: 8px 10px; display: flex; flex-direction: column; gap: 7px; }
+
+  .pop-field { display: flex; flex-direction: column; gap: 2px; }
+  .pop-field-label { font-size: 10px; color: #6e7681; }
+  .pop-field select, .pop-field input[type="number"] {
+    background: #0f172a;
+    border: 1px solid #30363d;
+    color: #c9d1d9;
+    border-radius: 4px;
+    padding: 3px 5px;
+    font-size: 11px;
+    width: 100%;
+    pointer-events: none;
+  }
+
+  .pop-reset {
+    margin: 0 10px 8px;
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    border-radius: 4px;
+    padding: 4px;
+    font-size: 11px;
+    text-align: center;
+  }
+
+  .pop-arrow {
+    position: absolute;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  /* Prompt */
+  .prompt-section {
+    background: #0d1018;
+    border-top: 1px solid #21262d;
+    flex-shrink: 0;
+    height: 160px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .prompt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 14px;
+    border-bottom: 1px solid #21262d;
+    flex-shrink: 0;
+  }
+  .prompt-header-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6e7681;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .copy-btn {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { border-color: #388bfd; color: #e6edf3; }
+  .copy-btn.copied { border-color: #3fb950; color: #3fb950; }
+
+  .prompt-text {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 14px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    color: #8b949e;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* Tab view modes */
+  .preview-area.view-a .pane-b { display: none; }
+  .preview-area.view-b .pane-a { display: none; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>Popover Placement Playground</h1>
+  <span class="subtitle">Gridfinity Bin Editor — Option A vs Option B comparison</span>
+</div>
+
+<div class="app-body">
+  <div class="controls" id="controls">
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">Presets</div>
+      <div class="presets-grid" id="presets"></div>
+    </div>
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">Bin Size</div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">Width (units)</span>
+        <input type="range" id="binW" min="1" max="5" value="2" step="1">
+        <span class="ctrl-value" id="binW-val">2</span>
+      </div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">Height (units)</span>
+        <input type="range" id="binH" min="1" max="5" value="2" step="1">
+        <span class="ctrl-value" id="binH-val">2</span>
+      </div>
+    </div>
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">Display</div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">Cell size (px)</span>
+        <input type="range" id="cellSize" min="40" max="120" value="64" step="4">
+        <span class="ctrl-value" id="cellSize-val">64</span>
+      </div>
+    </div>
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">Grid</div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">Columns</span>
+        <input type="range" id="gridCols" min="2" max="8" value="4" step="1">
+        <span class="ctrl-value" id="gridCols-val">4</span>
+      </div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">Rows</span>
+        <input type="range" id="gridRows" min="2" max="8" value="4" step="1">
+        <span class="ctrl-value" id="gridRows-val">4</span>
+      </div>
+    </div>
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">Bin Position</div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">Column</span>
+        <input type="range" id="binCol" min="1" max="8" value="2" step="1">
+        <span class="ctrl-value" id="binCol-val">2</span>
+      </div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">Row</span>
+        <input type="range" id="binRow" min="1" max="8" value="2" step="1">
+        <span class="ctrl-value" id="binRow-val">2</span>
+      </div>
+    </div>
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">Option B — Anchor Dir</div>
+      <div class="ctrl-row">
+        <span class="ctrl-label">Direction</span>
+        <select id="anchorDir">
+          <option value="above">Above</option>
+          <option value="right">Right</option>
+          <option value="left">Left</option>
+        </select>
+      </div>
+    </div>
+    <div class="ctrl-section">
+      <div class="ctrl-section-title">Popover Fields</div>
+      <div class="toggle-grid" id="fieldToggles"></div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="tabs">
+      <button class="tab-btn active" data-view="side">Side by Side</button>
+      <button class="tab-btn" data-view="a">Option A Only</button>
+      <button class="tab-btn" data-view="b">Option B Only</button>
+    </div>
+
+    <div class="preview-area" id="previewArea">
+      <div class="preview-pane pane-a">
+        <div class="pane-label">Option A — <span>Centered above toolbar</span></div>
+        <div class="canvas-wrap" id="canvasA"></div>
+      </div>
+      <div class="preview-pane pane-b">
+        <div class="pane-label">Option B — <span>Anchored to gear button</span></div>
+        <div class="canvas-wrap" id="canvasB"></div>
+      </div>
+    </div>
+
+    <div class="prompt-section">
+      <div class="prompt-header">
+        <span class="prompt-header-label">Prompt Output</span>
+        <button class="copy-btn" id="copyBtn">Copy</button>
+      </div>
+      <div class="prompt-text" id="promptText"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── State ──────────────────────────────────────────────────────────────
+const state = {
+  binW: 2,
+  binH: 2,
+  cellSize: 64,
+  gridCols: 4,
+  gridRows: 4,
+  binCol: 2,
+  binRow: 2,
+  anchorDir: 'above',
+  fields: {
+    'Lip Style': true,
+    'Finger Slide': true,
+    'Wall Cutout': false,
+    'Height': false,
+  },
+};
+
+// ── Presets ────────────────────────────────────────────────────────────
+const PRESETS = [
+  { label: 'Small 1x1',   binW: 1, binH: 1, gridCols: 4, gridRows: 4, binCol: 2, binRow: 2 },
+  { label: 'Wide 4x2',    binW: 4, binH: 2, gridCols: 6, gridRows: 4, binCol: 1, binRow: 2 },
+  { label: 'Tall 2x4',    binW: 2, binH: 4, gridCols: 4, gridRows: 6, binCol: 2, binRow: 1 },
+  { label: 'Bottom row',  binW: 2, binH: 2, gridCols: 4, gridRows: 4, binCol: 2, binRow: 3 },
+  { label: 'Cramped 3x3', binW: 3, binH: 3, gridCols: 4, gridRows: 4, binCol: 1, binRow: 1 },
+];
+
+// ── Field definitions ──────────────────────────────────────────────────
+const FIELD_DEFS = {
+  'Lip Style':    { kind: 'select',  opts: ['Normal', 'Reduced', 'None', 'Smooth'] },
+  'Finger Slide': { kind: 'select',  opts: ['None', 'Front', 'Both'] },
+  'Wall Cutout':  { kind: 'select',  opts: ['None', 'Front', 'All'] },
+  'Height':       { kind: 'number',  placeholder: '42' },
+};
+
+// ── DOM helpers ────────────────────────────────────────────────────────
+function mk(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls)  e.className   = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function mkSelect(opts) {
+  const s = mk('select');
+  s.style.pointerEvents = 'none';
+  opts.forEach(o => { const op = mk('option'); op.textContent = o; s.appendChild(op); });
+  return s;
+}
+
+function mkNumber(placeholder) {
+  const i = document.createElement('input');
+  i.type = 'number';
+  i.placeholder = placeholder;
+  i.style.pointerEvents = 'none';
+  return i;
+}
+
+// ── Build Presets ──────────────────────────────────────────────────────
+function buildPresets() {
+  const wrap = document.getElementById('presets');
+  PRESETS.forEach(p => {
+    const btn = mk('button', 'preset-btn', p.label);
+    btn.addEventListener('click', () => {
+      Object.assign(state, p);
+      syncRanges();
+      render();
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+// ── Field toggles ──────────────────────────────────────────────────────
+function buildFieldToggles() {
+  const wrap = document.getElementById('fieldToggles');
+  Object.keys(state.fields).forEach(name => {
+    const btn = mk('button', 'toggle-btn' + (state.fields[name] ? ' active' : ''), name);
+    btn.dataset.field = name;
+    btn.addEventListener('click', () => {
+      state.fields[name] = !state.fields[name];
+      btn.classList.toggle('active', state.fields[name]);
+      render();
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+// ── Sync range inputs to state ─────────────────────────────────────────
+function syncRanges() {
+  ['binW','binH','cellSize','gridCols','gridRows','binCol','binRow'].forEach(id => {
+    const inp = document.getElementById(id);
+    if (inp) { inp.value = state[id]; }
+    const vEl = document.getElementById(id + '-val');
+    if (vEl) vEl.textContent = state[id];
+  });
+  const aDir = document.getElementById('anchorDir');
+  if (aDir) aDir.value = state.anchorDir;
+}
+
+// ── Bind a range slider ────────────────────────────────────────────────
+function bindRange(id, key, getMin, getMax) {
+  const inp = document.getElementById(id);
+  const vEl = document.getElementById(id + '-val');
+  inp.addEventListener('input', () => {
+    let v = parseInt(inp.value, 10);
+    const mn = typeof getMin === 'function' ? getMin() : getMin;
+    const mx = typeof getMax === 'function' ? getMax() : getMax;
+    v = Math.max(mn, Math.min(mx, v));
+    state[key] = v;
+    if (vEl) vEl.textContent = v;
+    render();
+  });
+}
+
+// ── Constants ──────────────────────────────────────────────────────────
+const GAP        = 3;   // gap between grid cells
+const GRID_PAD   = 8;   // grid container padding
+const TB_H       = 30;  // toolbar height
+const TB_GAP     = 4;   // gap between bin top-edge and toolbar bottom
+const POP_GAP    = 8;   // gap between anchor and popover
+const ARROW_SZ   = 7;   // arrow half-size
+const POP_W      = 180; // popover width
+
+// ── Popover height estimate ────────────────────────────────────────────
+function popoverHeight() {
+  const n = Object.values(state.fields).filter(Boolean).length;
+  return 38 + n * 46 + 28; // header + fields + reset
+}
+
+// ── Build a popover DOM node ───────────────────────────────────────────
+function buildPopoverNode(showRing) {
+  const pop = mk('div', 'sim-popover');
+
+  // header
+  const hdr = mk('div', 'pop-header');
+  hdr.appendChild(mk('span', 'pop-title', 'Customize'));
+  hdr.appendChild(mk('span', 'pop-close', '\u00D7'));
+  pop.appendChild(hdr);
+
+  // body fields
+  const body = mk('div', 'pop-body');
+  Object.keys(state.fields).filter(f => state.fields[f]).forEach(name => {
+    const def = FIELD_DEFS[name];
+    const field = mk('div', 'pop-field');
+    field.appendChild(mk('span', 'pop-field-label', name));
+    if (def.kind === 'select') {
+      field.appendChild(mkSelect(def.opts));
+    } else {
+      field.appendChild(mkNumber(def.placeholder));
+    }
+    body.appendChild(field);
+  });
+  pop.appendChild(body);
+  pop.appendChild(mk('div', 'pop-reset', 'Reset to Defaults'));
+
+  return pop;
+}
+
+// ── Add arrow to popover ───────────────────────────────────────────────
+// dir: 'down' | 'left' | 'right'
+// offset: pixel offset along the perpendicular axis (from top-left of popover)
+function addArrow(pop, dir, offset) {
+  const arr = mk('div', 'pop-arrow');
+  const S = ARROW_SZ;
+  if (dir === 'down') {
+    const ax = Math.max(S + 4, Math.min(POP_W - S - 4, Math.round(offset)));
+    arr.style.bottom      = (-S) + 'px';
+    arr.style.left        = (ax - S) + 'px';
+    arr.style.borderLeft  = S + 'px solid transparent';
+    arr.style.borderRight = S + 'px solid transparent';
+    arr.style.borderTop   = S + 'px solid #388bfd';
+  } else if (dir === 'left') {
+    const ay = Math.max(S + 4, Math.min(popoverHeight() - S - 4, Math.round(offset)));
+    arr.style.left         = (-S) + 'px';
+    arr.style.top          = (ay - S) + 'px';
+    arr.style.borderTop    = S + 'px solid transparent';
+    arr.style.borderBottom = S + 'px solid transparent';
+    arr.style.borderRight  = S + 'px solid #388bfd';
+  } else if (dir === 'right') {
+    const ay = Math.max(S + 4, Math.min(popoverHeight() - S - 4, Math.round(offset)));
+    arr.style.right        = (-S) + 'px';
+    arr.style.top          = (ay - S) + 'px';
+    arr.style.borderTop    = S + 'px solid transparent';
+    arr.style.borderBottom = S + 'px solid transparent';
+    arr.style.borderLeft   = S + 'px solid #388bfd';
+  }
+  pop.appendChild(arr);
+}
+
+// ── Build a simulation scene ───────────────────────────────────────────
+function buildScene(option) {
+  const cs     = state.cellSize;
+  const cols   = state.gridCols;
+  const rows   = state.gridRows;
+  const pH     = popoverHeight();
+
+  // Clamp bin position to fit within grid
+  const maxCol = Math.max(1, cols - state.binW + 1);
+  const maxRow = Math.max(1, rows - state.binH + 1);
+  const binCol0 = Math.min(state.binCol, maxCol) - 1; // 0-based
+  const binRow0 = Math.min(state.binRow, maxRow) - 1;
+
+  // Grid pixel dimensions
+  const gridW = cols * cs + (cols - 1) * GAP + GRID_PAD * 2;
+  const gridH = rows * cs + (rows - 1) * GAP + GRID_PAD * 2;
+
+  // Extra space around the grid for toolbar + popover
+  const extraTop   = pH + POP_GAP + TB_H + TB_GAP + 16;
+  const extraLeft  = POP_W + POP_GAP + 16;
+  const extraRight = POP_W + POP_GAP + 16;
+  const extraBot   = 16;
+
+  const rootW = gridW + extraLeft + extraRight;
+  const rootH = gridH + extraTop + extraBot;
+
+  const root = mk('div', 'sim-root');
+  root.style.width  = rootW + 'px';
+  root.style.height = rootH + 'px';
+
+  // Grid element
+  const gridEl = mk('div', 'sim-grid');
+  gridEl.style.left   = extraLeft + 'px';
+  gridEl.style.top    = extraTop  + 'px';
+  gridEl.style.width  = gridW + 'px';
+  gridEl.style.height = gridH + 'px';
+
+  const cellsEl = mk('div', 'sim-cells');
+  cellsEl.style.gridTemplateColumns = `repeat(${cols}, ${cs}px)`;
+  cellsEl.style.gridTemplateRows    = `repeat(${rows}, ${cs}px)`;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      cellsEl.appendChild(mk('div', 'sim-cell'));
+    }
+  }
+  gridEl.appendChild(cellsEl);
+  root.appendChild(gridEl);
+
+  // Bin size in pixels
+  const binPixW = state.binW * cs + (state.binW - 1) * GAP;
+  const binPixH = state.binH * cs + (state.binH - 1) * GAP;
+
+  // Bin position relative to root
+  const binLeft = extraLeft + GRID_PAD + binCol0 * (cs + GAP);
+  const binTop  = extraTop  + GRID_PAD + binRow0 * (cs + GAP);
+
+  const binWrap = mk('div', 'sim-bin-wrap');
+  binWrap.style.left   = binLeft + 'px';
+  binWrap.style.top    = binTop  + 'px';
+  binWrap.style.width  = binPixW + 'px';
+  binWrap.style.height = binPixH + 'px';
+  binWrap.appendChild(mk('div', 'sim-bin'));
+
+  // Toolbar (positioned above the bin via absolute in binWrap)
+  const toolbar = mk('div', 'sim-toolbar');
+  toolbar.style.bottom = (binPixH + TB_GAP) + 'px'; // sit above bin top
+
+  const tbIcons = ['\u21BA', '\u21BB', '\u29C9', '\u2699', '\u00D7'];
+  let gearEl = null;
+  tbIcons.forEach((icon, i) => {
+    const b = mk('button', 'tb-btn', icon);
+    if (i === 3) {
+      gearEl = b;
+      b.classList.add('gear-active');
+      if (option === 'b') b.classList.add('gear-ring');
+    }
+    toolbar.appendChild(b);
+  });
+  binWrap.appendChild(toolbar);
+  root.appendChild(binWrap);
+
+  // ── Measure toolbar layout ──────────────────────────────────────────
+  // Toolbar is centered above bin: left50% transform=-50%
+  // Toolbar approximate width: 5 btns * 26px + 4 gaps * 2px + 4px padding = 142px
+  const TB_BTN_W  = 26;
+  const TB_BTN_H  = 26;
+  const TB_BTN_GAP = 2;
+  const TB_INNER_PAD = 2;
+  const tbTotalW = 5 * TB_BTN_W + 4 * TB_BTN_GAP + TB_INNER_PAD * 2;
+  const tbTotalH = TB_BTN_H + TB_INNER_PAD * 2; // ~30
+
+  // Toolbar absolute position within root:
+  const tbLeft   = binLeft + binPixW / 2 - tbTotalW / 2;
+  const tbBottom = binTop; // toolbar bottom edge aligns with bin top (minus gap)
+  const tbTop    = tbBottom - TB_GAP - tbTotalH; // top of toolbar box
+
+  // Gear button (index 3) center within root:
+  const gearOffsetInTb = TB_INNER_PAD + 3 * (TB_BTN_W + TB_BTN_GAP) + TB_BTN_W / 2;
+  const gearCenterX    = tbLeft + gearOffsetInTb;
+  const gearCenterY    = tbTop  + tbTotalH / 2;
+
+  // ── Compute popover position ────────────────────────────────────────
+  let popLeft, popTop, arrowDir, arrowOff;
+  const dir = state.anchorDir;
+
+  if (option === 'a') {
+    // Centered above toolbar
+    const toolbarCenterX = binLeft + binPixW / 2;
+    popLeft    = toolbarCenterX - POP_W / 2;
+    popTop     = tbTop - POP_GAP - pH;
+    arrowDir   = 'down';
+    arrowOff   = toolbarCenterX - popLeft; // arrow X relative to popover
+  } else {
+    // Anchored to gear button
+    if (dir === 'above') {
+      popLeft  = gearCenterX - POP_W / 2;
+      popTop   = gearCenterY - TB_BTN_H / 2 - POP_GAP - pH;
+      arrowDir = 'down';
+      arrowOff = gearCenterX - popLeft;
+    } else if (dir === 'right') {
+      popLeft  = gearCenterX + TB_BTN_W / 2 + POP_GAP;
+      popTop   = gearCenterY - pH / 2;
+      arrowDir = 'left';
+      arrowOff = gearCenterY - popTop;
+    } else { // left
+      popLeft  = gearCenterX - TB_BTN_W / 2 - POP_GAP - POP_W;
+      popTop   = gearCenterY - pH / 2;
+      arrowDir = 'right';
+      arrowOff = gearCenterY - popTop;
+    }
+  }
+
+  // Clamp within root
+  popLeft = Math.max(4, Math.min(rootW - POP_W - 4, popLeft));
+  popTop  = Math.max(4, Math.min(rootH - pH - 4, popTop));
+
+  // Build and position popover
+  const pop = buildPopoverNode(option === 'b');
+  pop.style.left = Math.round(popLeft) + 'px';
+  pop.style.top  = Math.round(popTop)  + 'px';
+  addArrow(pop, arrowDir, arrowOff);
+  root.appendChild(pop);
+
+  return root;
+}
+
+// ── Build prompt output ────────────────────────────────────────────────
+function buildPrompt() {
+  const af = Object.keys(state.fields).filter(f => state.fields[f]);
+  const dir = state.anchorDir;
+  const ph = popoverHeight();
+
+  return [
+    'Popover Placement — Configuration Summary',
+    '==========================================',
+    '',
+    'Settings:',
+    '  Bin size:       ' + state.binW + ' x ' + state.binH + ' units',
+    '  Grid:           ' + state.gridCols + ' cols x ' + state.gridRows + ' rows',
+    '  Bin position:   col ' + state.binCol + ', row ' + state.binRow,
+    '  Cell size:      ' + state.cellSize + 'px',
+    '  Active fields:  ' + (af.length > 0 ? af.join(', ') : '(none)'),
+    '  Popover height: ~' + ph + 'px',
+    '',
+    'Option A — Popover centered above toolbar',
+    '-----------------------------------------',
+    '  The popover is horizontally centered over the full toolbar strip.',
+    '  The toolbar sits 34px above the top edge of the bin.',
+    '  A downward arrow points toward the center of the toolbar.',
+    '  Position is consistent regardless of which button was clicked.',
+    '  The popover shifts horizontally near edges to stay in-viewport.',
+    '',
+    'Option B — Popover anchored to gear button',
+    '------------------------------------------',
+    '  Direction setting: ' + dir,
+    '  Popover opens ' + dir + ' the gear (settings) button.',
+    '  Gear button highlighted with a blue focus ring.',
+    '  Arrow points directly back toward the gear button.',
+    '  Tighter spatial coupling: trigger and content are visually linked.',
+    '  Direction can be chosen automatically based on available space.',
+    '',
+    'Trade-offs:',
+    '  Option A — more predictable position; wider anchor surface.',
+    '  Option B — stronger affordance; smaller, more precise anchor.',
+    '  With ' + af.length + ' field(s), popover is ~' + ph + 'px tall.',
+  ].join('\n');
+}
+
+// ── Render both canvases ───────────────────────────────────────────────
+function render() {
+  ['a', 'b'].forEach(opt => {
+    const wrap = document.getElementById('canvas' + opt.toUpperCase());
+    while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
+    wrap.appendChild(buildScene(opt));
+  });
+  document.getElementById('promptText').textContent = buildPrompt();
+}
+
+// ── Tabs ───────────────────────────────────────────────────────────────
+function buildTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const view = btn.dataset.view;
+      const area = document.getElementById('previewArea');
+      area.className = 'preview-area';
+      if (view === 'a') area.classList.add('view-a');
+      else if (view === 'b') area.classList.add('view-b');
+    });
+  });
+}
+
+// ── Copy button ────────────────────────────────────────────────────────
+function buildCopyBtn() {
+  const btn = document.getElementById('copyBtn');
+  btn.addEventListener('click', () => {
+    const text = document.getElementById('promptText').textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+      }).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  });
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  document.body.removeChild(ta);
+}
+
+// ── Bind controls ──────────────────────────────────────────────────────
+function bindControls() {
+  bindRange('binW',     'binW',     1, 5);
+  bindRange('binH',     'binH',     1, 5);
+  bindRange('cellSize', 'cellSize', 40, 120);
+  bindRange('gridCols', 'gridCols', 2, 8);
+  bindRange('gridRows', 'gridRows', 2, 8);
+  bindRange('binCol',   'binCol',   1, () => Math.max(1, state.gridCols - state.binW + 1));
+  bindRange('binRow',   'binRow',   1, () => Math.max(1, state.gridRows - state.binH + 1));
+
+  const aDir = document.getElementById('anchorDir');
+  aDir.addEventListener('change', () => { state.anchorDir = aDir.value; render(); });
+}
+
+// ── Init ───────────────────────────────────────────────────────────────
+function init() {
+  buildPresets();
+  buildFieldToggles();
+  bindControls();
+  buildTabs();
+  buildCopyBtn();
+  syncRanges();
+  render();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

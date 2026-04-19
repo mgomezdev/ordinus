@@ -36,6 +36,10 @@ export function useLayoutMeta() {
     layoutDispatch({ type: 'CLEAR_LAYOUT' });
   }, []);
 
+  const handleSetSubmissionId = useCallback((submissionId: number | null) => {
+    layoutDispatch({ type: 'SET_SUBMISSION_ID', payload: submissionId });
+  }, []);
+
   return {
     layoutMeta,
     layoutDispatch,
@@ -45,6 +49,7 @@ export function useLayoutMeta() {
     handleCloneComplete,
     handleLoadLayout,
     handleClearLayout,
+    handleSetSubmissionId,
   };
 }
 

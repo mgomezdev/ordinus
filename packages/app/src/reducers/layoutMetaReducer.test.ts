@@ -24,6 +24,10 @@ describe('layoutMetaReducer', () => {
     it('has empty owner', () => {
       expect(initialLayoutMetaState.owner).toBe('');
     });
+
+    it('has null submissionId', () => {
+      expect(initialLayoutMetaState.submissionId).toBeNull();
+    });
   });
 
   describe('LOAD_LAYOUT action', () => {
@@ -55,6 +59,7 @@ describe('layoutMetaReducer', () => {
         description: 'Old desc',
         status: 'submitted',
         owner: 'bob',
+        submissionId: null,
       };
 
       const action: LayoutMetaAction = {
@@ -85,6 +90,7 @@ describe('layoutMetaReducer', () => {
         description: 'Some desc',
         status: 'draft',
         owner: 'user1',
+        submissionId: null,
       };
 
       const state = layoutMetaReducer(existing, { type: 'CLEAR_LAYOUT' });
@@ -101,6 +107,7 @@ describe('layoutMetaReducer', () => {
         description: '',
         status: null,
         owner: '',
+        submissionId: null,
       };
 
       const state = layoutMetaReducer(existing, {
@@ -122,6 +129,7 @@ describe('layoutMetaReducer', () => {
         description: 'Keep this',
         status: 'draft',
         owner: 'keep-owner',
+        submissionId: null,
       };
 
       const state = layoutMetaReducer(existing, {
@@ -142,6 +150,7 @@ describe('layoutMetaReducer', () => {
         description: 'Desc',
         status: 'delivered',
         owner: 'alice',
+        submissionId: 5,
       };
 
       const state = layoutMetaReducer(existing, {
@@ -161,6 +170,7 @@ describe('layoutMetaReducer', () => {
         description: 'Keep desc',
         status: 'delivered',
         owner: 'alice',
+        submissionId: null,
       };
 
       const state = layoutMetaReducer(existing, {
@@ -181,6 +191,7 @@ describe('layoutMetaReducer', () => {
         description: 'Desc',
         status: 'draft',
         owner: 'alice',
+        submissionId: null,
       };
 
       const state = layoutMetaReducer(existing, {
@@ -202,6 +213,7 @@ describe('layoutMetaReducer', () => {
         description: '',
         status: 'draft',
         owner: '',
+        submissionId: null,
       };
 
       const state = layoutMetaReducer(existing, {
@@ -213,6 +225,66 @@ describe('layoutMetaReducer', () => {
     });
   });
 
+  describe('SET_SUBMISSION_ID action', () => {
+    it('sets submissionId and preserves other fields', () => {
+      const existing: LayoutMetaState = {
+        id: 42,
+        name: 'Test Layout',
+        description: 'Desc',
+        status: 'submitted',
+        owner: 'alice',
+        submissionId: null,
+      };
+
+      const state = layoutMetaReducer(existing, {
+        type: 'SET_SUBMISSION_ID',
+        payload: 99,
+      });
+
+      expect(state.submissionId).toBe(99);
+      expect(state.id).toBe(42);
+      expect(state.status).toBe('submitted');
+    });
+
+    it('can set submissionId to null', () => {
+      const existing: LayoutMetaState = {
+        id: 42,
+        name: 'Test',
+        description: '',
+        status: 'submitted',
+        owner: '',
+        submissionId: 7,
+      };
+
+      const state = layoutMetaReducer(existing, {
+        type: 'SET_SUBMISSION_ID',
+        payload: null,
+      });
+
+      expect(state.submissionId).toBeNull();
+    });
+  });
+
+  describe('CLONE_COMPLETE submissionId reset', () => {
+    it('resets submissionId to null on clone', () => {
+      const existing: LayoutMetaState = {
+        id: 10,
+        name: 'Original',
+        description: 'Desc',
+        status: 'submitted',
+        owner: 'alice',
+        submissionId: 5,
+      };
+
+      const state = layoutMetaReducer(existing, {
+        type: 'CLONE_COMPLETE',
+        payload: { id: 20, name: 'Clone', status: 'draft' as LayoutStatus },
+      });
+
+      expect(state.submissionId).toBeNull();
+    });
+  });
+
   describe('unknown action type', () => {
     it('returns current state unchanged', () => {
       const existing: LayoutMetaState = {
@@ -221,6 +293,7 @@ describe('layoutMetaReducer', () => {
         description: 'Desc',
         status: 'draft',
         owner: 'alice',
+        submissionId: null,
       };
 
       const state = layoutMetaReducer(existing, { type: 'UNKNOWN' } as unknown as LayoutMetaAction);

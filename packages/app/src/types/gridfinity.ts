@@ -43,6 +43,8 @@ export interface Category {
   order?: number;
 }
 
+export type GeneratorParams = Record<string, unknown>;
+
 export interface LibraryItem {
   id: string;
   name: string;
@@ -54,6 +56,7 @@ export interface LibraryItem {
   imageUrl?: string;
   perspectiveImageUrl?: string;
   price?: number;
+  gridfinityExtendedParams?: GeneratorParams;
 }
 
 export interface PlacedItem {
@@ -66,6 +69,7 @@ export interface PlacedItem {
   rotation: Rotation;
   customization?: BinCustomization;
   shadowBoxId?: string | null;
+  gridfinityExtendedParams?: GeneratorParams;
 }
 
 export interface PlacedItemWithValidity extends PlacedItem {
@@ -92,6 +96,7 @@ export interface BOMItem {
   customization?: BinCustomization;
   shadowboxId?: string;
   price?: number;
+  gridfinityExtendedParams?: GeneratorParams;
 }
 
 export interface ReferenceImage {
@@ -155,7 +160,7 @@ export type BOMExtras = Record<string, number>;
 
 export interface LibraryMeta {
   customizableFields: CustomizableField[];
-  customizationDefaults: Partial<BinCustomization>;
+  gridfinityExtendedParams: GeneratorParams;
 }
 
 export type ImageViewMode = 'ortho' | 'perspective';
@@ -184,5 +189,5 @@ export interface LibraryIndex {
   version: string;
   items: LibraryItem[];
   customizableFields?: CustomizableField[];
-  customizationDefaults?: Partial<BinCustomization>;
+  gridfinityExtendedParams?: GeneratorParams;
 }

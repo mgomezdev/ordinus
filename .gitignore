@@ -54,6 +54,7 @@ packages/server/data/
 # Environment files
 .env
 packages/server/.env
+infra/.env
 
 # Gridfinity generator outputs (regenerable)
 tools/gridfinity-generator/bins_*/
