@@ -30,7 +30,6 @@ function formatLayout(row: typeof layouts.$inferSelect): ApiLayout {
     spacerHorizontal: row.spacerHorizontal,
     spacerVertical: row.spacerVertical,
     isPublic: row.isPublic,
-    status: row.status as ApiLayout['status'],
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
