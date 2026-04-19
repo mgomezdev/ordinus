@@ -43,6 +43,8 @@ export interface Category {
   order?: number;
 }
 
+export type GeneratorParams = Record<string, unknown>;
+
 export interface LibraryItem {
   id: string;
   name: string;
@@ -133,8 +135,6 @@ export const DEFAULT_BIN_CUSTOMIZATION: BinCustomization = {
   wallCutout: 'none',
   height: 8,
 };
-
-export type GeneratorParams = Record<string, unknown>;
 
 export function serializeCustomization(c: BinCustomization | undefined): string {
   if (!c) return '';
