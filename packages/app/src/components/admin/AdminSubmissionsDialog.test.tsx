@@ -6,10 +6,6 @@ import type { ApiLayout } from '@gridfinity/shared';
 
 vi.mock('../../hooks/useAdminLayouts', () => ({
   useAdminLayoutsQuery: vi.fn(),
-  useDeliverLayoutMutation: vi.fn(() => ({
-    mutateAsync: vi.fn(),
-    isPending: false,
-  })),
 }));
 
 vi.mock('../../hooks/useLayouts', () => ({
@@ -176,7 +172,7 @@ describe('AdminSubmissionsDialog grouping', () => {
     expect(screen.queryByText('Jan 1, 2026')).not.toBeInTheDocument();
   });
 
-  it('preserves grouping when filter tab changes', () => {
+  it('preserves grouping when switching between sections', () => {
     renderDialog();
 
     // Set grouping to Owner
@@ -186,9 +182,11 @@ describe('AdminSubmissionsDialog grouping', () => {
     // Verify grouping is applied
     expect(screen.getAllByRole('heading', { level: 3 }).length).toBeGreaterThan(0);
 
-    // Click "All" tab
-    const allTab = screen.getByRole('button', { name: 'All' });
-    fireEvent.click(allTab);
+    // Switch to User Models tab and back to Layouts
+    const userModelsTab = screen.getByRole('button', { name: 'User Models' });
+    fireEvent.click(userModelsTab);
+    const layoutsTab = screen.getByRole('button', { name: 'Layouts' });
+    fireEvent.click(layoutsTab);
 
     // Grouping should still be Owner
     const selectAfter = screen.getByLabelText('Group by') as HTMLSelectElement;

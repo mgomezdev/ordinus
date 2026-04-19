@@ -2,10 +2,7 @@ import { useState } from 'react';
 import type { ApiLayout, ApiUserStlAdmin } from '@gridfinity/shared';
 import type { LoadedLayoutConfig } from '../../types/layoutConfig';
 import { useCloneLayoutMutation } from '../../hooks/useLayouts';
-import { useAdminLayoutsQuery, useDeliverLayoutMutation } from '../../hooks/useAdminLayouts';
-
-// Admin layouts may still include a status field from the server
-type AdminApiLayout = ApiLayout & { status?: string };
+import { useAdminLayoutsQuery } from '../../hooks/useAdminLayouts';
 import {
   useAdminUserStlsQuery,
   usePromoteUserStlMutation,
@@ -29,14 +26,7 @@ interface AdminSubmissionsDialogProps {
   hasItems: boolean;
 }
 
-type FilterTab = 'submitted' | 'delivered' | 'all';
 type MainSection = 'layouts' | 'user-models';
-
-function StatusBadge({ status }: { status: string }) {
-  const className = `layout-status-badge layout-status-${status}`;
-  const label = status.charAt(0).toUpperCase() + status.slice(1);
-  return <span className={className}>{label}</span>;
-}
 
 export function AdminSubmissionsDialog({
   isOpen,
@@ -45,7 +35,6 @@ export function AdminSubmissionsDialog({
   hasItems,
 }: AdminSubmissionsDialogProps) {
   const [mainSection, setMainSection] = useState<MainSection>('layouts');
-  const [filter, setFilter] = useState<FilterTab>('submitted');
   const [groupBy, setGroupBy] = useState<GroupMode>('none');
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,9 +42,7 @@ export function AdminSubmissionsDialog({
   const { confirm, dialogProps: confirmDialogProps } = useConfirmDialog();
 
   const { getAccessToken } = useAuth();
-  const statusFilter = filter === 'all' ? undefined : filter;
-  const layoutsQuery = useAdminLayoutsQuery(statusFilter);
-  const deliverMutation = useDeliverLayoutMutation();
+  const layoutsQuery = useAdminLayoutsQuery();
   const cloneMutation = useCloneLayoutMutation();
   const adminUserStlsQuery = useAdminUserStlsQuery();
   const promoteMutation = usePromoteUserStlMutation();
@@ -64,7 +51,7 @@ export function AdminSubmissionsDialog({
 
   if (!isOpen) return null;
 
-  const handleLoad = async (layout: AdminApiLayout) => {
+  const handleLoad = async (layout: ApiLayout) => {
     if (hasItems) {
       const confirmed = await confirm({ title: 'Replace Layout', message: 'Replace current layout? This will remove all placed items and reference images.', variant: 'danger', confirmLabel: 'Replace', cancelLabel: 'Cancel' });
       if (!confirmed) return;
@@ -129,15 +116,6 @@ export function AdminSubmissionsDialog({
     }
   };
 
-  const handleDeliver = async (e: React.MouseEvent, layoutId: number) => {
-    e.stopPropagation();
-    try {
-      await deliverMutation.mutateAsync(layoutId);
-    } catch {
-      // Error handled by mutation state
-    }
-  };
-
   const handleClone = async (e: React.MouseEvent, layoutId: number) => {
     e.stopPropagation();
     try {
@@ -166,12 +144,7 @@ export function AdminSubmissionsDialog({
     }
   };
 
-  const layouts = (layoutsQuery.data ?? []) as AdminApiLayout[];
-  const tabs: { key: FilterTab; label: string }[] = [
-    { key: 'submitted', label: 'Pending' },
-    { key: 'delivered', label: 'Delivered' },
-    { key: 'all', label: 'All' },
-  ];
+  const layouts = layoutsQuery.data ?? [];
 
   return (
     <div className="layout-dialog-overlay" onClick={onClose} onKeyDown={handleKeyDown}>
@@ -180,10 +153,10 @@ export function AdminSubmissionsDialog({
         onClick={e => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="Admin Submissions"
+        aria-label="Admin Panel"
       >
         <div className="layout-dialog-header">
-          <h2>Submissions</h2>
+          <h2>Admin Panel</h2>
           <button
             className="layout-dialog-close"
             onClick={onClose}
@@ -210,21 +183,6 @@ export function AdminSubmissionsDialog({
             User Models
           </button>
         </div>
-
-        {mainSection === 'layouts' && (
-        <div className="admin-filter-tabs">
-          {tabs.map(tab => (
-            <button
-              key={tab.key}
-              className={`admin-filter-tab ${filter === tab.key ? 'active' : ''}`}
-              onClick={() => setFilter(tab.key)}
-              type="button"
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        )}
 
         {mainSection === 'layouts' && (
         <div className="admin-group-controls">
@@ -266,24 +224,24 @@ export function AdminSubmissionsDialog({
 
           {layoutsQuery.isError && (
             <div className="layout-error-message">
-              {layoutsQuery.error?.message ?? 'Failed to load submissions'}
+              {layoutsQuery.error?.message ?? 'Failed to load layouts'}
             </div>
           )}
 
           {layoutsQuery.isLoading ? (
-            <div className="layout-list-loading">Loading submissions...</div>
+            <div className="layout-list-loading">Loading layouts...</div>
           ) : layouts.length === 0 ? (
             <div className="layout-list-empty">
-              <p>No {filter === 'all' ? '' : filter} submissions.</p>
+              <p>No layouts found.</p>
             </div>
           ) : (
             <div className="layout-list">
-              {groupLayouts(layouts as ApiLayout[], groupBy).map(group => (
+              {groupLayouts(layouts, groupBy).map(group => (
                 <div key={group.label}>
                   {groupBy !== 'none' && (
                     <h3 className="admin-group-header">{group.label}</h3>
                   )}
-                  {(group.layouts as AdminApiLayout[]).map(layout => (
+                  {group.layouts.map(layout => (
                     <div
                       key={layout.id}
                       className="layout-list-item"
@@ -300,7 +258,6 @@ export function AdminSubmissionsDialog({
                       <div className="layout-list-item-info">
                         <div className="layout-list-item-name-row">
                           <span className="layout-list-item-name">{layout.name}</span>
-                          {layout.status && <StatusBadge status={layout.status} />}
                         </div>
                         <div className="layout-list-item-meta">
                           <span>{layout.gridX} x {layout.gridY} grid</span>
@@ -311,28 +268,15 @@ export function AdminSubmissionsDialog({
                         </div>
                       </div>
                       <div className="layout-list-item-actions">
-                        {layout.status === 'submitted' && (
-                          <button
-                            className="layout-action-btn layout-deliver-action"
-                            onClick={e => handleDeliver(e, layout.id)}
-                            type="button"
-                            disabled={deliverMutation.isPending}
-                            aria-label={`Deliver ${layout.name}`}
-                          >
-                            {deliverMutation.isPending ? 'Delivering...' : 'Mark Delivered'}
-                          </button>
-                        )}
-                        {layout.status === 'delivered' && (
-                          <button
-                            className="layout-action-btn layout-clone-action"
-                            onClick={e => handleClone(e, layout.id)}
-                            type="button"
-                            disabled={cloneMutation.isPending}
-                            aria-label={`Clone ${layout.name}`}
-                          >
-                            Clone
-                          </button>
-                        )}
+                        <button
+                          className="layout-action-btn layout-clone-action"
+                          onClick={e => handleClone(e, layout.id)}
+                          type="button"
+                          disabled={cloneMutation.isPending}
+                          aria-label={`Clone ${layout.name}`}
+                        >
+                          Clone
+                        </button>
                       </div>
                     </div>
                   ))}

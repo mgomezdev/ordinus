@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import type { ApiLayout } from '@gridfinity/shared';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -22,36 +22,18 @@ async function adminFetch<T>(path: string, accessToken: string, options: Request
   return response.json() as T;
 }
 
-export function useAdminLayoutsQuery(statusFilter?: string) {
+export function useAdminLayoutsQuery() {
   const { getAccessToken, isAuthenticated, user } = useAuth();
   const isAdmin = user?.role === 'admin';
 
   return useQuery({
-    queryKey: ['admin-layouts', statusFilter],
+    queryKey: ['admin-layouts'],
     queryFn: async (): Promise<ApiLayout[]> => {
       const token = getAccessToken();
       if (!token) throw new Error('Not authenticated');
-      const params = statusFilter ? `?status=${statusFilter}` : '';
-      const result = await adminFetch<{ data: ApiLayout[] }>(`/admin/layouts${params}`, token);
+      const result = await adminFetch<{ data: ApiLayout[] }>('/admin/layouts', token);
       return result.data;
     },
     enabled: isAuthenticated && isAdmin,
-  });
-}
-
-export function useDeliverLayoutMutation() {
-  const { getAccessToken } = useAuth();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: number): Promise<ApiLayout> => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      const result = await adminFetch<{ data: ApiLayout }>(`/admin/layouts/${id}/deliver`, token, { method: 'POST' });
-      return result.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-layouts'] });
-    },
   });
 }

@@ -85,7 +85,6 @@ vi.mock('./contexts/WorkspaceContext', () => ({
     refreshLibrary: vi.fn(),
     selectedLibraryMeta: { customizableFields: [], customizationDefaults: {} },
     loadLayout: vi.fn(),
-    handleSubmitClick: vi.fn(),
     handleSubmitLayout: vi.fn(),
     handleWithdrawLayout: vi.fn(),
     handleCloneCurrentLayout: vi.fn(),

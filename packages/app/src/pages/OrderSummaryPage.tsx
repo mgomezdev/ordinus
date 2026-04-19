@@ -102,7 +102,7 @@ export function OrderSummaryPage() {
 
         {hasNoId && (
           <div className="order-tbd-note">
-            Save your layout first before submitting.{' '}
+            Save your layout first before generating STL files.{' '}
             <button
               className="order-panel-btn order-save-now-btn"
               onClick={handleSaveAndExit}

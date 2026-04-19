@@ -14,7 +14,7 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
   const {
     isAuthenticated, layoutMeta,
     placedItems, refImagePlacements, gridResult, drawerWidth, drawerDepth,
-    spacerConfig, handleSaveComplete, handleSubmitClick,
+    spacerConfig, handleSaveComplete,
     handleClearAll, dialogDispatch,
   } = useWorkspace();
 
@@ -107,16 +107,6 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
             <span>Saved!</span>
           )}
         </div>
-      )}
-
-      {isAuthenticated && (
-        <button
-          className="layout-toolbar-btn layout-submit-btn"
-          onClick={handleSubmitClick}
-          type="button"
-        >
-          Submit
-        </button>
       )}
 
       <button

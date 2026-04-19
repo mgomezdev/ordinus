@@ -1,5 +1,4 @@
-import { useCallback, useRef } from 'react';
-import type { DialogAction } from '../reducers/dialogReducer';
+import { useCallback } from 'react';
 import type { useCloneLayoutMutation } from './useLayouts';
 
 interface UseLayoutActionsParams {
@@ -7,7 +6,6 @@ interface UseLayoutActionsParams {
   cloneLayoutMutation: ReturnType<typeof useCloneLayoutMutation>;
   handleCloneComplete: (id: number, name: string) => void;
   rawHandleSaveComplete: (layoutId: number, name: string) => void;
-  dialogDispatch: React.Dispatch<DialogAction>;
 }
 
 export function useLayoutActions({
@@ -15,20 +13,9 @@ export function useLayoutActions({
   cloneLayoutMutation,
   handleCloneComplete,
   rawHandleSaveComplete,
-  dialogDispatch,
 }: UseLayoutActionsParams) {
-  const submitAfterSaveRef = useRef(false);
-
-  const handleSubmitClick = useCallback(() => {
-    if (!layoutId) {
-      submitAfterSaveRef.current = true;
-      dialogDispatch({ type: 'OPEN', dialog: 'save' });
-    }
-  }, [layoutId, dialogDispatch]);
-
   const handleSaveComplete = useCallback((id: number, name: string) => {
     rawHandleSaveComplete(id, name);
-    submitAfterSaveRef.current = false;
   }, [rawHandleSaveComplete]);
 
   const handleCloneCurrentLayout = useCallback(async () => {
@@ -42,7 +29,6 @@ export function useLayoutActions({
   }, [layoutId, cloneLayoutMutation, handleCloneComplete]);
 
   return {
-    handleSubmitClick,
     handleSaveComplete,
     handleCloneCurrentLayout,
   };

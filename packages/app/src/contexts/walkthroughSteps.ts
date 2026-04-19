@@ -18,10 +18,4 @@ export const WALKTHROUGH_STEPS: WalkthroughStep[] = [
     body: 'Give your layout a name and save it — you can come back and edit it anytime.',
     target: '.layout-save-btn',
   },
-  {
-    id: 'submit-order',
-    title: 'Submit your order',
-    body: 'When your layout is ready, hit Submit to send it in as an order. You can track it from your layouts panel.',
-    target: '.layout-submit-btn',
-  },
 ];

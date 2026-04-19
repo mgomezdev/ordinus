@@ -132,7 +132,6 @@ interface WorkspaceContextValue {
   // Layout actions
   handleLoadLayout: (config: LoadedLayoutConfig) => void;
   loadLayout: (id: number) => Promise<void>;
-  handleSubmitClick: () => void;
   handleCloneCurrentLayout: () => Promise<void>;
   handleClearAll: () => Promise<void>;
   handleReset: () => void;
@@ -326,7 +325,6 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   }, [unitSystem, width, depth]);
 
   const {
-    handleSubmitClick,
     handleSaveComplete,
     handleCloneCurrentLayout,
   } = useLayoutActions({
@@ -334,7 +332,6 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     cloneLayoutMutation,
     handleCloneComplete,
     rawHandleSaveComplete,
-    dialogDispatch,
   });
 
   const { handleLoadLayout, loadLayout } = useLayoutLoader({
@@ -453,7 +450,6 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     // Layout actions
     handleLoadLayout,
     loadLayout,
-    handleSubmitClick,
     handleCloneCurrentLayout,
     handleClearAll,
     handleReset,

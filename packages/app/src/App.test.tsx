@@ -1085,26 +1085,6 @@ describe('App Integration Tests', () => {
     });
   });
 
-  // ==========================================
-  // 7. Always-visible Submit button
-  // ==========================================
-  describe('Always-visible Submit button', () => {
-    it('Submit button is visible when authenticated and no layout is saved', () => {
-      mockIsAuthenticated = true;
-      renderApp();
-      expect(screen.getByRole('button', { name: 'Submit' })).toBeInTheDocument();
-    });
-
-    it('clicking Submit when no layout is saved opens the Save dialog', () => {
-      mockIsAuthenticated = true;
-      renderApp();
-
-      fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
-
-      expect(capturedSaveLayoutDialogProps.isOpen).toBe(true);
-    });
-
-  });
 
   // ==========================================
   // 10. Walkthrough auto-start
