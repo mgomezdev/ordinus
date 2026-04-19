@@ -1,16 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   DEFAULT_BIN_CUSTOMIZATION,
-  isDefaultCustomization,
 } from '../types/gridfinity';
 import type {
   BinCustomization,
   CustomizableField,
   FingerSlide,
+  GeneratorParams,
   LipStyle,
   WallCutout,
   WallPattern,
 } from '../types/gridfinity';
+import { generatorParamsToBinCustomization } from '../utils/generatorParams';
 
 const MM_PER_HEIGHT_UNIT = 7;
 
@@ -97,7 +98,7 @@ interface BinCustomizationPanelProps {
   onChange: (customization: BinCustomization) => void;
   onReset: () => void;
   customizableFields: CustomizableField[];
-  customizationDefaults?: Partial<BinCustomization>;
+  defaultParameters?: GeneratorParams;
   idPrefix?: string;
 }
 
@@ -113,17 +114,22 @@ export function BinCustomizationPanel({
   onChange,
   onReset,
   customizableFields,
-  customizationDefaults,
+  defaultParameters,
   idPrefix = '',
 }: BinCustomizationPanelProps) {
   if (customizableFields.length === 0) return null;
 
-  const effectiveDefaults = { ...DEFAULT_BIN_CUSTOMIZATION, ...customizationDefaults };
+  const libraryDefaults = defaultParameters
+    ? generatorParamsToBinCustomization(defaultParameters, customizableFields)
+    : {};
+  const effectiveDefaults = { ...DEFAULT_BIN_CUSTOMIZATION, ...libraryDefaults };
   const current: BinCustomization = customization ?? effectiveDefaults;
-  const isDefault = isDefaultCustomization(customization)
-    && (!customizationDefaults || Object.entries(customizationDefaults).every(
-      ([k, v]) => current[k as keyof BinCustomization] === v
-    ));
+  const isDefault =
+    current.wallPattern === effectiveDefaults.wallPattern &&
+    current.lipStyle === effectiveDefaults.lipStyle &&
+    current.fingerSlide === effectiveDefaults.fingerSlide &&
+    current.wallCutout === effectiveDefaults.wallCutout &&
+    current.height === effectiveDefaults.height;
 
   const has = (f: CustomizableField) => customizableFields.includes(f);
 

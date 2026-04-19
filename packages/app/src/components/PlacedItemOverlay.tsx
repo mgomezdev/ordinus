@@ -1,7 +1,8 @@
 import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { PlacedItemWithValidity, LibraryItem, ImageViewMode, BinCustomization, LibraryMeta } from '../types/gridfinity';
-import { isDefaultCustomization } from '../types/gridfinity';
+import { isDefaultCustomization, DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
+import { generatorParamsToBinCustomization } from '../utils/generatorParams';
 import { usePointerDragSource } from '../hooks/usePointerDrag';
 import { useImageLoadState } from '../hooks/useImageLoadState';
 import { BinCustomizationPanel } from './BinCustomizationPanel';
@@ -45,7 +46,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const [popoverPos, setPopoverPos] = useState<PopoverPos | null>(null);
   const gearButtonRef = useRef<HTMLButtonElement>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [libraryMeta, setLibraryMeta] = useState<LibraryMeta>({ customizableFields: [], customizationDefaults: {} });
+  const [libraryMeta, setLibraryMeta] = useState<LibraryMeta>({ customizableFields: [], defaultParameters: {} });
 
   useEffect(() => {
     if (!getLibraryMeta) return;
@@ -167,8 +168,17 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   }, [onCustomizationChange, item.instanceId]);
 
   const handlePopoverReset = useCallback(() => {
-    onCustomizationReset?.(item.instanceId);
-  }, [onCustomizationReset, item.instanceId]);
+    const allFields = ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'] as const;
+    const libraryDefaults = item.defaultParameters
+      ? generatorParamsToBinCustomization(item.defaultParameters, [...allFields])
+      : {};
+    const hasLibraryDefaults = Object.keys(libraryDefaults).length > 0;
+    if (hasLibraryDefaults) {
+      onCustomizationChange?.(item.instanceId, { ...DEFAULT_BIN_CUSTOMIZATION, ...libraryDefaults });
+    } else {
+      onCustomizationReset?.(item.instanceId);
+    }
+  }, [item, onCustomizationChange, onCustomizationReset]);
 
   const handleDuplicateClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -344,7 +354,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
             onReset={handlePopoverReset}
             idPrefix="inline-"
             customizableFields={libraryMeta.customizableFields}
-            customizationDefaults={libraryMeta.customizationDefaults}
+            defaultParameters={item.defaultParameters}
           />
         </div>,
         document.body
