@@ -2,10 +2,10 @@ import { spawn } from 'child_process';
 import { eq } from 'drizzle-orm';
 import fs from 'fs/promises';
 import path from 'path';
-import { AppError, ErrorCodes, gridfinityExtendedDefaultParams } from '@gridfinity/shared';
+import { gridfinityExtendedDefaultParams } from '@gridfinity/shared';
 import type { BOMItem, ApiBomGeneration, BomGenerationManifestEntry, BinCustomization, GeneratorParams } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
-import { bomSubmissions, bomGenerations } from '../db/schema.js';
+import { bomGenerations } from '../db/schema.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 
@@ -17,7 +17,7 @@ const DEFAULT_CUSTOMIZATION: BinCustomization = {
   height: 8,
 };
 
-// ── Pure extraction helpers (exported for testing) ──────────────────────────
+// ── Pure extraction helpers (exported for testing) ───────────────────────────
 
 function customizationKey(item: BOMItem): string {
   const c = item.customization;
@@ -88,17 +88,17 @@ function buildStlFilename(w: number, d: number, c: BinCustomization, defaultPara
   return parts.join('_') + '.stl';
 }
 
-// ── DB helpers ────────────────────────────────────────────────────────────
+// ── DB helpers ────────────────────────────────────────────────────────────────
 
 type RawGenRow = Pick<
   typeof bomGenerations.$inferSelect,
-  'id' | 'submissionId' | 'status' | 'fileManifest' | 'threeMfPath' | 'generatedAt' | 'errorMessage'
+  'id' | 'layoutId' | 'status' | 'fileManifest' | 'threeMfPath' | 'generatedAt' | 'errorMessage'
 >;
 
 export function formatBomGeneration(row: RawGenRow): ApiBomGeneration {
   return {
     id: row.id,
-    submissionId: row.submissionId,
+    layoutId: row.layoutId,
     status: row.status as ApiBomGeneration['status'],
     fileManifest: row.fileManifest ? (JSON.parse(row.fileManifest) as BomGenerationManifestEntry[]) : null,
     threeMfPath: row.threeMfPath,
@@ -107,12 +107,12 @@ export function formatBomGeneration(row: RawGenRow): ApiBomGeneration {
   };
 }
 
-export async function getGeneration(submissionId: number): Promise<ApiBomGeneration | null> {
-  const rows = await db.select().from(bomGenerations).where(eq(bomGenerations.submissionId, submissionId)).limit(1);
+export async function getGeneration(layoutId: number): Promise<ApiBomGeneration | null> {
+  const rows = await db.select().from(bomGenerations).where(eq(bomGenerations.layoutId, layoutId)).limit(1);
   return rows.length ? formatBomGeneration(rows[0]) : null;
 }
 
-// ── Subprocess helpers ────────────────────────────────────────────────────
+// ── Subprocess helpers ────────────────────────────────────────────────────────
 
 const PYTHON_CMD = process.platform === 'win32' ? 'python' : 'python3';
 
@@ -134,32 +134,28 @@ function runPython(args: string[]): Promise<string> {
   });
 }
 
-// ── Main generation pipeline ──────────────────────────────────────────────
+// ── Main generation pipeline ──────────────────────────────────────────────────
 
-export async function triggerGeneration(submissionId: number): Promise<ApiBomGeneration> {
-  const subRows = await db.select().from(bomSubmissions).where(eq(bomSubmissions.id, submissionId)).limit(1);
-  if (!subRows.length) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'BOM submission not found');
-  }
-
-  const exportJson = subRows[0].exportJson;
-  const bomItems: BOMItem[] = JSON.parse(exportJson) as BOMItem[];
+export async function triggerGeneration(layoutId: number, bomItems: BOMItem[]): Promise<ApiBomGeneration> {
   const uniqueConfigs = extractUniqueConfigs(bomItems);
 
-  const outDir = path.resolve(config.GENERATED_STL_DIR, `bom-${submissionId}`);
+  const outDir = path.resolve(config.GENERATED_STL_DIR, `bom-layout-${layoutId}`);
   await fs.mkdir(outDir, { recursive: true });
 
-  // Upsert generation record with 'generating' status
-  await db.delete(bomGenerations).where(eq(bomGenerations.submissionId, submissionId));
-  const genRows = await db.insert(bomGenerations).values({ submissionId, status: 'generating' }).returning();
+  await db.delete(bomGenerations).where(eq(bomGenerations.layoutId, layoutId));
+  const genRows = await db.insert(bomGenerations).values({
+    layoutId,
+    status: 'generating',
+    exportJson: JSON.stringify(bomItems),
+  }).returning();
 
-  void runGenerationPipeline(submissionId, uniqueConfigs, outDir);
+  void runGenerationPipeline(layoutId, uniqueConfigs, outDir);
 
   return formatBomGeneration(genRows[0]);
 }
 
 async function runGenerationPipeline(
-  submissionId: number,
+  layoutId: number,
   configs: UniqueConfig[],
   outDir: string,
 ): Promise<void> {
@@ -168,7 +164,6 @@ async function runGenerationPipeline(
   const bundleScript = path.join(generatorDir, 'bundle_3mf.py');
 
   try {
-    // Generate each unique STL
     for (const cfg of configs) {
       const stlPath = path.join(outDir, cfg.filename);
       const paramsPath = path.join(outDir, `params_${cfg.filename.replace('.stl', '')}.json`);
@@ -179,7 +174,6 @@ async function runGenerationPipeline(
       logger.info({ stlPath }, 'Generated STL');
     }
 
-    // Bundle into 3MF
     const manifest: BomGenerationManifestEntry[] = configs.map(cfg => ({
       filename: cfg.filename,
       widthUnits: cfg.widthUnits,
@@ -188,19 +182,19 @@ async function runGenerationPipeline(
       qty: cfg.qty,
     }));
     const manifestPath = path.join(outDir, 'manifest.json');
-    const threeMfPath = path.join(outDir, `bom-${submissionId}.3mf`);
+    const threeMfPath = path.join(outDir, `bom-${layoutId}.3mf`);
     await fs.writeFile(manifestPath, JSON.stringify(manifest));
     await runPython([bundleScript, manifestPath, outDir, threeMfPath]);
 
     await db.update(bomGenerations)
       .set({ status: 'ready', fileManifest: JSON.stringify(manifest), threeMfPath, generatedAt: new Date().toISOString() })
-      .where(eq(bomGenerations.submissionId, submissionId));
+      .where(eq(bomGenerations.layoutId, layoutId));
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    logger.error({ submissionId, err: msg }, 'BOM generation failed');
+    logger.error({ layoutId, err: msg }, 'BOM generation failed');
     await db.update(bomGenerations)
       .set({ status: 'error', errorMessage: msg })
-      .where(eq(bomGenerations.submissionId, submissionId));
+      .where(eq(bomGenerations.layoutId, layoutId));
   }
 }
 
@@ -208,8 +202,8 @@ export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> 
   const c = cfg.customization;
 
   const params: Record<string, unknown> = {
-    ...gridfinityExtendedDefaultParams,      // system defaults (lowest priority)
-    ...(cfg.gridfinityExtendedParams ?? {}), // library/item defaults
+    ...gridfinityExtendedDefaultParams,
+    ...(cfg.gridfinityExtendedParams ?? {}),
     width: [cfg.widthUnits, 0],
     depth: [cfg.heightUnits, 0],
     height: [c.height, 0],

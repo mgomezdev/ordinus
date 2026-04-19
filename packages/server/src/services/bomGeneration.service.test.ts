@@ -15,6 +15,10 @@ beforeEach(async () => {
   await client.execute(
     `INSERT INTO users (id, email, username, password_hash) VALUES (1, 'a@b.com', 'admin', 'hash')`,
   );
+  await client.execute(
+    `INSERT INTO layouts (id, user_id, name, grid_x, grid_y, width_mm, depth_mm, created_at, updated_at)
+     VALUES (1, 1, 'Test Layout', 4, 4, 168, 168, datetime('now'), datetime('now'))`,
+  );
 });
 
 describe('extractUniqueConfigs', () => {
@@ -264,27 +268,35 @@ describe('extractUniqueConfigs with gridfinityExtendedParams', () => {
 });
 
 describe('formatBomGeneration', () => {
+  it('formats a generation row correctly', () => {
+    const row = {
+      id: 1,
+      layoutId: 1,
+      status: 'ready' as const,
+      fileManifest: JSON.stringify([{ filename: 'bin_2x3x8.stl', widthUnits: 2, heightUnits: 3, qty: 1 }]),
+      threeMfPath: '/path/to/bom.3mf',
+      generatedAt: '2024-01-01T00:00:00Z',
+      errorMessage: null,
+    };
+    const result = formatBomGeneration(row);
+    expect(result.id).toBe(1);
+    expect(result.layoutId).toBe(1);
+    expect(result.status).toBe('ready');
+    expect(result.fileManifest).toHaveLength(1);
+  });
+
   it('formats a pending row', () => {
     const row = {
-      id: 1, submissionId: 1, status: 'pending',
-      fileManifest: null, threeMfPath: null, generatedAt: null, errorMessage: null,
+      id: 1,
+      layoutId: 1,
+      status: 'pending',
+      fileManifest: null,
+      threeMfPath: null,
+      generatedAt: null,
+      errorMessage: null,
     };
     const result = formatBomGeneration(row);
     expect(result.status).toBe('pending');
     expect(result.fileManifest).toBeNull();
-  });
-
-  it('parses fileManifest JSON string', () => {
-    const manifest = [{ filename: 'bin_2x3x8.stl', widthUnits: 2, heightUnits: 3, qty: 2, customization: null }];
-    const row = {
-      id: 1, submissionId: 1, status: 'ready',
-      fileManifest: JSON.stringify(manifest),
-      threeMfPath: '/data/generated/bom-1/bom-1.3mf',
-      generatedAt: '2026-04-17T00:00:00Z',
-      errorMessage: null,
-    };
-    const result = formatBomGeneration(row);
-    expect(result.fileManifest).toHaveLength(1);
-    expect(result.fileManifest![0].filename).toBe('bin_2x3x8.stl');
   });
 });
