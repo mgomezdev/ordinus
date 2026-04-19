@@ -284,7 +284,6 @@ export async function createLayout(
       depthMm: data.depthMm,
       spacerHorizontal: data.spacerHorizontal ?? 'none',
       spacerVertical: data.spacerVertical ?? 'none',
-      status: 'draft',
       isPublic: false,
       createdAt: now,
       updatedAt: now,
@@ -390,10 +389,6 @@ export async function updateLayout(
 
   if (existing.length === 0) {
     throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
-  }
-
-  if (existing[0].status === 'delivered') {
-    throw new AppError(ErrorCodes.CONFLICT, 'Delivered layouts cannot be modified');
   }
 
   if (existing[0].userId !== userId && !isAdmin) {
@@ -519,9 +514,6 @@ export async function updateLayoutMeta(
     throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
   }
 
-  if (existing[0].status === 'delivered') {
-    throw new AppError(ErrorCodes.CONFLICT, 'Delivered layouts cannot be modified');
-  }
 
   if (existing[0].userId !== userId) {
     throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
@@ -557,9 +549,7 @@ export async function deleteLayout(
     throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
   }
 
-  if (existing[0].status === 'delivered') {
-    throw new AppError(ErrorCodes.CONFLICT, 'Delivered layouts cannot be deleted');
-  }
+
 
   if (existing[0].userId !== userId) {
     throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
@@ -631,7 +621,6 @@ export async function cloneLayout(
       depthMm: source.depthMm,
       spacerHorizontal: source.spacerHorizontal,
       spacerVertical: source.spacerVertical,
-      status: 'draft',
       isPublic: false,
       createdAt: now,
       updatedAt: now,
