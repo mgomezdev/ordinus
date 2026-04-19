@@ -63,6 +63,8 @@ export type LipStyle = 'normal' | 'reduced' | 'minimum' | 'none';
 export type FingerSlide = 'none' | 'rounded' | 'chamfered';
 export type WallCutout = 'none' | 'vertical' | 'horizontal' | 'both';
 
+export type GeneratorParams = Record<string, unknown>;
+
 export interface BinCustomization {
   wallPattern: WallPattern;
   lipStyle: LipStyle;
@@ -104,6 +106,7 @@ export interface BOMItem {
   categories: string[];
   quantity: number;
   customization?: BinCustomization;
+  defaultParameters?: GeneratorParams;
 }
 
 export interface ReferenceImage {
