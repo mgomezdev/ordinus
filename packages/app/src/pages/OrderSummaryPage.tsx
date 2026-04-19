@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useWorkspace } from '../contexts/WorkspaceContext';
-import { AdminBomPanel } from '../components/admin/AdminBomPanel';
 import { exportOrderSummaryPdf, calculateOrderTotal } from '../utils/exportOrderSummaryPdf';
 import { formatCustomizationDescription } from '../utils/customizationDescription';
 import { getBOMKey } from '../types/gridfinity';
@@ -9,7 +8,6 @@ import type { BOMItem } from '../types/gridfinity';
 import './OrderSummaryPage.css';
 
 export function OrderSummaryPage() {
-  const navigate = useNavigate();
   const {
     bomItems,
     extras,
@@ -20,19 +18,12 @@ export function OrderSummaryPage() {
     spacerConfig,
     unitSystem,
     layoutMeta,
-    isReadOnly,
     drawerWidth,
     drawerDepth,
-    submitLayoutMutation,
-    handleSubmitLayout,
     dialogDispatch,
     exportPdfError,
     setExportPdfError,
-    isAdmin,
-    getAccessToken,
   } = useWorkspace();
-
-  const accessToken = getAccessToken();
 
   const [isConfiguredOpen, setIsConfiguredOpen] = useState(true);
   const [isExtrasOpen, setIsExtrasOpen] = useState(true);
@@ -88,15 +79,6 @@ export function OrderSummaryPage() {
     );
   };
 
-  const handleSubmit = async () => {
-    try {
-      await handleSubmitLayout();
-      navigate('/configs');
-    } catch {
-      // error handled by mutation
-    }
-  };
-
   const handleSaveAndExit = () => {
     dialogDispatch({ type: 'OPEN', dialog: 'save' });
   };
@@ -127,13 +109,6 @@ export function OrderSummaryPage() {
               Save Now
             </button>
           </div>
-        )}
-
-        {isAdmin && layoutMeta.submissionId !== null && accessToken && (
-          <AdminBomPanel
-            submissionId={layoutMeta.submissionId}
-            accessToken={accessToken}
-          />
         )}
 
         {/* ── As Configured section ── */}
@@ -426,21 +401,6 @@ export function OrderSummaryPage() {
           <button className="order-panel-btn" onClick={handleDownloadPdf} type="button">
             Download PDF
           </button>
-          {!isReadOnly && (
-            <button
-              className="order-panel-btn primary"
-              onClick={handleSubmit}
-              type="button"
-              disabled={submitLayoutMutation.isPending || totalPlaced === 0 || hasNoId}
-            >
-              {submitLayoutMutation.isPending ? 'Submitting\u2026' : 'Submit Layout'}
-            </button>
-          )}
-          {isReadOnly && (
-            <div style={{ textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-              This layout has been fulfilled.
-            </div>
-          )}
           <button className="order-panel-btn" onClick={handleSaveAndExit} type="button">
             Save &amp; Exit
           </button>

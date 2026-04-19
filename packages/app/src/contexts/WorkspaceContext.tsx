@@ -8,7 +8,7 @@ import type {
 } from '../types/gridfinity';
 import type { SelectModifiers } from '../hooks/useGridItems';
 import type { LoadedLayoutConfig } from '../types/layoutConfig';
-import type { LayoutStatus, ApiUser } from '@gridfinity/shared';
+import type { ApiUser } from '@gridfinity/shared';
 import type { RefImagePlacement, UseRefImagePlacementsReturn } from '../hooks/useRefImagePlacements';
 import type { LayoutMetaState } from '../reducers/layoutMetaReducer';
 import type { DialogState, DialogAction } from '../reducers/dialogReducer';
@@ -26,15 +26,11 @@ import { useRefImagePlacements } from '../hooks/useRefImagePlacements';
 import { useAuth } from './AuthContext';
 import { useWalkthrough, WALKTHROUGH_STEPS } from './WalkthroughContext';
 import {
-  useSubmitLayoutMutation,
-  useWithdrawLayoutMutation,
   useCloneLayoutMutation,
-  useSubmittedCountQuery,
 } from '../hooks/useLayouts';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { useLayoutLoader } from '../hooks/useLayoutLoader';
 import { useLayoutActions } from '../hooks/useLayoutActions';
-import { submitBom } from '../api/bom.api';
 import { STORAGE_KEYS } from '../utils/storageKeys';
 import type { WalkthroughStep } from './WalkthroughContext';
 
@@ -103,9 +99,7 @@ interface WorkspaceContextValue {
 
   // Layout meta
   layoutMeta: LayoutMetaState;
-  isReadOnly: boolean;
-  handleSaveComplete: (layoutId: number, name: string, status: LayoutStatus) => void;
-  handleSetStatus: (status: LayoutStatus | null) => void;
+  handleSaveComplete: (layoutId: number, name: string) => void;
   handleClearLayout: () => void;
 
   // Ref images
@@ -139,17 +133,12 @@ interface WorkspaceContextValue {
   handleLoadLayout: (config: LoadedLayoutConfig) => void;
   loadLayout: (id: number) => Promise<void>;
   handleSubmitClick: () => void;
-  handleSubmitLayout: () => Promise<void>;
-  handleWithdrawLayout: () => Promise<void>;
   handleCloneCurrentLayout: () => Promise<void>;
   handleClearAll: () => Promise<void>;
   handleReset: () => void;
 
-  // Mutations / queries
-  submitLayoutMutation: ReturnType<typeof useSubmitLayoutMutation>;
-  withdrawLayoutMutation: ReturnType<typeof useWithdrawLayoutMutation>;
+  // Mutations
   cloneLayoutMutation: ReturnType<typeof useCloneLayoutMutation>;
-  submittedCountQuery: ReturnType<typeof useSubmittedCountQuery>;
 
   // Dialogs
   dialogs: DialogState;
@@ -217,10 +206,9 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   // Hooks
   const { dialogs, dialogDispatch, closeRebind } = useDialogState();
   const {
-    layoutMeta, layoutDispatch, isReadOnly,
+    layoutMeta, layoutDispatch,
     handleSaveComplete: rawHandleSaveComplete,
-    handleSetStatus, handleCloneComplete, handleClearLayout,
-    handleSetSubmissionId,
+    handleCloneComplete, handleClearLayout,
   } = useLayoutMeta();
 
   const { isAuthenticated, user, getAccessToken } = useAuth();
@@ -239,10 +227,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     prevAuthenticatedRef.current = isAuthenticated;
   }, [isAuthenticated, startTour]);
 
-  const submitLayoutMutation = useSubmitLayoutMutation();
-  const withdrawLayoutMutation = useWithdrawLayoutMutation();
   const cloneLayoutMutation = useCloneLayoutMutation();
-  const submittedCountQuery = useSubmittedCountQuery();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmDialog();
 
   // Library
@@ -341,60 +326,16 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   }, [unitSystem, width, depth]);
 
   const {
-    handleSubmitLayout: rawHandleSubmitLayout,
-    handleSubmitClick: _rawHandleSubmitClick,
+    handleSubmitClick,
     handleSaveComplete,
-    handleWithdrawLayout,
     handleCloneCurrentLayout,
   } = useLayoutActions({
     layoutId: layoutMeta.id,
-    submitLayoutMutation,
-    withdrawLayoutMutation,
     cloneLayoutMutation,
-    handleSetStatus,
     handleCloneComplete,
     rawHandleSaveComplete,
     dialogDispatch,
   });
-
-  // After a successful layout submit, also create a BOM submission so
-  // AdminBomPanel gets the correct bom_submissions.id (not the layout ID).
-  const handleSubmitLayout = useCallback(async () => {
-    await rawHandleSubmitLayout();
-    const token = getAccessToken();
-    if (!token || !layoutMeta.id) return;
-    try {
-      const submission = await submitBom(
-        {
-          layoutId: layoutMeta.id,
-          gridX: gridResult.gridX,
-          gridY: gridResult.gridY,
-          widthMm: drawerWidth,
-          depthMm: drawerDepth,
-          totalItems: bomItems.reduce((s, i) => s + i.quantity, 0),
-          totalUnique: bomItems.length,
-          exportJson: JSON.stringify(bomItems),
-        },
-        token,
-      );
-      handleSetSubmissionId(submission.id);
-    } catch {
-      // BOM submission is best-effort; layout submit already succeeded
-    }
-  }, [
-    rawHandleSubmitLayout, getAccessToken, layoutMeta.id,
-    gridResult.gridX, gridResult.gridY, drawerWidth, drawerDepth,
-    bomItems, handleSetSubmissionId,
-  ]);
-
-  // BOM-inclusive submit: for new layouts, falls back to save-first flow
-  const handleSubmitClick = useCallback(() => {
-    if (!layoutMeta.id) {
-      _rawHandleSubmitClick();
-    } else {
-      void handleSubmitLayout();
-    }
-  }, [layoutMeta.id, _rawHandleSubmitClick, handleSubmitLayout]);
 
   const { handleLoadLayout, loadLayout } = useLayoutLoader({
     unitSystem, setWidth, setDepth, setSpacerConfig,
@@ -479,9 +420,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
     // Layout meta
     layoutMeta,
-    isReadOnly,
     handleSaveComplete,
-    handleSetStatus,
     handleClearLayout,
 
     // Ref images
@@ -515,17 +454,12 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     handleLoadLayout,
     loadLayout,
     handleSubmitClick,
-    handleSubmitLayout,
-    handleWithdrawLayout,
     handleCloneCurrentLayout,
     handleClearAll,
     handleReset,
 
-    // Mutations / queries
-    submitLayoutMutation,
-    withdrawLayoutMutation,
+    // Mutations
     cloneLayoutMutation,
-    submittedCountQuery,
 
     // Dialogs
     dialogs,

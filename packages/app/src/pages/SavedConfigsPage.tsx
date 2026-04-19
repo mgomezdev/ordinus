@@ -4,8 +4,6 @@ import { useWorkspace } from '../contexts/WorkspaceContext';
 import {
   useLayoutsQuery,
   useDeleteLayoutMutation,
-  useSubmitLayoutMutation,
-  useWithdrawLayoutMutation,
   useCloneLayoutMutation,
 } from '../hooks/useLayouts';
 import { SavedConfigCard } from '../components/layouts/SavedConfigCard';
@@ -16,8 +14,6 @@ export function SavedConfigsPage() {
   const { loadLayout } = useWorkspace();
   const layoutsQuery = useLayoutsQuery();
   const deleteMutation = useDeleteLayoutMutation();
-  const submitMutation = useSubmitLayoutMutation();
-  const withdrawMutation = useWithdrawLayoutMutation();
   const cloneMutation = useCloneLayoutMutation();
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
@@ -88,14 +84,6 @@ export function SavedConfigsPage() {
                   setDeletingId(null);
                 }
               }}
-              onSubmit={(id) => submitMutation.mutate(id, {
-                onError: () => setPageError('Failed to submit. Please try again.'),
-                onSuccess: () => setPageError(null),
-              })}
-              onWithdraw={(id) => withdrawMutation.mutate(id, {
-                onError: () => setPageError('Failed to withdraw. Please try again.'),
-                onSuccess: () => setPageError(null),
-              })}
               onDuplicate={(id) => cloneMutation.mutate(id, {
                 onError: () => setPageError('Failed to duplicate. Please try again.'),
                 onSuccess: () => setPageError(null),

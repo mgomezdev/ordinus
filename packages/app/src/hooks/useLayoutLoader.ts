@@ -49,7 +49,6 @@ export function useLayoutLoader({
         id: config.layoutId,
         name: config.layoutName,
         description: config.layoutDescription ?? '',
-        status: config.layoutStatus,
         owner,
       },
     });
@@ -80,7 +79,7 @@ export function useLayoutLoader({
 
       handleLoadLayout({
         layoutId: detail.id, layoutName: detail.name,
-        layoutDescription: detail.description, layoutStatus: detail.status,
+        layoutDescription: detail.description,
         widthMm: detail.widthMm, depthMm: detail.depthMm,
         spacerConfig: {
           horizontal: detail.spacerHorizontal as SpacerMode,

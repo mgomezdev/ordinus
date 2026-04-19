@@ -30,8 +30,6 @@ interface SavedConfigCardProps {
   layout: ApiLayout;
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
-  onSubmit: (id: number) => void;
-  onWithdraw: (id: number) => void;
   onDuplicate: (id: number) => void;
   isDeleting: boolean;
 }
@@ -52,8 +50,6 @@ export function SavedConfigCard({
   layout,
   onEdit,
   onDelete,
-  onSubmit,
-  onWithdraw,
   onDuplicate,
   isDeleting,
 }: SavedConfigCardProps) {
@@ -68,7 +64,6 @@ export function SavedConfigCard({
       <div className="saved-config-info">
         <div className="saved-config-name-row">
           <span className="saved-config-name">{layout.name}</span>
-          <span className={`layout-status-badge layout-status-${layout.status}`}>{layout.status}</span>
         </div>
         <span className="saved-config-date">Saved {formatDate(layout.updatedAt)}</span>
       </div>
@@ -88,48 +83,28 @@ export function SavedConfigCard({
         >
           Duplicate
         </button>
-        {layout.status === 'draft' && (
+        {confirmDelete ? (
           <button
-            className="saved-config-btn saved-config-submit"
-            onClick={() => onSubmit(layout.id)}
+            className="saved-config-btn saved-config-delete confirming"
+            onClick={() => {
+              onDelete(layout.id);
+              setConfirmDelete(false);
+            }}
+            onBlur={() => setConfirmDelete(false)}
+            disabled={isDeleting}
             type="button"
           >
-            Submit
+            Confirm
           </button>
-        )}
-        {layout.status === 'submitted' && (
+        ) : (
           <button
-            className="saved-config-btn"
-            onClick={() => onWithdraw(layout.id)}
+            className="saved-config-btn saved-config-delete"
+            onClick={() => setConfirmDelete(true)}
+            disabled={isDeleting}
             type="button"
           >
-            Withdraw
+            Delete
           </button>
-        )}
-        {layout.status !== 'delivered' && (
-          confirmDelete ? (
-            <button
-              className="saved-config-btn saved-config-delete confirming"
-              onClick={() => {
-                onDelete(layout.id);
-                setConfirmDelete(false);
-              }}
-              onBlur={() => setConfirmDelete(false)}
-              disabled={isDeleting}
-              type="button"
-            >
-              Confirm
-            </button>
-          ) : (
-            <button
-              className="saved-config-btn saved-config-delete"
-              onClick={() => setConfirmDelete(true)}
-              disabled={isDeleting}
-              type="button"
-            >
-              Delete
-            </button>
-          )
         )}
       </div>
     </div>

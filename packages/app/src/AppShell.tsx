@@ -4,7 +4,6 @@ import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { SaveLayoutDialog } from './components/layouts/SaveLayoutDialog';
 import { RebindImageDialog } from './components/RebindImageDialog';
 import { AdminSubmissionsDialog } from './components/admin/AdminSubmissionsDialog';
-import { SubmissionsBadge } from './components/admin/SubmissionsBadge';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { WalkthroughOverlay } from './components/WalkthroughOverlay';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
@@ -19,7 +18,6 @@ function AppShellInner() {
     isAuthenticated,
     isAdmin,
     layoutMeta,
-    isReadOnly,
     dialogs,
     dialogDispatch,
     closeRebind,
@@ -34,7 +32,6 @@ function AppShellInner() {
     spacerConfig,
     handleSaveComplete,
     handleLoadLayout,
-    submittedCountQuery,
     isWalkthroughActive,
     walkthroughCurrentStep,
     walkthroughSteps,
@@ -103,11 +100,6 @@ function AppShellInner() {
                 <span className="nav-layout-owner">{layoutMeta.owner} &mdash; </span>
               )}
               <span className="nav-layout-name">{layoutMeta.name}</span>
-              {layoutMeta.status && (
-                <span className={`layout-status-badge layout-status-${layoutMeta.status}`}>
-                  {layoutMeta.status}
-                </span>
-              )}
             </div>
           )}
           <UserMenu openAuth={authOpen} onAuthClosed={handleAuthClosed} />
@@ -148,7 +140,7 @@ function AppShellInner() {
           <span className="status-cost-label">Est.</span>
           <strong>{costLabel}</strong>
         </div>
-        {isAuthenticated && layoutMeta.status !== 'submitted' && layoutMeta.status !== 'delivered' && (
+        {isAuthenticated && (
           <NavLink
             to="/order"
             className="status-submit-btn"
@@ -159,18 +151,15 @@ function AppShellInner() {
           </NavLink>
         )}
         {isAdmin && (
-          <SubmissionsBadge
-            count={submittedCountQuery.data?.submitted ?? 0}
+          <button
+            type="button"
+            className="admin-badge"
             onClick={() => dialogDispatch({ type: 'OPEN', dialog: 'admin' })}
-          />
+          >
+            Admin
+          </button>
         )}
       </div>
-
-      {isReadOnly && (
-        <div className="read-only-banner">
-          This layout has been delivered and is read-only. Use "Build from This" to create an editable copy.
-        </div>
-      )}
 
       {/* Global dialogs */}
       <KeyboardShortcutsHelp

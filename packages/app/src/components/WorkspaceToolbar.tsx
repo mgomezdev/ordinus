@@ -2,7 +2,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useUpdateLayoutMutation } from '../hooks/useLayouts';
-import { SubmissionsBadge } from './admin/SubmissionsBadge';
 import { buildPayload } from '../utils/layoutHelpers';
 
 interface WorkspaceToolbarProps {
@@ -13,11 +12,10 @@ interface WorkspaceToolbarProps {
 export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolbarProps) {
   const navigate = useNavigate();
   const {
-    isAuthenticated, isAdmin, isReadOnly, layoutMeta,
+    isAuthenticated, layoutMeta,
     placedItems, refImagePlacements, gridResult, drawerWidth, drawerDepth,
-    spacerConfig, handleSaveComplete, handleSubmitClick, handleWithdrawLayout,
-    handleClearAll, dialogDispatch, submittedCountQuery,
-    submitLayoutMutation, withdrawLayoutMutation,
+    spacerConfig, handleSaveComplete, handleSubmitClick,
+    handleClearAll, dialogDispatch,
   } = useWorkspace();
 
   const updateLayoutMutation = useUpdateLayoutMutation();
@@ -40,7 +38,7 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
         drawerWidth, drawerDepth, spacerConfig, placedItems, refImagePlacements,
       );
       const result = await updateLayoutMutation.mutateAsync({ id: layoutMeta.id, data: payload });
-      handleSaveComplete(result.id, result.name, result.status);
+      handleSaveComplete(result.id, result.name);
       setToast({ visible: true, isError: false });
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       toastTimerRef.current = setTimeout(
@@ -59,7 +57,7 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
       )}
 
       {/* Unsaved layout */}
-      {isAuthenticated && !isReadOnly && !layoutMeta.id && (
+      {isAuthenticated && !layoutMeta.id && (
         <button
           className="layout-toolbar-btn layout-save-btn"
           onClick={() => dialogDispatch({ type: 'OPEN', dialog: 'save' })}
@@ -70,8 +68,8 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
         </button>
       )}
 
-      {/* Saved layout — draft or submitted */}
-      {isAuthenticated && !isReadOnly && !!layoutMeta.id && (
+      {/* Saved layout */}
+      {isAuthenticated && !!layoutMeta.id && (
         <>
           <button
             className="layout-toolbar-btn"
@@ -89,17 +87,6 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
             {updateLayoutMutation.isPending ? 'Saving\u2026' : 'Save Changes'}
           </button>
         </>
-      )}
-
-      {/* Delivered (read-only) layout */}
-      {isAuthenticated && isReadOnly && (
-        <button
-          className="layout-toolbar-btn layout-save-btn"
-          onClick={() => dialogDispatch({ type: 'OPEN', dialog: 'save' })}
-          type="button"
-        >
-          Build from This
-        </button>
       )}
 
       {toast.visible && (
@@ -122,24 +109,13 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
         </div>
       )}
 
-      {isAuthenticated && layoutMeta.status !== 'submitted' && layoutMeta.status !== 'delivered' && (
+      {isAuthenticated && (
         <button
           className="layout-toolbar-btn layout-submit-btn"
           onClick={handleSubmitClick}
           type="button"
-          disabled={submitLayoutMutation.isPending}
         >
-          {submitLayoutMutation.isPending ? 'Submitting...' : 'Submit'}
-        </button>
-      )}
-      {isAuthenticated && layoutMeta.status === 'delivered' && (
-        <button className="layout-toolbar-btn layout-submit-btn" disabled type="button" title="This layout has been fulfilled">
           Submit
-        </button>
-      )}
-      {isAuthenticated && layoutMeta.id && layoutMeta.status === 'submitted' && (
-        <button className="layout-toolbar-btn layout-withdraw-btn" onClick={handleWithdrawLayout} type="button" disabled={withdrawLayoutMutation.isPending}>
-          {withdrawLayoutMutation.isPending ? 'Withdrawing...' : 'Withdraw'}
         </button>
       )}
 
@@ -156,17 +132,10 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
         <span className="export-pdf-error" role="alert">{exportPdfError}</span>
       )}
 
-      {!isReadOnly && (placedItems.length > 0 || refImagePlacements.length > 0) && (
+      {(placedItems.length > 0 || refImagePlacements.length > 0) && (
         <button className="clear-all-button" onClick={handleClearAll}>
           Clear All ({placedItems.length + refImagePlacements.length})
         </button>
-      )}
-
-      {isAdmin && (
-        <SubmissionsBadge
-          count={submittedCountQuery.data?.submitted ?? 0}
-          onClick={() => dialogDispatch({ type: 'OPEN', dialog: 'admin' })}
-        />
       )}
     </div>
   );

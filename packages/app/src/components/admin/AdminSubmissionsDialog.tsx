@@ -1,7 +1,11 @@
 import { useState } from 'react';
-import type { ApiLayout, LayoutStatus, ApiUserStlAdmin } from '@gridfinity/shared';
+import type { ApiLayout, ApiUserStlAdmin } from '@gridfinity/shared';
 import type { LoadedLayoutConfig } from '../../types/layoutConfig';
-import { useAdminLayoutsQuery, useDeliverLayoutMutation, useCloneLayoutMutation } from '../../hooks/useLayouts';
+import { useCloneLayoutMutation } from '../../hooks/useLayouts';
+import { useAdminLayoutsQuery, useDeliverLayoutMutation } from '../../hooks/useAdminLayouts';
+
+// Admin layouts may still include a status field from the server
+type AdminApiLayout = ApiLayout & { status?: string };
 import {
   useAdminUserStlsQuery,
   usePromoteUserStlMutation,
@@ -28,7 +32,7 @@ interface AdminSubmissionsDialogProps {
 type FilterTab = 'submitted' | 'delivered' | 'all';
 type MainSection = 'layouts' | 'user-models';
 
-function StatusBadge({ status }: { status: LayoutStatus }) {
+function StatusBadge({ status }: { status: string }) {
   const className = `layout-status-badge layout-status-${status}`;
   const label = status.charAt(0).toUpperCase() + status.slice(1);
   return <span className={className}>{label}</span>;
@@ -60,7 +64,7 @@ export function AdminSubmissionsDialog({
 
   if (!isOpen) return null;
 
-  const handleLoad = async (layout: ApiLayout) => {
+  const handleLoad = async (layout: AdminApiLayout) => {
     if (hasItems) {
       const confirmed = await confirm({ title: 'Replace Layout', message: 'Replace current layout? This will remove all placed items and reference images.', variant: 'danger', confirmLabel: 'Replace', cancelLabel: 'Cancel' });
       if (!confirmed) return;
@@ -105,7 +109,6 @@ export function AdminSubmissionsDialog({
         layoutId: detail.id,
         layoutName: detail.name,
         layoutDescription: detail.description,
-        layoutStatus: detail.status,
         widthMm: detail.widthMm,
         depthMm: detail.depthMm,
         spacerConfig: {
@@ -163,7 +166,7 @@ export function AdminSubmissionsDialog({
     }
   };
 
-  const layouts = layoutsQuery.data ?? [];
+  const layouts = (layoutsQuery.data ?? []) as AdminApiLayout[];
   const tabs: { key: FilterTab; label: string }[] = [
     { key: 'submitted', label: 'Pending' },
     { key: 'delivered', label: 'Delivered' },
@@ -275,12 +278,12 @@ export function AdminSubmissionsDialog({
             </div>
           ) : (
             <div className="layout-list">
-              {groupLayouts(layouts, groupBy).map(group => (
+              {groupLayouts(layouts as ApiLayout[], groupBy).map(group => (
                 <div key={group.label}>
                   {groupBy !== 'none' && (
                     <h3 className="admin-group-header">{group.label}</h3>
                   )}
-                  {group.layouts.map(layout => (
+                  {(group.layouts as AdminApiLayout[]).map(layout => (
                     <div
                       key={layout.id}
                       className="layout-list-item"
@@ -297,7 +300,7 @@ export function AdminSubmissionsDialog({
                       <div className="layout-list-item-info">
                         <div className="layout-list-item-name-row">
                           <span className="layout-list-item-name">{layout.name}</span>
-                          <StatusBadge status={layout.status} />
+                          {layout.status && <StatusBadge status={layout.status} />}
                         </div>
                         <div className="layout-list-item-meta">
                           <span>{layout.gridX} x {layout.gridY} grid</span>

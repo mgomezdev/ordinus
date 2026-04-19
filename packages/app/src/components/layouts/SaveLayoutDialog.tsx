@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import type { PlacedItemWithValidity, GridSpacerConfig } from '../../types/gridfinity';
-import type { LayoutStatus } from '@gridfinity/shared';
 import type { RefImagePlacement } from '../../hooks/useRefImagePlacements';
 import { buildPayload } from '../../utils/layoutHelpers';
 import { useSaveLayoutMutation } from '../../hooks/useLayouts';
@@ -18,7 +17,7 @@ interface SaveLayoutDialogProps {
   currentLayoutId?: number | null;
   currentLayoutName?: string;
   currentLayoutDescription?: string;
-  onSaveComplete?: (layoutId: number, name: string, status: LayoutStatus) => void;
+  onSaveComplete?: (layoutId: number, name: string) => void;
 }
 
 interface SaveLayoutFormProps {
@@ -32,7 +31,7 @@ interface SaveLayoutFormProps {
   refImagePlacements?: RefImagePlacement[];
   currentLayoutName?: string;
   currentLayoutDescription?: string;
-  onSaveComplete?: (layoutId: number, name: string, status: LayoutStatus) => void;
+  onSaveComplete?: (layoutId: number, name: string) => void;
 }
 
 function SaveLayoutForm({
@@ -65,7 +64,7 @@ function SaveLayoutForm({
       const payload = buildPayload(name, description, gridX, gridY, widthMm, depthMm, spacerConfig, placedItems, refImagePlacements);
       const result = await saveLayoutMutation.mutateAsync(payload);
 
-      onSaveComplete?.(result.id, result.name, result.status);
+      onSaveComplete?.(result.id, result.name);
       setSuccessMessage('Layout saved successfully!');
       setTimeout(() => onClose(), 1000);
     } catch {

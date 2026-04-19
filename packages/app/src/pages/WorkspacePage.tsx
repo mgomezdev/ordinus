@@ -36,7 +36,7 @@ export function WorkspacePage() {
     selectItem, selectAll, deselectAll, handleDrop, duplicateItem,
     copyItems, pasteItems, deleteSelected, rotateSelected, updateItemCustomization,
     bomItems,
-    layoutMeta, isReadOnly,
+    layoutMeta,
     refImagePlacements, addRefImagePlacement, removeRefImagePlacement,
     updateRefImagePosition, updateRefImageScale, updateRefImageOpacity,
     updateRefImageRotation, toggleRefImageLock,
@@ -115,7 +115,6 @@ export function WorkspacePage() {
 
   // Combined drop handler for both library items and ref images
   const handleCombinedDrop = useCallback((dragData: DragData, x: number, y: number) => {
-    if (isReadOnly) return;
     if (dragData.type === 'ref-image' && dragData.refImageId != null) {
       const xPercent = (x / gridResult.gridX) * 100;
       const yPercent = (y / gridResult.gridY) * 100;
@@ -127,7 +126,7 @@ export function WorkspacePage() {
     } else {
       handleDrop(dragData, x, y);
     }
-  }, [isReadOnly, gridResult.gridX, gridResult.gridY, addRefImagePlacement, handleDrop]);
+  }, [gridResult.gridX, gridResult.gridY, addRefImagePlacement, handleDrop]);
 
   const [rawSnapPreview, setRawSnapPreview] = useState<SnapPreviewData | null>(null);
 
@@ -339,11 +338,11 @@ export function WorkspacePage() {
         spacerContent={spacerContent}
         onClearCanvas={handleClearAll}
         onReset={handleReset}
-        isReadOnly={isReadOnly}
+        isReadOnly={false}
         isOpen={isMobile && settingsOpen}
       />
 
-      <section className={`preview${isReadOnly ? ' canvas-readonly' : ''}`}>
+      <section className="preview">
         <nav className="canvas-breadcrumb" aria-label="breadcrumb">
           <span className="canvas-breadcrumb-item">Workspace</span>
           {layoutMeta.name && (
