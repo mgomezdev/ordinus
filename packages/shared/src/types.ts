@@ -65,10 +65,8 @@ export type WallCutout = 'none' | 'vertical' | 'horizontal' | 'both';
 
 export type GeneratorParams = Record<string, unknown>;
 
-/** System-level defaults for gridfinity-extended OpenSCAD params (lowest priority tier). */
-export const gridfinityExtendedDefaultParams: GeneratorParams = {
-  label_style: 'disabled',
-};
+import gridfinityExtendedDefaultParamsJson from './gridfinity-extended-default-params.json';
+export const gridfinityExtendedDefaultParams: GeneratorParams = gridfinityExtendedDefaultParamsJson;
 
 export interface BinCustomization {
   wallPattern: WallPattern;
