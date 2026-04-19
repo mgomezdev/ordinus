@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import fs from 'fs/promises';
 import path from 'path';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
-import type { BOMItem, ApiBomGeneration, BomGenerationManifestEntry, BinCustomization } from '@gridfinity/shared';
+import type { BOMItem, ApiBomGeneration, BomGenerationManifestEntry, BinCustomization, GeneratorParams } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
 import { bomSubmissions, bomGenerations } from '../db/schema.js';
 import { config } from '../config.js';
@@ -35,6 +35,18 @@ export interface UniqueConfig {
   customization: BinCustomization;
   qty: number;
   filename: string;
+  defaultParameters?: GeneratorParams;
+}
+
+function hashGeneratorParams(params: GeneratorParams): string {
+  const sorted = Object.fromEntries(Object.entries(params).sort((a, b) => a[0].localeCompare(b[0])));
+  const str = JSON.stringify(sorted);
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(36);
 }
 
 export function extractUniqueConfigs(bomItems: BOMItem[]): UniqueConfig[] {
@@ -42,25 +54,37 @@ export function extractUniqueConfigs(bomItems: BOMItem[]): UniqueConfig[] {
 
   for (const item of bomItems) {
     const c = item.customization ?? DEFAULT_CUSTOMIZATION;
-    const key = `${item.widthUnits}x${item.heightUnits}::${customizationKey(item)}`;
+    const defaultParams = item.defaultParameters ?? {};
+    const paramsHash = Object.keys(defaultParams).length > 0 ? hashGeneratorParams(defaultParams) : '';
+    const key = `${item.widthUnits}x${item.heightUnits}::${customizationKey(item)}::${paramsHash}`;
     const existing = map.get(key);
     if (existing) {
       existing.qty += item.quantity;
     } else {
-      const filename = buildStlFilename(item.widthUnits, item.heightUnits, c);
-      map.set(key, { widthUnits: item.widthUnits, heightUnits: item.heightUnits, customization: c, qty: item.quantity, filename });
+      const filename = buildStlFilename(item.widthUnits, item.heightUnits, c, defaultParams);
+      map.set(key, {
+        widthUnits: item.widthUnits,
+        heightUnits: item.heightUnits,
+        customization: c,
+        qty: item.quantity,
+        filename,
+        defaultParameters: Object.keys(defaultParams).length > 0 ? defaultParams : undefined,
+      });
     }
   }
 
   return Array.from(map.values());
 }
 
-function buildStlFilename(w: number, d: number, c: BinCustomization): string {
+function buildStlFilename(w: number, d: number, c: BinCustomization, defaultParams?: GeneratorParams): string {
   const parts = [`bin_${w}x${d}x${c.height}`];
   if (c.lipStyle !== 'normal') parts.push(c.lipStyle);
   if (c.fingerSlide !== 'none') parts.push('fingerslid');
   if (c.wallPattern !== 'none') parts.push('patterned');
   if (c.wallCutout !== 'none') parts.push('cutout');
+  if (defaultParams && Object.keys(defaultParams).length > 0) {
+    parts.push(hashGeneratorParams(defaultParams));
+  }
   return parts.join('_') + '.stl';
 }
 
@@ -182,23 +206,34 @@ async function runGenerationPipeline(
 
 export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> {
   const c = cfg.customization;
+
   const params: Record<string, unknown> = {
+    label_style: 'disabled',
+    ...(cfg.defaultParameters ?? {}),
     width: [cfg.widthUnits, 0],
     depth: [cfg.heightUnits, 0],
     height: [c.height, 0],
     lip_style: c.lipStyle,
     fingerslide: c.fingerSlide,
-    label_style: 'disabled',
   };
+
   if (c.wallPattern !== 'none') {
     params.wallpattern_enabled = true;
     params.wallpattern_style = c.wallPattern;
+  } else {
+    delete params.wallpattern_enabled;
+    delete params.wallpattern_style;
   }
+
   if (c.wallCutout !== 'none') {
     params.wallcutout_enabled = true;
     if (c.wallCutout === 'vertical') params.wallcutout_walls = [1, 0, 1, 0];
     else if (c.wallCutout === 'horizontal') params.wallcutout_walls = [0, 1, 0, 1];
     else if (c.wallCutout === 'both') params.wallcutout_walls = [1, 1, 1, 1];
+  } else {
+    params.wallcutout_enabled = false;
+    delete params.wallcutout_walls;
   }
+
   return params;
 }

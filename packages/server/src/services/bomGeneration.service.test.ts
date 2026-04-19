@@ -111,9 +111,9 @@ describe('buildGenerateParams', () => {
     expect(params.wallpattern_style).toBe('hexgrid');
   });
 
-  it('does not set wallcutout_enabled when wallCutout is none', () => {
+  it('sets wallcutout_enabled to false when wallCutout is none', () => {
     const params = buildGenerateParams(baseConfig({ wallCutout: 'none' }));
-    expect(params.wallcutout_enabled).toBeUndefined();
+    expect(params.wallcutout_enabled).toBe(false);
   });
 
   it('sets wallcutout_enabled and vertical walls for vertical cutout', () => {
@@ -132,6 +132,138 @@ describe('buildGenerateParams', () => {
     const params = buildGenerateParams(baseConfig({ wallCutout: 'both' }));
     expect(params.wallcutout_enabled).toBe(true);
     expect(params.wallcutout_walls).toEqual([1, 1, 1, 1]);
+  });
+});
+
+describe('buildGenerateParams with defaultParameters', () => {
+  const DEFAULT_CUSTOMIZATION: UniqueConfig['customization'] = {
+    wallPattern: 'none',
+    lipStyle: 'normal',
+    fingerSlide: 'none',
+    wallCutout: 'none',
+    height: 8,
+  };
+
+  it('passes through non-BinCustomization params from defaultParameters', () => {
+    const cfg: UniqueConfig = {
+      widthUnits: 1,
+      heightUnits: 1,
+      customization: { ...DEFAULT_CUSTOMIZATION },
+      qty: 1,
+      filename: 'bin_1x1x8.stl',
+      defaultParameters: { label_style: 'normal', label_walls: [0, 1, 0, 0] },
+    };
+    const params = buildGenerateParams(cfg);
+    expect(params.label_style).toBe('normal');
+    expect(params.label_walls).toEqual([0, 1, 0, 0]);
+  });
+
+  it('BinCustomization lip_style overrides defaultParameters lip_style', () => {
+    const cfg: UniqueConfig = {
+      widthUnits: 1,
+      heightUnits: 1,
+      customization: { ...DEFAULT_CUSTOMIZATION, lipStyle: 'reduced' },
+      qty: 1,
+      filename: 'bin_1x1x8.stl',
+      defaultParameters: { lip_style: 'none' },
+    };
+    const params = buildGenerateParams(cfg);
+    expect(params.lip_style).toBe('reduced');
+  });
+
+  it('BinCustomization height overrides defaultParameters height', () => {
+    const cfg: UniqueConfig = {
+      widthUnits: 2,
+      heightUnits: 2,
+      customization: { ...DEFAULT_CUSTOMIZATION, height: 6 },
+      qty: 1,
+      filename: 'bin_2x2x6.stl',
+      defaultParameters: { height: [4, 0] },
+    };
+    const params = buildGenerateParams(cfg);
+    expect(params.height).toEqual([6, 0]);
+  });
+
+  it('system default label_style: disabled is overridden by defaultParameters', () => {
+    const cfg: UniqueConfig = {
+      widthUnits: 1,
+      heightUnits: 1,
+      customization: { ...DEFAULT_CUSTOMIZATION },
+      qty: 1,
+      filename: 'bin_1x1x8.stl',
+      defaultParameters: { label_style: 'normal' },
+    };
+    const params = buildGenerateParams(cfg);
+    expect(params.label_style).toBe('normal');
+  });
+
+  it('uses label_style: disabled when no defaultParameters override', () => {
+    const cfg: UniqueConfig = {
+      widthUnits: 1,
+      heightUnits: 1,
+      customization: { ...DEFAULT_CUSTOMIZATION },
+      qty: 1,
+      filename: 'bin_1x1x8.stl',
+    };
+    const params = buildGenerateParams(cfg);
+    expect(params.label_style).toBe('disabled');
+  });
+});
+
+describe('extractUniqueConfigs with defaultParameters', () => {
+  it('groups items with same dimensions, customization, and defaultParameters together', () => {
+    const items: BOMItem[] = [
+      {
+        itemId: 'bins_labeled:bin-1x1-labeled',
+        name: 'A',
+        widthUnits: 1,
+        heightUnits: 1,
+        color: '#fff',
+        categories: [],
+        quantity: 2,
+        defaultParameters: { label_style: 'normal' },
+      },
+      {
+        itemId: 'bins_labeled:bin-1x1-labeled',
+        name: 'A',
+        widthUnits: 1,
+        heightUnits: 1,
+        color: '#fff',
+        categories: [],
+        quantity: 3,
+        defaultParameters: { label_style: 'normal' },
+      },
+    ];
+    const configs = extractUniqueConfigs(items);
+    expect(configs).toHaveLength(1);
+    expect(configs[0].qty).toBe(5);
+  });
+
+  it('separates items with same dimensions but different defaultParameters', () => {
+    const items: BOMItem[] = [
+      {
+        itemId: 'bins_labeled:bin-1x1-labeled',
+        name: 'Labeled',
+        widthUnits: 1,
+        heightUnits: 1,
+        color: '#fff',
+        categories: [],
+        quantity: 1,
+        defaultParameters: { label_style: 'normal' },
+      },
+      {
+        itemId: 'bins_standard:bin-1x1',
+        name: 'Standard',
+        widthUnits: 1,
+        heightUnits: 1,
+        color: '#fff',
+        categories: [],
+        quantity: 1,
+        defaultParameters: {},
+      },
+    ];
+    const configs = extractUniqueConfigs(items);
+    expect(configs).toHaveLength(2);
   });
 });
 
