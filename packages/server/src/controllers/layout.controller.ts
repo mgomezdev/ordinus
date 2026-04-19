@@ -363,11 +363,12 @@ export async function getSubmittedCount(
 }
 
 export async function getAdminUsers(
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
   try {
+    if (!req.user) throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
     const userList = await layoutService.getUsers();
     res.status(200).json({ data: userList });
   } catch (err) {
@@ -381,7 +382,8 @@ export async function listAdminUserLayouts(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const userIdStr = req.query.userId as string | undefined;
+    if (!req.user) throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
+    const userIdStr = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     if (!userIdStr) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'userId query param required');
     const userId = parseInt(userIdStr, 10);
     if (isNaN(userId)) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid userId');
