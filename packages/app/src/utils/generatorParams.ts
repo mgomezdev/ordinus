@@ -1,4 +1,4 @@
-import type { GeneratorParams, BinCustomization, CustomizableField, WallPattern, LipStyle, FingerSlide, WallCutout } from '../types/gridfinity';
+import type { GeneratorParams, BinCustomization, CustomizableField, WallPattern, LipStyle, FingerSlide } from '../types/gridfinity';
 
 export function mergeGeneratorParams(...layers: (GeneratorParams | undefined)[]): GeneratorParams {
   return Object.assign({}, ...layers.filter((l): l is GeneratorParams => l !== undefined));
@@ -31,16 +31,15 @@ export function generatorParamsToBinCustomization(
       result.wallCutout = 'none';
     } else if (params.wallcutout_enabled === true) {
       const walls = params.wallcutout_walls as number[] | undefined;
-      if (!walls) {
+      if (!walls || walls.length < 2) {
         result.wallCutout = 'none';
-      } else if (walls[0] === 1 && walls[1] === 1) {
-        result.wallCutout = 'both';
-      } else if (walls[0] === 1) {
-        result.wallCutout = 'vertical';
-      } else if (walls[1] === 1) {
-        result.wallCutout = 'horizontal';
       } else {
-        result.wallCutout = 'none';
+        const hasVertical = walls[0] === 1;
+        const hasHorizontal = walls[1] === 1;
+        if (hasVertical && hasHorizontal) result.wallCutout = 'both';
+        else if (hasVertical) result.wallCutout = 'vertical';
+        else if (hasHorizontal) result.wallCutout = 'horizontal';
+        else result.wallCutout = 'none';
       }
     }
   }
