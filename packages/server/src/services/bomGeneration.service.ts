@@ -2,7 +2,7 @@ import { spawn } from 'child_process';
 import { eq } from 'drizzle-orm';
 import fs from 'fs/promises';
 import path from 'path';
-import { AppError, ErrorCodes } from '@gridfinity/shared';
+import { AppError, ErrorCodes, gridfinityExtendedDefaultParams } from '@gridfinity/shared';
 import type { BOMItem, ApiBomGeneration, BomGenerationManifestEntry, BinCustomization, GeneratorParams } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
 import { bomSubmissions, bomGenerations } from '../db/schema.js';
@@ -35,7 +35,7 @@ export interface UniqueConfig {
   customization: BinCustomization;
   qty: number;
   filename: string;
-  defaultParameters?: GeneratorParams;
+  gridfinityExtendedParams?: GeneratorParams;
 }
 
 function hashGeneratorParams(params: GeneratorParams): string {
@@ -54,7 +54,7 @@ export function extractUniqueConfigs(bomItems: BOMItem[]): UniqueConfig[] {
 
   for (const item of bomItems) {
     const c = item.customization ?? DEFAULT_CUSTOMIZATION;
-    const defaultParams = item.defaultParameters ?? {};
+    const defaultParams = item.gridfinityExtendedParams ?? {};
     const paramsHash = Object.keys(defaultParams).length > 0 ? hashGeneratorParams(defaultParams) : '';
     const key = `${item.widthUnits}x${item.heightUnits}::${customizationKey(item)}::${paramsHash}`;
     const existing = map.get(key);
@@ -68,7 +68,7 @@ export function extractUniqueConfigs(bomItems: BOMItem[]): UniqueConfig[] {
         customization: c,
         qty: item.quantity,
         filename,
-        defaultParameters: Object.keys(defaultParams).length > 0 ? defaultParams : undefined,
+        gridfinityExtendedParams: Object.keys(defaultParams).length > 0 ? defaultParams : undefined,
       });
     }
   }
@@ -208,8 +208,8 @@ export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> 
   const c = cfg.customization;
 
   const params: Record<string, unknown> = {
-    label_style: 'disabled',
-    ...(cfg.defaultParameters ?? {}),
+    ...gridfinityExtendedDefaultParams,      // system defaults (lowest priority)
+    ...(cfg.gridfinityExtendedParams ?? {}), // library/item defaults
     width: [cfg.widthUnits, 0],
     depth: [cfg.heightUnits, 0],
     height: [c.height, 0],

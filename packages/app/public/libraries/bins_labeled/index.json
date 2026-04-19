@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "customizableFields": ["lipStyle", "wallPattern", "fingerSlide", "wallCutout"],
-  "defaultParameters": {
+  "gridfinityExtendedParams": {
     "label_style": "normal",
     "label_walls": [0, 1, 0, 0]
   },

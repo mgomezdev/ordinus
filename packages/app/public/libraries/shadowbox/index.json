@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "customizableFields": ["lipStyle", "fingerSlide", "wallCutout", "height"],
-  "defaultParameters": { "height": [4, 0] },
+  "gridfinityExtendedParams": { "height": [4, 0] },
   "items": [
     { "id": "shadowbox-2x2", "name": "2x2 Shadowbox", "widthUnits": 2, "heightUnits": 2, "color": "#8B5CF6", "categories": ["shadowbox"], "stlFile": "shadowbox_2x2.stl", "imageUrl": "shadowbox_2x2.png", "perspectiveImageUrl": "shadowbox_2x2-perspective.png" },
     { "id": "shadowbox-2x3", "name": "2x3 Shadowbox", "widthUnits": 2, "heightUnits": 3, "color": "#8B5CF6", "categories": ["shadowbox"], "stlFile": "shadowbox_2x3.stl", "imageUrl": "shadowbox_2x3.png", "perspectiveImageUrl": "shadowbox_2x3-perspective.png" },

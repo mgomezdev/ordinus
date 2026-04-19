@@ -65,6 +65,11 @@ export type WallCutout = 'none' | 'vertical' | 'horizontal' | 'both';
 
 export type GeneratorParams = Record<string, unknown>;
 
+/** System-level defaults for gridfinity-extended OpenSCAD params (lowest priority tier). */
+export const gridfinityExtendedDefaultParams: GeneratorParams = {
+  label_style: 'disabled',
+};
+
 export interface BinCustomization {
   wallPattern: WallPattern;
   lipStyle: LipStyle;
@@ -106,7 +111,7 @@ export interface BOMItem {
   categories: string[];
   quantity: number;
   customization?: BinCustomization;
-  defaultParameters?: GeneratorParams;
+  gridfinityExtendedParams?: GeneratorParams;
 }
 
 export interface ReferenceImage {

@@ -28,7 +28,7 @@ export class ApiAdapter implements DataSourceAdapter {
     const json = await response.json();
 
     const meta = await this.getLibraryMeta(libraryId);
-    const libraryDefaults = meta.defaultParameters;
+    const libraryDefaults = meta.gridfinityExtendedParams;
 
     return json.data.map((item: Record<string, unknown>) => ({
       id: item.id as string,
@@ -39,9 +39,9 @@ export class ApiAdapter implements DataSourceAdapter {
       categories: item.categories as string[],
       imageUrl: item.imagePath as string | undefined,
       perspectiveImageUrl: item.perspectiveImagePath as string | undefined,
-      defaultParameters: mergeGeneratorParams(
+      gridfinityExtendedParams: mergeGeneratorParams(
         libraryDefaults,
-        (item.defaultParameters as Record<string, unknown> | undefined)
+        (item.gridfinityExtendedParams as Record<string, unknown> | undefined)
       ),
     }));
   }
@@ -49,19 +49,19 @@ export class ApiAdapter implements DataSourceAdapter {
   async getLibraryMeta(libraryId: string): Promise<LibraryMeta> {
     try {
       const manifestResponse = await fetch('/libraries/manifest.json');
-      if (!manifestResponse.ok) return { customizableFields: [], defaultParameters: {} };
+      if (!manifestResponse.ok) return { customizableFields: [], gridfinityExtendedParams: {} };
       const manifest = await manifestResponse.json();
       const lib = manifest.libraries?.find((l: { id: string }) => l.id === libraryId);
-      if (!lib) return { customizableFields: [], defaultParameters: {} };
+      if (!lib) return { customizableFields: [], gridfinityExtendedParams: {} };
       const indexResponse = await fetch(lib.path);
-      if (!indexResponse.ok) return { customizableFields: [], defaultParameters: {} };
+      if (!indexResponse.ok) return { customizableFields: [], gridfinityExtendedParams: {} };
       const data = await indexResponse.json();
       return {
         customizableFields: data.customizableFields ?? [],
-        defaultParameters: data.defaultParameters ?? {},
+        gridfinityExtendedParams: data.gridfinityExtendedParams ?? {},
       };
     } catch {
-      return { customizableFields: [], defaultParameters: {} };
+      return { customizableFields: [], gridfinityExtendedParams: {} };
     }
   }
 

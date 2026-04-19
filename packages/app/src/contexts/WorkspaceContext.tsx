@@ -211,7 +211,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const [exportPdfError, setExportPdfError] = useState<string | null>(null);
   const [selectedLibraryMeta, setSelectedLibraryMeta] = useState<LibraryMeta>({
     customizableFields: [],
-    defaultParameters: {},
+    gridfinityExtendedParams: {},
   });
 
   // Hooks

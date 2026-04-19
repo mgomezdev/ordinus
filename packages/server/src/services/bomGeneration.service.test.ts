@@ -135,7 +135,7 @@ describe('buildGenerateParams', () => {
   });
 });
 
-describe('buildGenerateParams with defaultParameters', () => {
+describe('buildGenerateParams with gridfinityExtendedParams', () => {
   const DEFAULT_CUSTOMIZATION: UniqueConfig['customization'] = {
     wallPattern: 'none',
     lipStyle: 'normal',
@@ -144,60 +144,60 @@ describe('buildGenerateParams with defaultParameters', () => {
     height: 8,
   };
 
-  it('passes through non-BinCustomization params from defaultParameters', () => {
+  it('passes through non-BinCustomization params from gridfinityExtendedParams', () => {
     const cfg: UniqueConfig = {
       widthUnits: 1,
       heightUnits: 1,
       customization: { ...DEFAULT_CUSTOMIZATION },
       qty: 1,
       filename: 'bin_1x1x8.stl',
-      defaultParameters: { label_style: 'normal', label_walls: [0, 1, 0, 0] },
+      gridfinityExtendedParams: { label_style: 'normal', label_walls: [0, 1, 0, 0] },
     };
     const params = buildGenerateParams(cfg);
     expect(params.label_style).toBe('normal');
     expect(params.label_walls).toEqual([0, 1, 0, 0]);
   });
 
-  it('BinCustomization lip_style overrides defaultParameters lip_style', () => {
+  it('BinCustomization lip_style overrides gridfinityExtendedParams lip_style', () => {
     const cfg: UniqueConfig = {
       widthUnits: 1,
       heightUnits: 1,
       customization: { ...DEFAULT_CUSTOMIZATION, lipStyle: 'reduced' },
       qty: 1,
       filename: 'bin_1x1x8.stl',
-      defaultParameters: { lip_style: 'none' },
+      gridfinityExtendedParams: { lip_style: 'none' },
     };
     const params = buildGenerateParams(cfg);
     expect(params.lip_style).toBe('reduced');
   });
 
-  it('BinCustomization height overrides defaultParameters height', () => {
+  it('BinCustomization height overrides gridfinityExtendedParams height', () => {
     const cfg: UniqueConfig = {
       widthUnits: 2,
       heightUnits: 2,
       customization: { ...DEFAULT_CUSTOMIZATION, height: 6 },
       qty: 1,
       filename: 'bin_2x2x6.stl',
-      defaultParameters: { height: [4, 0] },
+      gridfinityExtendedParams: { height: [4, 0] },
     };
     const params = buildGenerateParams(cfg);
     expect(params.height).toEqual([6, 0]);
   });
 
-  it('system default label_style: disabled is overridden by defaultParameters', () => {
+  it('system default label_style: disabled is overridden by gridfinityExtendedParams', () => {
     const cfg: UniqueConfig = {
       widthUnits: 1,
       heightUnits: 1,
       customization: { ...DEFAULT_CUSTOMIZATION },
       qty: 1,
       filename: 'bin_1x1x8.stl',
-      defaultParameters: { label_style: 'normal' },
+      gridfinityExtendedParams: { label_style: 'normal' },
     };
     const params = buildGenerateParams(cfg);
     expect(params.label_style).toBe('normal');
   });
 
-  it('uses label_style: disabled when no defaultParameters override', () => {
+  it('uses label_style: disabled when no gridfinityExtendedParams override', () => {
     const cfg: UniqueConfig = {
       widthUnits: 1,
       heightUnits: 1,
@@ -210,8 +210,8 @@ describe('buildGenerateParams with defaultParameters', () => {
   });
 });
 
-describe('extractUniqueConfigs with defaultParameters', () => {
-  it('groups items with same dimensions, customization, and defaultParameters together', () => {
+describe('extractUniqueConfigs with gridfinityExtendedParams', () => {
+  it('groups items with same dimensions, customization, and gridfinityExtendedParams together', () => {
     const items: BOMItem[] = [
       {
         itemId: 'bins_labeled:bin-1x1-labeled',
@@ -221,7 +221,7 @@ describe('extractUniqueConfigs with defaultParameters', () => {
         color: '#fff',
         categories: [],
         quantity: 2,
-        defaultParameters: { label_style: 'normal' },
+        gridfinityExtendedParams: { label_style: 'normal' },
       },
       {
         itemId: 'bins_labeled:bin-1x1-labeled',
@@ -231,7 +231,7 @@ describe('extractUniqueConfigs with defaultParameters', () => {
         color: '#fff',
         categories: [],
         quantity: 3,
-        defaultParameters: { label_style: 'normal' },
+        gridfinityExtendedParams: { label_style: 'normal' },
       },
     ];
     const configs = extractUniqueConfigs(items);
@@ -239,7 +239,7 @@ describe('extractUniqueConfigs with defaultParameters', () => {
     expect(configs[0].qty).toBe(5);
   });
 
-  it('separates items with same dimensions but different defaultParameters', () => {
+  it('separates items with same dimensions but different gridfinityExtendedParams', () => {
     const items: BOMItem[] = [
       {
         itemId: 'bins_labeled:bin-1x1-labeled',
@@ -249,7 +249,7 @@ describe('extractUniqueConfigs with defaultParameters', () => {
         color: '#fff',
         categories: [],
         quantity: 1,
-        defaultParameters: { label_style: 'normal' },
+        gridfinityExtendedParams: { label_style: 'normal' },
       },
       {
         itemId: 'bins_standard:bin-1x1',
@@ -259,7 +259,7 @@ describe('extractUniqueConfigs with defaultParameters', () => {
         color: '#fff',
         categories: [],
         quantity: 1,
-        defaultParameters: {},
+        gridfinityExtendedParams: {},
       },
     ];
     const configs = extractUniqueConfigs(items);

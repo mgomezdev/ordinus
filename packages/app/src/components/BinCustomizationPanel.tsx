@@ -98,7 +98,7 @@ interface BinCustomizationPanelProps {
   onChange: (customization: BinCustomization) => void;
   onReset: () => void;
   customizableFields: CustomizableField[];
-  defaultParameters?: GeneratorParams;
+  gridfinityExtendedParams?: GeneratorParams;
   idPrefix?: string;
 }
 
@@ -114,13 +114,13 @@ export function BinCustomizationPanel({
   onChange,
   onReset,
   customizableFields,
-  defaultParameters,
+  gridfinityExtendedParams,
   idPrefix = '',
 }: BinCustomizationPanelProps) {
   if (customizableFields.length === 0) return null;
 
-  const libraryDefaults = defaultParameters
-    ? generatorParamsToBinCustomization(defaultParameters, customizableFields)
+  const libraryDefaults = gridfinityExtendedParams
+    ? generatorParamsToBinCustomization(gridfinityExtendedParams, customizableFields)
     : {};
   const effectiveDefaults = { ...DEFAULT_BIN_CUSTOMIZATION, ...libraryDefaults };
   const current: BinCustomization = customization ?? effectiveDefaults;

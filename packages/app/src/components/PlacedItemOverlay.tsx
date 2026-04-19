@@ -46,7 +46,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const [popoverPos, setPopoverPos] = useState<PopoverPos | null>(null);
   const gearButtonRef = useRef<HTMLButtonElement>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [libraryMeta, setLibraryMeta] = useState<LibraryMeta>({ customizableFields: [], defaultParameters: {} });
+  const [libraryMeta, setLibraryMeta] = useState<LibraryMeta>({ customizableFields: [], gridfinityExtendedParams: {} });
 
   useEffect(() => {
     if (!getLibraryMeta) return;
@@ -169,8 +169,8 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
 
   const handlePopoverReset = useCallback(() => {
     const allFields = ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'] as const;
-    const libraryDefaults = item.defaultParameters
-      ? generatorParamsToBinCustomization(item.defaultParameters, [...allFields])
+    const libraryDefaults = item.gridfinityExtendedParams
+      ? generatorParamsToBinCustomization(item.gridfinityExtendedParams, [...allFields])
       : {};
     const hasLibraryDefaults = Object.keys(libraryDefaults).length > 0;
     if (hasLibraryDefaults) {
@@ -354,7 +354,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
             onReset={handlePopoverReset}
             idPrefix="inline-"
             customizableFields={libraryMeta.customizableFields}
-            defaultParameters={item.defaultParameters}
+            gridfinityExtendedParams={item.gridfinityExtendedParams}
           />
         </div>,
         document.body
