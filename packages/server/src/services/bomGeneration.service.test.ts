@@ -15,10 +15,6 @@ beforeEach(async () => {
   await client.execute(
     `INSERT INTO users (id, email, username, password_hash) VALUES (1, 'a@b.com', 'admin', 'hash')`,
   );
-  await client.execute(
-    `INSERT INTO bom_submissions (id, grid_x, grid_y, width_mm, depth_mm, total_items, total_unique, export_json, created_at)
-     VALUES (1, 4, 4, 168, 168, 3, 2, '[]', datetime('now'))`,
-  );
 });
 
 describe('extractUniqueConfigs', () => {

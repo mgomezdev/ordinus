@@ -266,44 +266,6 @@ export async function runMigrations(client: Client): Promise<void> {
     // Column already exists — ignore
   }
 
-  // Add status column to layouts if missing (existing databases)
-  try {
-    await client.execute(`ALTER TABLE layouts ADD COLUMN status TEXT NOT NULL DEFAULT 'draft';`);
-  } catch {
-    // Column already exists — ignore
-  }
-
-  await client.execute(`CREATE INDEX IF NOT EXISTS idx_layouts_status ON layouts(status);`);
-
-  // BOM submissions table
-  await client.execute(`
-    CREATE TABLE IF NOT EXISTS bom_submissions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      layout_id INTEGER REFERENCES layouts(id) ON DELETE SET NULL,
-      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-      grid_x INTEGER NOT NULL,
-      grid_y INTEGER NOT NULL,
-      width_mm REAL NOT NULL,
-      depth_mm REAL NOT NULL,
-      total_items INTEGER NOT NULL,
-      total_unique INTEGER NOT NULL,
-      export_json TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-  `);
-
-  await client.execute(`
-    CREATE TABLE IF NOT EXISTS bom_generations (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      submission_id INTEGER NOT NULL UNIQUE REFERENCES bom_submissions(id) ON DELETE CASCADE,
-      status TEXT NOT NULL DEFAULT 'pending',
-      file_manifest TEXT,
-      three_mf_path TEXT,
-      generated_at TEXT,
-      error_message TEXT
-    );
-  `);
-
   // Drop legacy shadowboxes table (replaced by user_stl_uploads)
   try {
     await client.execute(`DROP TABLE IF EXISTS shadowboxes;`);
