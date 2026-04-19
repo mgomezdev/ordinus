@@ -5,10 +5,10 @@ import type { Request, Response, NextFunction } from 'express';
 import * as layoutService from '../services/layout.service.js';
 
 const binCustomizationSchema = z.object({
-  wallPattern: z.string(),
-  lipStyle: z.string(),
-  fingerSlide: z.string(),
-  wallCutout: z.string(),
+  wallPattern: z.enum(['none', 'grid', 'hexgrid', 'voronoi', 'voronoigrid', 'voronoihexgrid']),
+  lipStyle: z.enum(['normal', 'reduced', 'minimum', 'none']),
+  fingerSlide: z.enum(['none', 'rounded', 'chamfered']),
+  wallCutout: z.enum(['none', 'vertical', 'horizontal', 'both']),
   height: z.number().int().min(1).max(20),
 });
 
