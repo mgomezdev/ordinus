@@ -1,6 +1,8 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import type { PlacedItem, PlacedItemWithValidity, DragData, LibraryItem, Rotation, BinCustomization } from '../types/gridfinity';
+import { DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
 import { ROTATION_CW, ROTATION_CCW } from '../utils/constants';
+import { mergeGeneratorParams, generatorParamsToBinCustomization } from '../utils/generatorParams';
 
 /**
  * Grid-based occupancy count for O(n) collision detection.
@@ -199,6 +201,12 @@ export function useGridItems(
     const libraryItem = getItemById(itemId);
     if (!libraryItem) return;
 
+    const allFields = ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'] as const;
+    const prefilledDefaults = libraryItem.defaultParameters
+      ? generatorParamsToBinCustomization(libraryItem.defaultParameters, [...allFields])
+      : {};
+    const hasCustomDefaults = Object.keys(prefilledDefaults).length > 0;
+
     const newItem: PlacedItem = {
       instanceId: generateInstanceId(),
       itemId,
@@ -207,6 +215,12 @@ export function useGridItems(
       width: libraryItem.widthUnits,
       height: libraryItem.heightUnits,
       rotation: 0,
+      customization: hasCustomDefaults
+        ? { ...DEFAULT_BIN_CUSTOMIZATION, ...prefilledDefaults }
+        : undefined,
+      defaultParameters: libraryItem.defaultParameters
+        ? mergeGeneratorParams(libraryItem.defaultParameters)
+        : undefined,
     };
 
     updateItems([...itemsRef.current, newItem]);
