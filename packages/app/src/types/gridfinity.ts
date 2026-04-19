@@ -54,6 +54,7 @@ export interface LibraryItem {
   imageUrl?: string;
   perspectiveImageUrl?: string;
   price?: number;
+  defaultParameters?: GeneratorParams;
 }
 
 export interface PlacedItem {
@@ -66,6 +67,7 @@ export interface PlacedItem {
   rotation: Rotation;
   customization?: BinCustomization;
   shadowBoxId?: string | null;
+  defaultParameters?: GeneratorParams;
 }
 
 export interface PlacedItemWithValidity extends PlacedItem {
@@ -92,6 +94,7 @@ export interface BOMItem {
   customization?: BinCustomization;
   shadowboxId?: string;
   price?: number;
+  defaultParameters?: GeneratorParams;
 }
 
 export interface ReferenceImage {
@@ -131,6 +134,8 @@ export const DEFAULT_BIN_CUSTOMIZATION: BinCustomization = {
   height: 8,
 };
 
+export type GeneratorParams = Record<string, unknown>;
+
 export function serializeCustomization(c: BinCustomization | undefined): string {
   if (!c) return '';
   return `${c.wallPattern}|${c.lipStyle}|${c.fingerSlide}|${c.wallCutout}|${c.height}`;
@@ -155,7 +160,7 @@ export type BOMExtras = Record<string, number>;
 
 export interface LibraryMeta {
   customizableFields: CustomizableField[];
-  customizationDefaults: Partial<BinCustomization>;
+  defaultParameters: GeneratorParams;
 }
 
 export type ImageViewMode = 'ortho' | 'perspective';
@@ -184,5 +189,5 @@ export interface LibraryIndex {
   version: string;
   items: LibraryItem[];
   customizableFields?: CustomizableField[];
-  customizationDefaults?: Partial<BinCustomization>;
+  defaultParameters?: GeneratorParams;
 }
