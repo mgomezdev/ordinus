@@ -65,7 +65,7 @@ export type WallCutout = 'none' | 'vertical' | 'horizontal' | 'both';
 
 export type GeneratorParams = Record<string, unknown>;
 
-import gridfinityExtendedDefaultParamsJson from './gridfinity-extended-default-params.json';
+import gridfinityExtendedDefaultParamsJson from './gridfinity-extended-default-params.json' with { type: 'json' };
 export const gridfinityExtendedDefaultParams: GeneratorParams = gridfinityExtendedDefaultParamsJson;
 
 export interface BinCustomization {
