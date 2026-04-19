@@ -676,6 +676,11 @@ export async function deliverLayout(
 // Admin queries
 // ============================================================
 
+export async function getUsers(): Promise<Array<{ id: number; username: string }>> {
+  const rows = await db.select({ id: users.id, username: users.username }).from(users).orderBy(users.username);
+  return rows;
+}
+
 export async function getAdminLayouts(
   statusFilter?: string,
   cursor?: string,

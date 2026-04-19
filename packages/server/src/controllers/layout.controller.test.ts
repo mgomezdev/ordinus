@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import express from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { errorHandler } from '../middleware/errorHandler.js';
 
 const mockCreate = vi.fn().mockResolvedValue({
@@ -11,9 +12,14 @@ const mockCreate = vi.fn().mockResolvedValue({
   placedItems: [], refImagePlacements: [],
 });
 
+const mockGetUsers = vi.fn();
+const mockGetLayoutsByUser = vi.fn();
+
 vi.mock('../services/layout.service.js', () => ({
   createLayout: (...args: unknown[]) => mockCreate(...args),
   getLayouts: vi.fn().mockResolvedValue({ items: [], nextCursor: null, total: 0 }),
+  getUsers: (...args: unknown[]) => mockGetUsers(...args),
+  getLayoutsByUser: (...args: unknown[]) => mockGetLayoutsByUser(...args),
 }));
 
 vi.mock('../middleware/auth.js', async (importOriginal) => {
@@ -89,5 +95,151 @@ describe('POST /api/v1/layouts — customization field', () => {
     };
     const res = await request(app).post('/api/v1/layouts').send(payload);
     expect(res.status).toBe(201);
+  });
+});
+
+// ============================================================
+// Admin handler unit tests (mock-based)
+// ============================================================
+
+function makeRes(): {
+  status: ReturnType<typeof vi.fn>;
+  json: ReturnType<typeof vi.fn>;
+} {
+  const res = { status: vi.fn(), json: vi.fn() };
+  res.status.mockReturnValue(res);
+  return res;
+}
+
+function makeNext(): ReturnType<typeof vi.fn> {
+  return vi.fn();
+}
+
+describe('getAdminUsers', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns 200 with user list', async () => {
+    const { getAdminUsers } = await import('./layout.controller.js');
+    mockGetUsers.mockResolvedValueOnce([
+      { id: 1, username: 'alice' },
+      { id: 2, username: 'bob' },
+    ]);
+
+    const req = { user: { userId: 99, role: 'admin' } } as unknown as Request;
+    const res = makeRes();
+    const next = makeNext();
+
+    await getAdminUsers(req, res as unknown as Response, next as unknown as NextFunction);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      data: [
+        { id: 1, username: 'alice' },
+        { id: 2, username: 'bob' },
+      ],
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns 200 with empty array when no users exist', async () => {
+    const { getAdminUsers } = await import('./layout.controller.js');
+    mockGetUsers.mockResolvedValueOnce([]);
+
+    const req = { user: { userId: 99, role: 'admin' } } as unknown as Request;
+    const res = makeRes();
+    const next = makeNext();
+
+    await getAdminUsers(req, res as unknown as Response, next as unknown as NextFunction);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ data: [] });
+  });
+
+  it('calls next with error if service throws', async () => {
+    const { getAdminUsers } = await import('./layout.controller.js');
+    const err = new Error('DB failure');
+    mockGetUsers.mockRejectedValueOnce(err);
+
+    const req = { user: { userId: 99, role: 'admin' } } as unknown as Request;
+    const res = makeRes();
+    const next = makeNext();
+
+    await getAdminUsers(req, res as unknown as Response, next as unknown as NextFunction);
+
+    expect(next).toHaveBeenCalledWith(err);
+  });
+});
+
+describe('listAdminUserLayouts', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns 200 with layouts for the given userId', async () => {
+    const { listAdminUserLayouts } = await import('./layout.controller.js');
+    const mockLayout = {
+      id: 10, userId: 3, name: 'My Layout',
+      gridX: 4, gridY: 4, widthMm: 168, depthMm: 168,
+      status: 'draft', isPublic: false,
+      createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    mockGetLayoutsByUser.mockResolvedValueOnce({
+      data: [mockLayout],
+      nextCursor: undefined,
+      hasMore: false,
+    });
+
+    const req = {
+      user: { userId: 99, role: 'admin' },
+      query: { userId: '3' },
+    } as unknown as Request;
+    const res = makeRes();
+    const next = makeNext();
+
+    await listAdminUserLayouts(req, res as unknown as Response, next as unknown as NextFunction);
+
+    expect(mockGetLayoutsByUser).toHaveBeenCalledWith(3, undefined, 20);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      data: [mockLayout],
+      nextCursor: undefined,
+      hasMore: false,
+    });
+  });
+
+  it('calls next with VALIDATION_ERROR if userId param is missing', async () => {
+    const { listAdminUserLayouts } = await import('./layout.controller.js');
+
+    const req = {
+      user: { userId: 99, role: 'admin' },
+      query: {},
+    } as unknown as Request;
+    const res = makeRes();
+    const next = makeNext();
+
+    await listAdminUserLayouts(req, res as unknown as Response, next as unknown as NextFunction);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'VALIDATION_ERROR' }),
+    );
+  });
+
+  it('calls next with VALIDATION_ERROR if userId is not a number', async () => {
+    const { listAdminUserLayouts } = await import('./layout.controller.js');
+
+    const req = {
+      user: { userId: 99, role: 'admin' },
+      query: { userId: 'bad' },
+    } as unknown as Request;
+    const res = makeRes();
+    const next = makeNext();
+
+    await listAdminUserLayouts(req, res as unknown as Response, next as unknown as NextFunction);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'VALIDATION_ERROR' }),
+    );
   });
 });

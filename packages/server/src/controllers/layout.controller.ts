@@ -361,3 +361,42 @@ export async function getSubmittedCount(
     next(err);
   }
 }
+
+export async function getAdminUsers(
+  _req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const userList = await layoutService.getUsers();
+    res.status(200).json({ data: userList });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listAdminUserLayouts(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const userIdStr = (req.params?.userId ?? req.query.userId) as string | undefined;
+    if (!userIdStr) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'userId param required');
+    const userId = parseInt(userIdStr, 10);
+    if (isNaN(userId)) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid userId');
+
+    const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
+    const limitStr = typeof req.query.limit === 'string' ? req.query.limit : '20';
+    const limit = Math.min(Math.max(parseInt(limitStr, 10) || 20, 1), 100);
+
+    const result = await layoutService.getLayoutsByUser(userId, cursor, limit);
+    res.status(200).json({
+      data: result.data,
+      nextCursor: result.nextCursor,
+      hasMore: result.hasMore,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
