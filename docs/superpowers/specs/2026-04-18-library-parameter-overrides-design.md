@@ -44,7 +44,7 @@ Two new optional fields in `index.json`:
 
 - Keys in `defaultParameters` are raw `PARAM_REGISTRY` names from `generate_bin.py`
 - Any valid generator parameter may be set; invalid keys are ignored at generation time
-- Existing `customizationDefaults` is deprecated and migrated into `defaultParameters` using generator param names
+- Existing `customizationDefaults` is removed: its values are migrated into `defaultParameters` using generator param names (e.g., `wallPattern: "grid"` → `wallpattern_enabled: true, wallpattern_style: "grid"`). The field is deleted from all `index.json` files and from the TypeScript types.
 - `defaultParameters` at the item level is optional; library-level is also optional
 
 ## Merge Logic
@@ -67,7 +67,7 @@ Param → BinCustomization mapping (representative examples):
 | Generator param | BinCustomization field |
 |---|---|
 | `lip_style` | `lipStyle` |
-| `wallpattern_enabled` + `wallpattern_style` | `wallPattern` |
+| `wallpattern_enabled` + `wallpattern_style` | `wallPattern` (only when `wallpattern_enabled: true`; otherwise `'none'`) |
 | `fingerslide` | `fingerSlide` |
 | `wallcutout_enabled` | `wallCutout` |
 
@@ -93,8 +93,7 @@ type GeneratorParams = Record<string, unknown>;
 // LibraryMeta updated
 interface LibraryMeta {
   customizableFields: CustomizableField[];
-  customizationDefaults: Partial<BinCustomization>; // deprecated, kept for back-compat
-  defaultParameters: GeneratorParams;               // new — empty object if absent
+  defaultParameters: GeneratorParams; // empty object if absent in JSON
 }
 
 // LibraryItem updated
