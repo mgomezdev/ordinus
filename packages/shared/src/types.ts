@@ -213,8 +213,6 @@ export type UserRole = 'user' | 'admin';
 // Layout API types
 // ============================================================
 
-export type LayoutStatus = 'draft' | 'submitted' | 'delivered';
-
 export interface ApiLayout {
   id: number;
   userId: number;
@@ -226,7 +224,6 @@ export interface ApiLayout {
   depthMm: number;
   spacerHorizontal: string;
   spacerVertical: string;
-  status: LayoutStatus;
   isPublic: boolean;
   createdAt: string;
   updatedAt: string;
@@ -335,10 +332,6 @@ export interface UpdateLayoutMetaRequest {
   description?: string;
 }
 
-export interface LayoutStatusCount {
-  submitted: number;
-}
-
 // ============================================================
 // Auth API types
 // ============================================================
@@ -386,19 +379,6 @@ export interface ApiSharedLayoutView {
 // BOM API types
 // ============================================================
 
-export interface ApiBomSubmission {
-  id: number;
-  layoutId: number | null;
-  userId: number | null;
-  gridX: number;
-  gridY: number;
-  widthMm: number;
-  depthMm: number;
-  totalItems: number;
-  totalUnique: number;
-  createdAt: string;
-}
-
 export type BomGenerationStatus = 'pending' | 'generating' | 'ready' | 'error';
 
 export interface BomGenerationManifestEntry {
@@ -411,7 +391,7 @@ export interface BomGenerationManifestEntry {
 
 export interface ApiBomGeneration {
   id: number;
-  submissionId: number;
+  layoutId: number;
   status: BomGenerationStatus;
   fileManifest: BomGenerationManifestEntry[] | null;
   threeMfPath: string | null;
