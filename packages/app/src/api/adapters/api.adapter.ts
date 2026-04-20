@@ -32,11 +32,13 @@ export class ApiAdapter implements DataSourceAdapter {
 
     return json.data.map((item: Record<string, unknown>) => ({
       id: item.id as string,
+      libraryId: item.libraryId as string,
       name: item.name as string,
       widthUnits: item.widthUnits as number,
       heightUnits: item.heightUnits as number,
       color: item.color as string,
       categories: item.categories as string[],
+      stlFile: (item.stlFile as string | null | undefined) ?? undefined,
       imageUrl: item.imagePath as string | undefined,
       perspectiveImageUrl: item.perspectiveImagePath as string | undefined,
       gridfinityExtendedParams: mergeGeneratorParams(

@@ -47,6 +47,7 @@ export type GeneratorParams = Record<string, unknown>;
 
 export interface LibraryItem {
   id: string;
+  libraryId: string;
   name: string;
   widthUnits: number;
   heightUnits: number;
@@ -190,4 +191,5 @@ export interface LibraryIndex {
   items: LibraryItem[];
   customizableFields?: CustomizableField[];
   gridfinityExtendedParams?: GeneratorParams;
+  baseModel?: string;
 }

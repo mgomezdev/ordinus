@@ -43,6 +43,7 @@ export class StaticAdapter implements DataSourceAdapter {
 
     return (data.items ?? []).map((item) => ({
       ...item,
+      libraryId,
       gridfinityExtendedParams: mergeGeneratorParams(libraryDefaults, item.gridfinityExtendedParams),
     }));
   }
