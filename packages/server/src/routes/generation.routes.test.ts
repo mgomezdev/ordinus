@@ -103,4 +103,50 @@ describe('GET /generation/status/:hash', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ hash: 'abc123', status: 'complete' });
   });
+
+  it('returns 400 for hash containing path traversal', async () => {
+    const app = makeApp();
+    const res = await request(app).get('/generation/status/..%2Fsomething');
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('GET /generation/image/:hash/:filename', () => {
+  it('returns 400 for invalid filename', async () => {
+    const app = makeApp();
+    const res = await request(app).get('/generation/image/abc123/invalid.jpg');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 for filename not in allowed set', async () => {
+    const app = makeApp();
+    const res = await request(app).get('/generation/image/abc123/malicious.php');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 for hash containing path traversal', async () => {
+    const app = makeApp();
+    const res = await request(app).get('/generation/image/..%2F..%2Fetc/ortho.png');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 when image file does not exist', async () => {
+    const app = makeApp();
+    const res = await request(app).get('/generation/image/nonexistenthash/ortho.png');
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('GET /generation/stl/:hash', () => {
+  it('returns 400 for hash containing path traversal', async () => {
+    const app = makeApp();
+    const res = await request(app).get('/generation/stl/..%2F..%2Fetc');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 when STL file does not exist', async () => {
+    const app = makeApp();
+    const res = await request(app).get('/generation/stl/nonexistenthash');
+    expect(res.status).toBe(404);
+  });
 });
