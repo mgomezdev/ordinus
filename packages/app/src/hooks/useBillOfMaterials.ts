@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import type { PlacedItem, BOMItem, LibraryItem, BinCustomization } from '../types/gridfinity';
+import type { BOMItem } from '@gridfinity/shared';
+import type { PlacedItem, LibraryItem, BinCustomization } from '../types/gridfinity';
 import { isDefaultCustomization, getBOMKey } from '../types/gridfinity';
 
 export function useBillOfMaterials(placedItems: PlacedItem[], libraryItems: LibraryItem[]): BOMItem[] {

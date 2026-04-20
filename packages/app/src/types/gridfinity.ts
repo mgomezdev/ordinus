@@ -86,20 +86,6 @@ export interface DragData {
   refImageName?: string;
 }
 
-export interface BOMItem {
-  libraryId: string;
-  itemId: string;
-  name: string;
-  widthUnits: number;
-  heightUnits: number;
-  color: string;
-  categories: string[];
-  quantity: number;
-  customization?: BinCustomization;
-  shadowboxId?: string;
-  price?: number;
-  gridfinityExtendedParams?: GeneratorParams;
-}
 
 export interface ReferenceImage {
   id: string;

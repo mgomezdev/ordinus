@@ -110,6 +110,7 @@ export interface BOMItem {
   categories: string[];
   quantity: number;
   customization?: BinCustomization;
+  price?: number;
   gridfinityExtendedParams?: GeneratorParams;
 }
 

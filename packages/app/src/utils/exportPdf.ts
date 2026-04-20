@@ -1,7 +1,8 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { BOMItem, GridResult, GridSpacerConfig, UnitSystem } from '../types/gridfinity';
+import type { BOMItem } from '@gridfinity/shared';
+import type { GridResult, GridSpacerConfig, UnitSystem } from '../types/gridfinity';
 
 export function generateFilename(layoutName?: string): string {
   if (layoutName && layoutName.trim()) {

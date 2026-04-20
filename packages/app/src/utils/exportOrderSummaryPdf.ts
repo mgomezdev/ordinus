@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { BOMItem, GridResult, GridSpacerConfig, UnitSystem } from '../types/gridfinity';
+import type { BOMItem } from '@gridfinity/shared';
+import type { GridResult, GridSpacerConfig, UnitSystem } from '../types/gridfinity';
 import { generateFilename, getOrientation } from './exportPdf';
 
 export function formatOrderSummaryRows(items: BOMItem[]): string[][] {
