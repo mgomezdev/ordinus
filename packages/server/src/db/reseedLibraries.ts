@@ -3,6 +3,10 @@ import type { Logger } from 'pino';
 import { readFileSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
 import { resolve, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { computeParamHash } from '../utils/generationParams.js';
+import { buildGenerateParams } from '../services/bomGeneration.service.js';
+import { generationPipeline } from '../services/generationPipeline.service.js';
+import { config } from '../config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -33,7 +37,10 @@ export interface LibraryItemJson {
 export interface LibraryIndex {
   version: string;
   baseModel?: string;
-  customizableFields?: string[];
+  customizableFields?: Array<
+    | { field: string; label: string; options: string[] }
+    | { field: 'height'; label: string; min: number; max: number }
+  >;
   parameters?: Record<string, unknown>;
   items: LibraryItemJson[];
 }
@@ -120,9 +127,12 @@ export async function reseedLibraryData(client: Client, logger: Logger): Promise
 
     // Insert library
     await client.execute({
-      sql: `INSERT INTO libraries (id, name, description, version, is_active, sort_order, created_at, updated_at, base_model_path)
-            VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)`,
-      args: [lib.id, lib.name, null, libIndex.version, libIdx, now, now, baseModelPath],
+      sql: `INSERT INTO libraries (id, name, description, version, is_active, sort_order, created_at, updated_at, base_model_path, parameters)
+            VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
+      args: [
+        lib.id, lib.name, null, libIndex.version, libIdx, now, now, baseModelPath,
+        libIndex.parameters ? JSON.stringify(libIndex.parameters) : null,
+      ],
     });
 
     // Process items
@@ -205,11 +215,28 @@ export async function reseedLibraryData(client: Client, logger: Logger): Promise
         }
       }
 
+      // Compute param_hash and enqueue generation for baseModel items without a static STL
+      let paramHash: string | null = null;
+      if (baseModelPath && !item.stlFile) {
+        const itemParams = libIndex.parameters ?? {};
+        const generateParams = buildGenerateParams({
+          widthUnits: item.widthUnits,
+          heightUnits: item.heightUnits,
+          customization: { wallPattern: 'none', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 4 },
+          qty: 1,
+          filename: 'bin.stl',
+          baseModelPath,
+          parameters: Object.keys(itemParams).length > 0 ? (itemParams as Record<string, unknown>) : undefined,
+        });
+        paramHash = computeParamHash(generateParams as Record<string, unknown>);
+        void generationPipeline.seed(paramHash, generateParams as Record<string, unknown>, baseModelPath);
+      }
+
       // Insert item
       await client.execute({
-        sql: `INSERT INTO library_items (library_id, id, name, width_units, height_units, color, image_path, perspective_image_path, is_active, sort_order, created_at, updated_at, stl_file)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
-        args: [lib.id, item.id, item.name, item.widthUnits, item.heightUnits, item.color, imagePath, perspectiveImagePath, itemIdx, now, now, stlFilePath],
+        sql: `INSERT INTO library_items (library_id, id, name, width_units, height_units, color, image_path, perspective_image_path, is_active, sort_order, created_at, updated_at, stl_file, param_hash)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)`,
+        args: [lib.id, item.id, item.name, item.widthUnits, item.heightUnits, item.color, imagePath, perspectiveImagePath, itemIdx, now, now, stlFilePath, paramHash],
       });
     }
   }
@@ -239,6 +266,22 @@ export async function reseedLibraryData(client: Client, logger: Logger): Promise
           sql: `INSERT INTO item_categories (library_id, item_id, category_id) VALUES (?, ?, ?)`,
           args: [lib.id, item.id, catId],
         });
+      }
+    }
+  }
+
+  // Seed-time cleanup: delete library/{hash} dirs not referenced by any current library item
+  const hashRows = await client.execute(`SELECT DISTINCT param_hash FROM library_items WHERE param_hash IS NOT NULL`);
+  const currentHashes = new Set(hashRows.rows.map(r => r.param_hash as string));
+
+  const libraryGenDir = resolve(config.GENERATED_STL_DIR, 'library');
+  if (existsSync(libraryGenDir)) {
+    const { readdir, rm: rmDir } = await import('node:fs/promises');
+    const entries = await readdir(libraryGenDir).catch(() => [] as string[]);
+    for (const hash of entries) {
+      if (!currentHashes.has(hash)) {
+        await rmDir(resolve(libraryGenDir, hash), { recursive: true, force: true });
+        logger.info({ hash }, 'Removed stale library generation dir');
       }
     }
   }

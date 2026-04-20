@@ -8,6 +8,7 @@ import { runMigrations } from './db/migrate.js';
 import { reseedLibraryData } from './db/reseedLibraries.js';
 import { getPendingAndProcessingIds, getUploadById, resetToPending } from './services/userStls.service.js';
 import { processUpload, getImageOutputDir } from './services/stlProcessing.service.js';
+import { startCleanup } from './services/generationCleanup.service.js';
 
 async function main(): Promise<void> {
   // Run migrations
@@ -34,6 +35,8 @@ async function main(): Promise<void> {
 
   // Reseed library data from JSON files on every boot
   await reseedLibraryData(client, logger);
+  startCleanup();
+  logger.info('Generation cleanup service started');
 
   // Seed default users on first boot only (when users table is empty)
   const userCount = await client.execute('SELECT COUNT(*) as count FROM users');
