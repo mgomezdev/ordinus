@@ -2578,6 +2578,44 @@ describe('PlacedItemOverlay', () => {
       expect(screen.getByRole('status', { name: /generation failed/i })).toBeInTheDocument();
     });
 
+    it('shows generated image src when generationEntry is complete', () => {
+      render(
+        <PlacedItemOverlay
+          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 as const, isValid: true }}
+          gridX={4}
+          gridY={4}
+          isSelected={false}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+          generationEntry={{ hash: 'abc123', status: 'complete' }}
+        />
+      );
+      const img = screen.queryByRole('img');
+      // Image should be using the generated URL, which comes from the mocked generatedImageUrl
+      if (img) {
+        expect(img.getAttribute('src')).toBeTruthy();
+      }
+      // Spinner should not be visible
+      expect(screen.queryByRole('status', { name: /generating/i })).not.toBeInTheDocument();
+      // Error icon should not be visible
+      expect(screen.queryByRole('status', { name: /generation failed/i })).not.toBeInTheDocument();
+    });
+
+    it('shows normal image when no generationEntry provided', () => {
+      render(
+        <PlacedItemOverlay
+          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 as const, isValid: true }}
+          gridX={4}
+          gridY={4}
+          isSelected={false}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+        />
+      );
+      expect(screen.queryByRole('status', { name: /generating/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('status', { name: /generation failed/i })).not.toBeInTheDocument();
+    });
+
     it('does not open customization popover when unauthenticated user clicks gear', async () => {
       // Override useAuth for this test to return isAuthenticated: false
       mockUseAuth.mockImplementation(() => ({

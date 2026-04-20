@@ -47,4 +47,31 @@ describe('useGenerationState', () => {
     act(() => MockEventSource.instances[0].fire({ type: 'generation:complete', hash: 'unknown' }));
     expect(result.current.getEntry('unknown')).toBeUndefined();
   });
+
+  it('trackHash is idempotent — calling twice for same hash keeps pending', () => {
+    const { result } = renderHook(() => useGenerationState('http://localhost:3001/api/v1'));
+    act(() => result.current.trackHash('abc123'));
+    act(() => result.current.trackHash('abc123')); // second call must not reset to pending
+    expect(result.current.getEntry('abc123')?.status).toBe('pending');
+  });
+
+  it('tracks multiple hashes independently', () => {
+    const { result } = renderHook(() => useGenerationState('http://localhost:3001/api/v1'));
+    act(() => {
+      result.current.trackHash('hash-a');
+      result.current.trackHash('hash-b');
+    });
+    act(() => MockEventSource.instances[0].fire({ type: 'generation:complete', hash: 'hash-a' }));
+    expect(result.current.getEntry('hash-a')?.status).toBe('complete');
+    expect(result.current.getEntry('hash-b')?.status).toBe('pending');
+  });
+
+  it('trackHash does not overwrite a completed entry', () => {
+    const { result } = renderHook(() => useGenerationState('http://localhost:3001/api/v1'));
+    act(() => result.current.trackHash('abc123'));
+    act(() => MockEventSource.instances[0].fire({ type: 'generation:complete', hash: 'abc123' }));
+    expect(result.current.getEntry('abc123')?.status).toBe('complete');
+    act(() => result.current.trackHash('abc123')); // must not reset to pending
+    expect(result.current.getEntry('abc123')?.status).toBe('complete');
+  });
 });
