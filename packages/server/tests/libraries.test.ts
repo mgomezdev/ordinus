@@ -69,6 +69,11 @@ async function seedTestData(): Promise<void> {
           VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
     args: ['bins_standard', 'bin-labeled-1x1', '1x1 Bin (w label)', 1, 1, '#3B82F6', null, 2, now, now],
   });
+  await testClient.execute({
+    sql: `INSERT INTO library_items (library_id, id, name, width_units, height_units, color, image_path, stl_file, is_active, sort_order, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+    args: ['bins_standard', 'utensil-1x2', 'Utensil 1x2', 1, 2, '#10B981', null, '/data/static-stls/bins_standard/utensil.stl', 1, now, now],
+  });
 
   // Insert item-category associations
   await testClient.execute({
@@ -124,7 +129,7 @@ describe('Library endpoints', () => {
 
       const standardLib = res.body.data.find((l: { id: string }) => l.id === 'bins_standard');
       expect(standardLib).toBeDefined();
-      expect(standardLib.itemCount).toBe(3);
+      expect(standardLib.itemCount).toBe(4);
     });
   });
 
@@ -135,7 +140,7 @@ describe('Library endpoints', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.id).toBe('bins_standard');
       expect(res.body.data.name).toBe('Standard Bins');
-      expect(res.body.data.itemCount).toBe(3);
+      expect(res.body.data.itemCount).toBe(4);
     });
 
     it('returns 404 for non-existent library', async () => {
@@ -152,7 +157,7 @@ describe('Library endpoints', () => {
 
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.data)).toBe(true);
-      expect(res.body.data.length).toBe(3);
+      expect(res.body.data.length).toBe(4);
     });
 
     it('includes categories for each item', async () => {
@@ -201,6 +206,16 @@ describe('Library endpoints', () => {
 
       expect(res.status).toBe(404);
       expect(res.body.error.code).toBe('NOT_FOUND');
+    });
+
+    it('GET /libraries/:id/items includes stlFile', async () => {
+      const res = await request(app).get('/api/v1/libraries/bins_standard/items');
+      expect(res.status).toBe(200);
+      const items: Array<{ id: string; stlFile: string | null }> = res.body.data;
+      const regularItem = items.find((i) => i.id === 'bin-1x1');
+      const staticItem = items.find((i) => i.id === 'utensil-1x2');
+      expect(regularItem?.stlFile).toBeNull();
+      expect(staticItem?.stlFile).toBe('utensil.stl');
     });
   });
 

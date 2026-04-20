@@ -1,3 +1,4 @@
+import path from 'path';
 import { eq, and, sql } from 'drizzle-orm';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
 import type { ApiLibrary, ApiLibraryItem, ApiCategory } from '@gridfinity/shared';
@@ -110,6 +111,7 @@ export async function getLibraryItems(
         perspectiveImagePath: libraryItems.perspectiveImagePath,
         isActive: libraryItems.isActive,
         sortOrder: libraryItems.sortOrder,
+        stlFile: libraryItems.stlFile,
       })
       .from(libraryItems)
       .innerJoin(
@@ -134,6 +136,7 @@ export async function getLibraryItems(
         perspectiveImagePath: libraryItems.perspectiveImagePath,
         isActive: libraryItems.isActive,
         sortOrder: libraryItems.sortOrder,
+        stlFile: libraryItems.stlFile,
       })
       .from(libraryItems)
       .where(and(...conditions))
@@ -175,6 +178,7 @@ export async function getLibraryItems(
     perspectiveImagePath: item.perspectiveImagePath,
     isActive: item.isActive,
     sortOrder: item.sortOrder,
+    stlFile: item.stlFile ? path.basename(item.stlFile) : null,
     categories: catMap.get(`${item.libraryId}:${item.id}`) ?? [],
   }));
 }
@@ -195,6 +199,7 @@ export async function getLibraryItemById(
       perspectiveImagePath: libraryItems.perspectiveImagePath,
       isActive: libraryItems.isActive,
       sortOrder: libraryItems.sortOrder,
+      stlFile: libraryItems.stlFile,
     })
     .from(libraryItems)
     .where(and(eq(libraryItems.libraryId, libraryId), eq(libraryItems.id, itemId)))
@@ -231,6 +236,7 @@ export async function getLibraryItemById(
     perspectiveImagePath: item.perspectiveImagePath,
     isActive: item.isActive,
     sortOrder: item.sortOrder,
+    stlFile: item.stlFile ? path.basename(item.stlFile) : null,
     categories: catRows.map((r) => r.categoryId),
   };
 }
