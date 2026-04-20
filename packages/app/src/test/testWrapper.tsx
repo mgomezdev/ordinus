@@ -55,10 +55,6 @@ export function createTestWrapper(overrides?: Partial<DataSourceAdapter>) {
   };
 }
 
-/**
- * Create a test wrapper with a specific adapter and optional QueryClient.
- * Useful when you need to control the adapter or QueryClient instance directly.
- */
 export function createTestWrapperWithAdapter(
   adapter: DataSourceAdapter,
   queryClient?: QueryClient
