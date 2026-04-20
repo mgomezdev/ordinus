@@ -25,12 +25,16 @@ export interface LibraryItemJson {
   heightUnits: number;
   color: string;
   categories: string[];
+  stlFile?: string;
   imageUrl?: string;
   perspectiveImageUrl?: string;
 }
 
 export interface LibraryIndex {
   version: string;
+  baseModel?: string;
+  customizableFields?: string[];
+  gridfinityExtendedParams?: Record<string, unknown>;
   items: LibraryItemJson[];
 }
 
@@ -57,8 +61,12 @@ export async function reseedLibraryData(client: Client, logger: Logger): Promise
 
   const librariesDir = process.env.LIBRARIES_DIR ?? resolve(publicDir, 'libraries');
   const imageDir = process.env.IMAGE_DIR ?? resolve(projectRoot, 'packages', 'server', 'data', 'images');
+  const generatorModelsDir = process.env.GENERATOR_MODELS_DIR ?? resolve(projectRoot, 'packages', 'server', 'data', 'generator-models');
+  const staticStlsDir = process.env.STATIC_STLS_DIR ?? resolve(projectRoot, 'packages', 'server', 'data', 'static-stls');
 
   mkdirSync(imageDir, { recursive: true });
+  mkdirSync(generatorModelsDir, { recursive: true });
+  mkdirSync(staticStlsDir, { recursive: true });
 
   // Read manifest
   const manifestPath = resolve(librariesDir, 'manifest.json');
@@ -94,11 +102,27 @@ export async function reseedLibraryData(client: Client, logger: Logger): Promise
     const libIndex: LibraryIndex = JSON.parse(readFileSync(indexPath, 'utf-8'));
     logger.info(`Processing library: ${lib.name} (${libIndex.items.length} items)`);
 
+    // Copy base model (.scad) if present
+    let baseModelPath: string | null = null;
+    if (libIndex.baseModel) {
+      const srcScad = resolve(libDir, libIndex.baseModel);
+      if (existsSync(srcScad)) {
+        const destScadDir = resolve(generatorModelsDir, lib.id);
+        mkdirSync(destScadDir, { recursive: true });
+        const destScad = resolve(destScadDir, libIndex.baseModel);
+        copyFileSync(srcScad, destScad);
+        baseModelPath = destScad;
+        logger.info({ srcScad, destScad }, 'Copied base model');
+      } else {
+        logger.warn(`Base model not found: ${srcScad}`);
+      }
+    }
+
     // Insert library
     await client.execute({
-      sql: `INSERT INTO libraries (id, name, description, version, is_active, sort_order, created_at, updated_at)
-            VALUES (?, ?, ?, ?, 1, ?, ?, ?)`,
-      args: [lib.id, lib.name, null, libIndex.version, libIdx, now, now],
+      sql: `INSERT INTO libraries (id, name, description, version, is_active, sort_order, created_at, updated_at, base_model_path)
+            VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)`,
+      args: [lib.id, lib.name, null, libIndex.version, libIdx, now, now, baseModelPath],
     });
 
     // Process items
@@ -166,11 +190,26 @@ export async function reseedLibraryData(client: Client, logger: Logger): Promise
         }
       }
 
+      // Copy static STL if present
+      let stlFilePath: string | null = null;
+      if (item.stlFile) {
+        const srcStl = resolve(libDir, item.stlFile);
+        if (existsSync(srcStl)) {
+          const destStlDir = resolve(staticStlsDir, lib.id);
+          mkdirSync(destStlDir, { recursive: true });
+          const destStl = resolve(destStlDir, item.stlFile);
+          copyFileSync(srcStl, destStl);
+          stlFilePath = destStl;
+        } else {
+          logger.warn(`Static STL not found: ${srcStl}`);
+        }
+      }
+
       // Insert item
       await client.execute({
-        sql: `INSERT INTO library_items (library_id, id, name, width_units, height_units, color, image_path, perspective_image_path, is_active, sort_order, created_at, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
-        args: [lib.id, item.id, item.name, item.widthUnits, item.heightUnits, item.color, imagePath, perspectiveImagePath, itemIdx, now, now],
+        sql: `INSERT INTO library_items (library_id, id, name, width_units, height_units, color, image_path, perspective_image_path, is_active, sort_order, created_at, updated_at, stl_file)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
+        args: [lib.id, item.id, item.name, item.widthUnits, item.heightUnits, item.color, imagePath, perspectiveImagePath, itemIdx, now, now, stlFilePath],
       });
     }
   }
