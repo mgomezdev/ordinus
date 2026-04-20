@@ -1,7 +1,7 @@
 import type { ApiLayout, ApiPlacedItem, BinCustomization } from '@gridfinity/shared';
 import { layouts, placedItems } from '../db/schema.js';
 
-function parseCustomization(json: string | null): BinCustomization | undefined {
+export function parseCustomization(json: string | null): BinCustomization | undefined {
   if (!json) return undefined;
   try {
     return JSON.parse(json) as BinCustomization;
