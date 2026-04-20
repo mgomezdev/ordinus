@@ -459,6 +459,7 @@ export async function createItem(
     isActive: true,
     sortOrder: data.sortOrder ?? 0,
     categories: categoryIds,
+    stlFile: null,
   };
 }
 
