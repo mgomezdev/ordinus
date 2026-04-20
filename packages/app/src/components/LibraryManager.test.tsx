@@ -3,15 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LibraryManager } from './LibraryManager';
 import type { LibraryItem, Category } from '../types/gridfinity';
 
-// Mock CategoryManager so we don't need to render the full sub-component
-vi.mock('./CategoryManager', () => ({
-  CategoryManager: ({ onClose }: { onClose: () => void }) => (
-    <div data-testid="category-manager">
-      <button onClick={onClose}>Close Category Manager</button>
-    </div>
-  ),
-}));
-
 const defaultCategories: Category[] = [
   { id: 'bin', name: 'Bin', color: '#3B82F6' },
   { id: 'utensil', name: 'Utensil', color: '#10B981' },
@@ -446,7 +437,7 @@ describe('LibraryManager', () => {
     it('shows the CategoryManager when "Manage Categories" is clicked', () => {
       render(<LibraryManager {...buildProps()} />);
       fireEvent.click(screen.getByRole('button', { name: /manage categories/i }));
-      expect(screen.getByTestId('category-manager')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /manage categories/i })).toBeInTheDocument();
     });
 
     it('hides the item list when CategoryManager is shown', () => {
@@ -458,34 +449,18 @@ describe('LibraryManager', () => {
     it('returns to list view when CategoryManager is closed', () => {
       render(<LibraryManager {...buildProps()} />);
       fireEvent.click(screen.getByRole('button', { name: /manage categories/i }));
-      fireEvent.click(screen.getByRole('button', { name: /close category manager/i }));
+      // CategoryManager renders its own close button; click the one inside the
+      // Manage Categories panel (the heading distinguishes it from LibraryManager's own close)
+      expect(screen.getByRole('heading', { name: /manage categories/i })).toBeInTheDocument();
+      const closeButtons = screen.getAllByRole('button', { name: /^close$/i });
+      fireEvent.click(closeButtons[closeButtons.length - 1]);
       expect(screen.getByText(`Library Items (${defaultItems.length})`)).toBeInTheDocument();
     });
-  });
 
-  // -------------------------------------------------------------------
-  // handleCategoryUpdate (cascades item category IDs)
-  // -------------------------------------------------------------------
-  describe('handleCategoryUpdate', () => {
-    it('calls onUpdateItemCategories when a category id changes', () => {
-      const onUpdateItemCategories = vi.fn();
-      const onUpdateCategory = vi.fn();
-      const getCategoryById = (id: string) => defaultCategories.find(c => c.id === id);
-
-      render(
-        <LibraryManager
-          {...buildProps({ onUpdateItemCategories, onUpdateCategory, getCategoryById })}
-        />
-      );
-
-      // CategoryManager is mocked — we need to trigger handleCategoryUpdate indirectly.
-      // The only way to reach it is by navigating to the form; however, handleCategoryUpdate
-      // is passed to CategoryManager. Since CategoryManager is mocked, we verify the prop
-      // is correctly threaded by checking the mock CategoryManager rendered when categories
-      // panel is opened.
+    it('renders category list inside CategoryManager', () => {
+      render(<LibraryManager {...buildProps()} />);
       fireEvent.click(screen.getByRole('button', { name: /manage categories/i }));
-      expect(screen.getByTestId('category-manager')).toBeInTheDocument();
-      // Prop threading verified by the CategoryManager mock rendering successfully.
+      expect(screen.getByText(`Categories (${defaultCategories.length})`)).toBeInTheDocument();
     });
   });
 
