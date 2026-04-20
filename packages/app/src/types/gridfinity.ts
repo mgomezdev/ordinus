@@ -87,6 +87,7 @@ export interface DragData {
 }
 
 export interface BOMItem {
+  libraryId: string;
   itemId: string;
   name: string;
   widthUnits: number;

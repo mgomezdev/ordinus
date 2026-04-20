@@ -6,6 +6,7 @@ import { DEFAULT_BIN_CUSTOMIZATION, getBOMKey } from '../types/gridfinity';
 
 const BASE_ITEM: LibraryItem = {
   id: 'lib1:item1',
+  libraryId: 'bins_standard',
   name: 'Test Bin',
   widthUnits: 1,
   heightUnits: 1,
@@ -19,12 +20,12 @@ const PLACED: PlacedItem = {
 };
 
 const mockLibraryItems: LibraryItem[] = [
-  { id: 'bin-1x1', name: '1x1 Bin', widthUnits: 1, heightUnits: 1, color: '#646cff', categories: ['bin'] },
-  { id: 'bin-1x2', name: '1x2 Bin', widthUnits: 1, heightUnits: 2, color: '#646cff', categories: ['bin'] },
-  { id: 'bin-2x1', name: '2x1 Bin', widthUnits: 2, heightUnits: 1, color: '#646cff', categories: ['bin'] },
-  { id: 'bin-2x2', name: '2x2 Bin', widthUnits: 2, heightUnits: 2, color: '#646cff', categories: ['bin'] },
-  { id: 'divider-1x1', name: '1x1 Divider', widthUnits: 1, heightUnits: 1, color: '#22c55e', categories: ['divider'] },
-  { id: 'organizer-1x3', name: '1x3 Organizer', widthUnits: 1, heightUnits: 3, color: '#f59e0b', categories: ['organizer'] },
+  { id: 'bin-1x1', libraryId: 'bins_standard', name: '1x1 Bin', widthUnits: 1, heightUnits: 1, color: '#646cff', categories: ['bin'] },
+  { id: 'bin-1x2', libraryId: 'bins_standard', name: '1x2 Bin', widthUnits: 1, heightUnits: 2, color: '#646cff', categories: ['bin'] },
+  { id: 'bin-2x1', libraryId: 'bins_standard', name: '2x1 Bin', widthUnits: 2, heightUnits: 1, color: '#646cff', categories: ['bin'] },
+  { id: 'bin-2x2', libraryId: 'bins_standard', name: '2x2 Bin', widthUnits: 2, heightUnits: 2, color: '#646cff', categories: ['bin'] },
+  { id: 'divider-1x1', libraryId: 'dividers', name: '1x1 Divider', widthUnits: 1, heightUnits: 1, color: '#22c55e', categories: ['divider'] },
+  { id: 'organizer-1x3', libraryId: 'organizers', name: '1x3 Organizer', widthUnits: 1, heightUnits: 3, color: '#f59e0b', categories: ['organizer'] },
 ];
 
 describe('getBOMKey', () => {
@@ -356,6 +357,17 @@ describe('useBillOfMaterials', () => {
         useBillOfMaterials([PLACED], [BASE_ITEM])
       );
       expect(result.current[0].price).toBeUndefined();
+    });
+  });
+
+  describe('LibraryId propagation', () => {
+    it('includes libraryId from LibraryItem in BOMItem', () => {
+      const placed: PlacedItem[] = [
+        { instanceId: 'i1', itemId: 'bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 },
+      ];
+      const { result } = renderHook(() => useBillOfMaterials(placed, mockLibraryItems));
+      expect(result.current).toHaveLength(1);
+      expect(result.current[0].libraryId).toBe('bins_standard');
     });
   });
 

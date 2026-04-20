@@ -26,6 +26,7 @@ export function useBillOfMaterials(placedItems: PlacedItem[], libraryItems: Libr
       const libraryItem = libraryItems.find(item => item.id === itemId);
       if (libraryItem) {
         bomItems.push({
+          libraryId: libraryItem.libraryId,
           itemId: libraryItem.id,
           name: libraryItem.name,
           widthUnits: libraryItem.widthUnits,
