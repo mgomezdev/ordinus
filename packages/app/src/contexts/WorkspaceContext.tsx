@@ -1,14 +1,14 @@
 import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type {
-  UnitSystem, ImperialFormat, GridSpacerConfig, BOMItem, LibraryItem,
+  UnitSystem, ImperialFormat, GridSpacerConfig, LibraryItem,
   LibraryMeta, DragData, BinCustomization, Category,
   GridResult, ReferenceImage, PlacedItem, PlacedItemWithValidity,
   ComputedSpacer, BOMExtras,
 } from '../types/gridfinity';
 import type { SelectModifiers } from '../hooks/useGridItems';
 import type { LoadedLayoutConfig } from '../types/layoutConfig';
-import type { ApiUser } from '@gridfinity/shared';
+import type { BOMItem, ApiUser } from '@gridfinity/shared';
 import type { RefImagePlacement, UseRefImagePlacementsReturn } from '../hooks/useRefImagePlacements';
 import type { LayoutMetaState } from '../reducers/layoutMetaReducer';
 import type { DialogState, DialogAction } from '../reducers/dialogReducer';
