@@ -53,6 +53,15 @@ vi.mock('../hooks/usePointerDrag', () => ({
   usePointerDropTarget: mockUsePointerDropTarget,
 }));
 
+// Mock WorkspaceContext since GridPreview now calls useWorkspace()
+vi.mock('../contexts/WorkspaceContext', () => ({
+  useWorkspace: () => ({
+    trackGeneration: vi.fn(),
+    instanceGenerationHash: new Map<string, string>(),
+    getGenerationEntry: vi.fn(() => undefined),
+  }),
+}));
+
 describe('GridPreview', () => {
   const mockGetItemById = (id: string): LibraryItem | undefined => {
     const items: Record<string, LibraryItem> = {

@@ -1,5 +1,6 @@
 import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import type { PlacedItemWithValidity, LibraryItem, ImageViewMode, BinCustomization, LibraryMeta } from '../types/gridfinity';
 import { isDefaultCustomization, DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
 import { generatorParamsToBinCustomization } from '../utils/generatorParams';
@@ -8,6 +9,8 @@ import { useImageLoadState } from '../hooks/useImageLoadState';
 import { BinCustomizationPanel } from './BinCustomizationPanel';
 import { getRotatedPerspectiveUrl } from '../utils/imageHelpers';
 import { BinContextMenu } from './BinContextMenu';
+import { useAuth } from '../contexts/AuthContext';
+import { generatedImageUrl } from '../api/generation.api';
 
 interface PlacedItemOverlayProps {
   item: PlacedItemWithValidity;
@@ -24,6 +27,8 @@ interface PlacedItemOverlayProps {
   onDuplicate?: () => void;
   imageViewMode?: ImageViewMode;
   getLibraryMeta?: (libraryId: string) => Promise<LibraryMeta>;
+  generationEntry?: { hash: string; status: 'pending' | 'complete' | 'failed' };
+  onCustomizationChangeWithGeneration?: (instanceId: string, customization: BinCustomization) => void;
 }
 
 const DEFAULT_VALID_COLOR = '#3B82F6';
@@ -40,13 +45,16 @@ function getCustomizationBadges(customization: BinCustomization | undefined): st
   return badges;
 }
 
-export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, gridY, isSelected, onSelect, getItemById, onDelete, onRotateCw, onRotateCcw, onCustomizationChange, onCustomizationReset, onDuplicate, imageViewMode = 'ortho', getLibraryMeta }: PlacedItemOverlayProps) {
+export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, gridY, isSelected, onSelect, getItemById, onDelete, onRotateCw, onRotateCcw, onCustomizationChange, onCustomizationReset, onDuplicate, imageViewMode = 'ortho', getLibraryMeta, generationEntry, onCustomizationChangeWithGeneration }: PlacedItemOverlayProps) {
   const [showPopover, setShowPopover] = useState(false);
   interface PopoverPos { top: number; left: number; direction: 'above' | 'below' }
   const [popoverPos, setPopoverPos] = useState<PopoverPos | null>(null);
   const gearButtonRef = useRef<HTMLButtonElement>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [libraryMeta, setLibraryMeta] = useState<LibraryMeta>({ customizableFields: [], parameters: {} });
+
+  const { isAuthenticated } = useAuth();
+  const [, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     if (!getLibraryMeta) return;
@@ -106,8 +114,21 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
     return imageViewMode === 'perspective' ? (perspectiveUrl || orthoUrl) : orthoUrl;
   })();
 
+  const isGenerating = generationEntry?.status === 'pending';
+  const generationFailed = generationEntry?.status === 'failed';
+
+  const effectiveImageSrc = (() => {
+    if (generationEntry?.status === 'complete') {
+      const filename = imageViewMode === 'perspective'
+        ? `perspective_${item.rotation}.png`
+        : 'ortho.png';
+      return generatedImageUrl(generationEntry.hash, filename);
+    }
+    return imageSrc;
+  })();
+
   const { imageError, shouldShowImage, handleImageLoad, handleImageError } =
-    useImageLoadState(imageSrc);
+    useImageLoadState(effectiveImageSrc);
 
   // Calculate image dimensions for rotation
   // When rotated 90° or 270°, we need to swap dimensions to fill the container
@@ -163,18 +184,22 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
     onRotateCcw?.(item.instanceId);
   };
 
-  const handleCustomizeClick = (e: React.MouseEvent) => {
+  const handleGearClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setShowPopover(prev => {
-      if (!prev) computePopoverPos();
-      return !prev;
-    });
-  };
+    if (!isAuthenticated) {
+      setSearchParams({ authRequired: '1' }, { replace: true });
+      return;
+    }
+    computePopoverPos();
+    setShowPopover(true);
+  }, [isAuthenticated, setSearchParams, computePopoverPos]);
 
   const handlePopoverChange = useCallback((customization: BinCustomization) => {
     onCustomizationChange?.(item.instanceId, customization);
-  }, [onCustomizationChange, item.instanceId]);
+    onCustomizationChangeWithGeneration?.(item.instanceId, customization);
+    setShowPopover(false);
+  }, [onCustomizationChange, onCustomizationChangeWithGeneration, item.instanceId]);
 
   const handlePopoverReset = useCallback(() => {
     const allFields = ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'] as const;
@@ -251,10 +276,18 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
         }
       }}
     >
-      {imageSrc && !imageError && (
+      {isGenerating && (
+        <div className="generation-spinner" aria-label="Generating preview" role="status">
+          <div className="spinner" />
+        </div>
+      )}
+      {generationFailed && (
+        <div className="generation-error" aria-label="Generation failed" role="status">&#10005;</div>
+      )}
+      {!isGenerating && !generationFailed && effectiveImageSrc && !imageError && (
         <div className="placed-item-image-container">
           <img
-            src={imageSrc}
+            src={effectiveImageSrc}
             alt={libraryItem?.name ?? 'Item'}
             className={`placed-item-image ${shouldShowImage ? 'visible' : 'hidden'}`}
             loading="lazy"
@@ -315,7 +348,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
             <button
               ref={gearButtonRef}
               className="placed-item-toolbar-btn"
-              onClick={handleCustomizeClick}
+              onClick={handleGearClick}
               draggable={false}
               aria-label="Customize"
               title="Customize bin options"

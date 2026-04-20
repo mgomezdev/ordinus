@@ -5,6 +5,15 @@ import { GridPreview } from './GridPreview';
 import { useGridItems } from '../hooks/useGridItems';
 import type { LibraryItem } from '../types/gridfinity';
 
+// Mock WorkspaceContext since GridPreview now calls useWorkspace()
+vi.mock('../contexts/WorkspaceContext', () => ({
+  useWorkspace: () => ({
+    trackGeneration: vi.fn(),
+    instanceGenerationHash: new Map<string, string>(),
+    getGenerationEntry: vi.fn(() => undefined),
+  }),
+}));
+
 // Mock the PlacedItemOverlay to simplify testing
 vi.mock('./PlacedItemOverlay', () => ({
   PlacedItemOverlay: ({ item, gridX, gridY, isSelected, onSelect }: { item: { instanceId: string; itemId: string; x: number; y: number; width: number; height: number; isValid: boolean }; gridX: number; gridY: number; isSelected: boolean; onSelect: (id: string) => void }) => (

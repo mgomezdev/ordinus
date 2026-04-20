@@ -1,9 +1,42 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react';
+import type { RenderOptions, RenderResult } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import React from 'react';
 import { PlacedItemOverlay } from './PlacedItemOverlay';
 import type { PlacedItemWithValidity, LibraryItem } from '../types/gridfinity';
 import { DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
-import type React from 'react';
+
+// Wrap all renders with MemoryRouter so useSearchParams works
+function render(ui: React.ReactElement, options?: RenderOptions): RenderResult {
+  return rtlRender(ui, {
+    ...options,
+    wrapper: ({ children }) => React.createElement(MemoryRouter, {}, children),
+  });
+}
+
+// Mock AuthContext — use vi.hoisted so mockUseAuth is available when the factory runs
+const { mockUseAuth } = vi.hoisted(() => {
+  const mockUseAuth = vi.fn(() => ({
+    isAuthenticated: true,
+    user: null as null,
+    isLoading: false,
+    login: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn(),
+    getAccessToken: () => null as string | null,
+  }));
+  return { mockUseAuth };
+});
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: () => mockUseAuth(),
+}));
+
+
+// Mock generation.api
+vi.mock('../api/generation.api', () => ({
+  generatedImageUrl: (hash: string, filename: string) => `/generated/${hash}/${filename}`,
+}));
 
 // Mock getRotatedPerspectiveUrl so we can control rotation URL generation in tests
 vi.mock('../utils/imageHelpers', () => ({
@@ -80,6 +113,16 @@ describe('PlacedItemOverlay', () => {
 
   beforeEach(() => {
     capturedOnTap = undefined;
+    mockUseAuth.mockReset();
+    mockUseAuth.mockImplementation(() => ({
+      isAuthenticated: true,
+      user: null,
+      isLoading: false,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+      getAccessToken: () => null as string | null,
+    }));
   });
 
   describe('Percentage-based Positioning', () => {
@@ -2501,6 +2544,71 @@ describe('PlacedItemOverlay', () => {
       fireEvent.contextMenu(root);
 
       expect(screen.queryByRole('menuitem', { name: /customize/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Generation State', () => {
+    it('shows spinner when generationEntry is pending', () => {
+      render(
+        <PlacedItemOverlay
+          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 as const, isValid: true }}
+          gridX={4}
+          gridY={4}
+          isSelected={false}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+          generationEntry={{ hash: 'abc', status: 'pending' }}
+        />
+      );
+      expect(screen.getByRole('status', { name: /generating/i })).toBeInTheDocument();
+    });
+
+    it('shows error icon when generationEntry is failed', () => {
+      render(
+        <PlacedItemOverlay
+          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 as const, isValid: true }}
+          gridX={4}
+          gridY={4}
+          isSelected={false}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+          generationEntry={{ hash: 'abc', status: 'failed' }}
+        />
+      );
+      expect(screen.getByRole('status', { name: /generation failed/i })).toBeInTheDocument();
+    });
+
+    it('does not open customization popover when unauthenticated user clicks gear', async () => {
+      // Override useAuth for this test to return isAuthenticated: false
+      mockUseAuth.mockImplementation(() => ({
+        isAuthenticated: false,
+        user: null,
+        isLoading: false,
+        login: vi.fn(),
+        register: vi.fn(),
+        logout: vi.fn(),
+        getAccessToken: () => null,
+      }));
+
+      render(
+        <PlacedItemOverlay
+          item={{ instanceId: 'test-item-1', itemId: 'testlib:bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 as const, isValid: true }}
+          gridX={4}
+          gridY={4}
+          isSelected={true}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+          onCustomizationChange={vi.fn()}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
+        />
+      );
+
+      const customizeBtn = await waitFor(() => screen.getByRole('button', { name: 'Customize' }));
+      fireEvent.click(customizeBtn);
+
+      // The popover should NOT open when unauthenticated — auth gate redirects instead
+      const popover = document.body.querySelector('.placed-item-customize-popover');
+      expect(popover).not.toBeInTheDocument();
     });
   });
 
