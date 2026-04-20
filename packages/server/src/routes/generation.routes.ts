@@ -72,7 +72,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response, next: 
     const params = buildGenerateParams({
       widthUnits,
       heightUnits,
-      customization: customization as never ?? {
+      customization: customization ?? {
         wallPattern: 'none', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 4,
       },
       qty: 1,
@@ -118,7 +118,7 @@ router.get('/image/:hash/:filename', async (req: Request, res: Response, next: N
     for (const subdir of ['library', 'custom'] as const) {
       const dir = path.join(generatedDir, subdir, hash);
       const filePath = path.join(dir, filename);
-      const normalizedBase = normalize(path.join(generatedDir, subdir));
+      const normalizedBase = normalize(path.join(generatedDir, subdir)) + path.sep;
       if (!normalize(filePath).startsWith(normalizedBase)) continue;
 
       if (existsSync(filePath)) {
@@ -149,6 +149,8 @@ router.get('/stl/:hash', requireAuth, async (req: Request, res: Response, next: 
     const generatedDir = config.GENERATED_STL_DIR;
     for (const subdir of ['library', 'custom'] as const) {
       const filePath = path.join(generatedDir, subdir, hash, 'bin.stl');
+      const normalizedBase = normalize(path.join(generatedDir, subdir)) + path.sep;
+      if (!normalize(filePath).startsWith(normalizedBase)) continue;
       if (existsSync(filePath)) {
         res.sendFile(filePath);
         return;
