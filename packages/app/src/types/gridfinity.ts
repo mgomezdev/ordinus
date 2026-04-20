@@ -104,12 +104,27 @@ export interface ReferenceImage {
   rotation: Rotation;
 }
 
-export type WallPattern = 'none' | 'grid' | 'hexgrid' | 'voronoi' | 'voronoigrid' | 'voronoihexgrid';
+export type WallPattern = 'none' | 'grid' | 'hexgrid' | 'brick';
 export type LipStyle = 'normal' | 'reduced' | 'minimum' | 'none';
 export type FingerSlide = 'none' | 'rounded' | 'chamfered';
 export type WallCutout = 'none' | 'vertical' | 'horizontal' | 'both';
 
 export type CustomizableField = 'wallPattern' | 'lipStyle' | 'fingerSlide' | 'wallCutout' | 'height';
+
+export interface CustomizableSelectFieldDef {
+  field: Exclude<CustomizableField, 'height'>;
+  label: string;
+  options: string[];
+}
+
+export interface CustomizableNumericFieldDef {
+  field: 'height';
+  label: string;
+  min: number;
+  max: number;
+}
+
+export type CustomizableFieldDef = CustomizableSelectFieldDef | CustomizableNumericFieldDef;
 
 export interface BinCustomization {
   wallPattern: WallPattern;
@@ -150,7 +165,7 @@ export function getBOMKey(itemId: string, customization?: BinCustomization): str
 export type BOMExtras = Record<string, number>;
 
 export interface LibraryMeta {
-  customizableFields: CustomizableField[];
+  customizableFields: CustomizableFieldDef[];
   parameters: GeneratorParams;
 }
 
@@ -179,7 +194,7 @@ export interface LibraryManifest {
 export interface LibraryIndex {
   version: string;
   items: LibraryItem[];
-  customizableFields?: CustomizableField[];
+  customizableFields?: CustomizableFieldDef[];
   parameters?: GeneratorParams;
   baseModel?: string;
 }

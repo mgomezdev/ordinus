@@ -2,10 +2,10 @@
   "version": "1.0.0",
   "baseModel": "gridfinity_basic_cup.scad",
   "customizableFields": [
-    "lipStyle",
-    "fingerSlide",
-    "wallCutout",
-    "height"
+    { "field": "lipStyle",    "label": "Lip Style",    "options": ["normal", "reduced", "minimum", "none"] },
+    { "field": "fingerSlide", "label": "Finger Slide", "options": ["none", "rounded", "chamfered"] },
+    { "field": "wallCutout",  "label": "Wall Cutout",  "options": ["none", "vertical", "horizontal", "both"] },
+    { "field": "height",      "label": "Height",       "min": 1, "max": 20 }
   ],
   "items": [
     {
