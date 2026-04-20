@@ -210,8 +210,9 @@ def main():
         print(f"Error: OpenSCAD not found at {OPENSCAD_PATH}")
         sys.exit(1)
 
-    if not os.path.isfile(SCAD_FILE):
-        print(f"Error: SCAD file not found at {SCAD_FILE}")
+    effective_scad = scad_file or SCAD_FILE
+    if not os.path.isfile(effective_scad):
+        print(f"Error: SCAD file not found at {effective_scad}")
         sys.exit(1)
 
     print(f"Rendering {output_path}...")
