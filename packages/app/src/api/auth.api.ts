@@ -1,6 +1,5 @@
 import type { ApiResponse, AuthResponse, TokenResponse, ApiUser } from '@gridfinity/shared';
-
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api/v1';
+import { API_BASE_URL } from './apiClient';
 
 async function authFetch<T>(
   path: string,

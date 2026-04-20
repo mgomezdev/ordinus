@@ -1,24 +1,28 @@
-import type { GeneratorParams, BinCustomization, CustomizableField, WallPattern, LipStyle, FingerSlide } from '../types/gridfinity';
+import type { GeneratorParams, BinCustomization, CustomizableFieldDef, WallPattern, LipStyle, FingerSlide } from '../types/gridfinity';
 
 export function mergeGeneratorParams(...layers: (GeneratorParams | undefined)[]): GeneratorParams {
   return Object.assign({}, ...layers.filter((l): l is GeneratorParams => l !== undefined));
 }
 
+function hasField(fields: CustomizableFieldDef[], name: string): boolean {
+  return fields.some(d => d.field === name);
+}
+
 export function generatorParamsToBinCustomization(
   params: GeneratorParams,
-  customizableFields: CustomizableField[]
+  customizableFields: CustomizableFieldDef[]
 ): Partial<BinCustomization> {
   const result: Partial<BinCustomization> = {};
 
-  if (customizableFields.includes('lipStyle') && params.lip_style !== undefined) {
+  if (hasField(customizableFields, 'lipStyle') && params.lip_style !== undefined) {
     result.lipStyle = params.lip_style as LipStyle;
   }
 
-  if (customizableFields.includes('fingerSlide') && params.fingerslide !== undefined) {
+  if (hasField(customizableFields, 'fingerSlide') && params.fingerslide !== undefined) {
     result.fingerSlide = params.fingerslide as FingerSlide;
   }
 
-  if (customizableFields.includes('wallPattern')) {
+  if (hasField(customizableFields, 'wallPattern')) {
     if (params.wallpattern_enabled === true) {
       result.wallPattern = ((params.wallpattern_style ?? 'grid') as WallPattern);
     } else if (params.wallpattern_enabled === false) {
@@ -26,7 +30,7 @@ export function generatorParamsToBinCustomization(
     }
   }
 
-  if (customizableFields.includes('wallCutout')) {
+  if (hasField(customizableFields, 'wallCutout')) {
     if (params.wallcutout_enabled === false) {
       result.wallCutout = 'none';
     } else if (params.wallcutout_enabled === true) {
@@ -44,7 +48,7 @@ export function generatorParamsToBinCustomization(
     }
   }
 
-  if (customizableFields.includes('height') && params.height !== undefined) {
+  if (hasField(customizableFields, 'height') && params.height !== undefined) {
     if (Array.isArray(params.height)) {
       result.height = params.height[0] as number;
     } else if (typeof params.height === 'number') {

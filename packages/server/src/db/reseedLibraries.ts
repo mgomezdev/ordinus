@@ -34,7 +34,7 @@ export interface LibraryIndex {
   version: string;
   baseModel?: string;
   customizableFields?: string[];
-  gridfinityExtendedParams?: Record<string, unknown>;
+  parameters?: Record<string, unknown>;
   items: LibraryItemJson[];
 }
 

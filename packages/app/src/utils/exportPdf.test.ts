@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { generateFilename, getOrientation, formatBomRows, exportToPdf } from './exportPdf';
 import type { ExportPdfConfig } from './exportPdf';
-import type { BOMItem, GridResult, GridSpacerConfig } from '../types/gridfinity';
+import type { BOMItem } from '@gridfinity/shared';
+import type { GridResult, GridSpacerConfig } from '../types/gridfinity';
 
 // Mock html2canvas and jspdf at module level
 vi.mock('html2canvas', () => ({

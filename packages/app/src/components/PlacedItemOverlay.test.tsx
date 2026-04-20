@@ -41,8 +41,14 @@ describe('PlacedItemOverlay', () => {
   };
 
   const mockGetLibraryMeta = vi.fn().mockResolvedValue({
-    customizableFields: ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'],
-    customizationDefaults: {},
+    customizableFields: [
+      { field: 'wallPattern', label: 'Wall Pattern', options: ['none', 'grid', 'hexgrid', 'brick'] },
+      { field: 'lipStyle',    label: 'Lip Style',    options: ['normal', 'reduced', 'minimum', 'none'] },
+      { field: 'fingerSlide', label: 'Finger Slide', options: ['none', 'rounded', 'chamfered'] },
+      { field: 'wallCutout',  label: 'Wall Cutout',  options: ['none', 'vertical', 'horizontal', 'both'] },
+      { field: 'height',      label: 'Height',       min: 1, max: 20 },
+    ],
+    parameters: {},
   });
 
   const mockOnSelect = vi.fn();
@@ -1808,7 +1814,7 @@ describe('PlacedItemOverlay', () => {
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
           onCustomizationReset={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
       // Wait for libraryMeta to load so the gear button is rendered and ref is attached
@@ -1986,7 +1992,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2007,7 +2013,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2034,7 +2040,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2103,11 +2109,11 @@ describe('PlacedItemOverlay', () => {
       fireEvent.click(customizeBtn);
 
       const wallPatternSelect = screen.getByLabelText('Wall Pattern') as HTMLSelectElement;
-      fireEvent.change(wallPatternSelect, { target: { value: 'voronoi' } });
+      fireEvent.change(wallPatternSelect, { target: { value: 'grid' } });
 
       expect(mockOnCustomizationChange).toHaveBeenCalledWith(
         'custom-item-123',
-        expect.objectContaining({ wallPattern: 'voronoi' })
+        expect.objectContaining({ wallPattern: 'grid' })
       );
     });
 
@@ -2260,7 +2266,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2288,7 +2294,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2316,7 +2322,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2347,7 +2353,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2378,7 +2384,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2415,7 +2421,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 

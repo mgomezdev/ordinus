@@ -83,22 +83,3 @@ export function migrateLibrarySelection(): void {
     console.warn('Failed to migrate library selection:', err);
   }
 }
-
-/**
- * Clean up old localStorage keys that are no longer used
- * Safe to call even if keys don't exist
- */
-export function cleanupOldStorage(): void {
-  const keysToRemove = [
-    'gridfinity-library-custom', // Custom items no longer supported
-    'gridfinity-categories',     // Categories now derived from items
-  ];
-
-  for (const key of keysToRemove) {
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      // Ignore errors - not critical
-    }
-  }
-}

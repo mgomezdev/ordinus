@@ -1,38 +1,12 @@
 import type { ApiResponse, ApiRefImage } from '@gridfinity/shared';
-
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3001/api/v1';
-
-async function refImageFetch<T>(
-  path: string,
-  accessToken: string,
-  options: RequestInit = {},
-): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => null);
-    const message = errorBody?.error?.message ?? `Request failed with status ${response.status}`;
-    throw new Error(message);
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json();
-}
+import { apiFetch } from './apiClient';
 
 export async function fetchRefImages(
   accessToken: string,
 ): Promise<ApiRefImage[]> {
-  const result = await refImageFetch<{ data: ApiRefImage[] }>(
+  const result = await apiFetch<{ data: ApiRefImage[] }>(
     '/ref-images',
+    {},
     accessToken,
   );
   return result.data;
@@ -45,13 +19,10 @@ export async function uploadRefImage(
   const formData = new FormData();
   formData.append('image', file);
 
-  const result = await refImageFetch<ApiResponse<ApiRefImage>>(
+  const result = await apiFetch<ApiResponse<ApiRefImage>>(
     '/ref-images',
+    { method: 'POST', body: formData },
     accessToken,
-    {
-      method: 'POST',
-      body: formData,
-    },
   );
   return result.data;
 }
@@ -63,13 +34,10 @@ export async function uploadGlobalRefImage(
   const formData = new FormData();
   formData.append('image', file);
 
-  const result = await refImageFetch<ApiResponse<ApiRefImage>>(
+  const result = await apiFetch<ApiResponse<ApiRefImage>>(
     '/ref-images/global',
+    { method: 'POST', body: formData },
     accessToken,
-    {
-      method: 'POST',
-      body: formData,
-    },
   );
   return result.data;
 }
@@ -79,14 +47,14 @@ export async function renameRefImage(
   id: number,
   name: string,
 ): Promise<ApiRefImage> {
-  const result = await refImageFetch<ApiResponse<ApiRefImage>>(
+  const result = await apiFetch<ApiResponse<ApiRefImage>>(
     `/ref-images/${id}`,
-    accessToken,
     {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     },
+    accessToken,
   );
   return result.data;
 }
@@ -95,9 +63,9 @@ export async function deleteRefImage(
   accessToken: string,
   id: number,
 ): Promise<void> {
-  await refImageFetch<void>(
+  await apiFetch<void>(
     `/ref-images/${id}`,
-    accessToken,
     { method: 'DELETE' },
+    accessToken,
   );
 }

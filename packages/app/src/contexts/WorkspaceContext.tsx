@@ -1,14 +1,14 @@
 import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type {
-  UnitSystem, ImperialFormat, GridSpacerConfig, BOMItem, LibraryItem,
+  UnitSystem, ImperialFormat, GridSpacerConfig, LibraryItem,
   LibraryMeta, DragData, BinCustomization, Category,
   GridResult, ReferenceImage, PlacedItem, PlacedItemWithValidity,
   ComputedSpacer, BOMExtras,
 } from '../types/gridfinity';
 import type { SelectModifiers } from '../hooks/useGridItems';
 import type { LoadedLayoutConfig } from '../types/layoutConfig';
-import type { ApiUser } from '@gridfinity/shared';
+import type { BOMItem, ApiUser } from '@gridfinity/shared';
 import type { RefImagePlacement, UseRefImagePlacementsReturn } from '../hooks/useRefImagePlacements';
 import type { LayoutMetaState } from '../reducers/layoutMetaReducer';
 import type { DialogState, DialogAction } from '../reducers/dialogReducer';
@@ -33,6 +33,8 @@ import { useLayoutLoader } from '../hooks/useLayoutLoader';
 import { useLayoutActions } from '../hooks/useLayoutActions';
 import { STORAGE_KEYS } from '../utils/storageKeys';
 import type { WalkthroughStep } from './WalkthroughContext';
+import { GridDimensionsContext } from './GridDimensionsContext';
+import { LibraryContext } from './LibraryContext';
 
 // Re-export for convenience
 export type { WalkthroughStep };
@@ -199,7 +201,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const [exportPdfError, setExportPdfError] = useState<string | null>(null);
   const [selectedLibraryMeta, setSelectedLibraryMeta] = useState<LibraryMeta>({
     customizableFields: [],
-    gridfinityExtendedParams: {},
+    parameters: {},
   });
 
   // Hooks
@@ -484,9 +486,54 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     setExportPdfError,
   };
 
+  const gridDimensionsValue = useMemo(() => ({
+    width,
+    setWidth,
+    depth,
+    setDepth,
+    unitSystem,
+    setUnitSystem,
+    imperialFormat,
+    setImperialFormat,
+    spacerConfig,
+    setSpacerConfig,
+    handleUnitChange,
+    gridResult,
+    drawerWidth,
+    drawerDepth,
+    spacers,
+  }), [
+    width, setWidth, depth, setDepth,
+    unitSystem, setUnitSystem, imperialFormat, setImperialFormat,
+    spacerConfig, setSpacerConfig, handleUnitChange,
+    gridResult, drawerWidth, drawerDepth, spacers,
+  ]);
+
+  const libraryValue = useMemo(() => ({
+    libraryItems,
+    isLibraryLoading,
+    isLibrariesLoading,
+    libraryError,
+    librariesError,
+    categories,
+    getItemById,
+    getLibraryMeta,
+    refreshLibraries,
+    refreshLibrary,
+    selectedLibraryMeta,
+  }), [
+    libraryItems, isLibraryLoading, isLibrariesLoading,
+    libraryError, librariesError, categories,
+    getItemById, getLibraryMeta, refreshLibraries, refreshLibrary, selectedLibraryMeta,
+  ]);
+
   return (
-    <WorkspaceContext.Provider value={value}>
-      {children}
-    </WorkspaceContext.Provider>
+    <GridDimensionsContext.Provider value={gridDimensionsValue}>
+      <LibraryContext.Provider value={libraryValue}>
+        <WorkspaceContext.Provider value={value}>
+          {children}
+        </WorkspaceContext.Provider>
+      </LibraryContext.Provider>
+    </GridDimensionsContext.Provider>
   );
 }

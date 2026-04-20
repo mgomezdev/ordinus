@@ -6,35 +6,9 @@ import type {
   CreateLayoutRequest,
   UpdateLayoutMetaRequest,
 } from '@gridfinity/shared';
+import { apiFetch } from './apiClient';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3001/api/v1';
-
-async function layoutFetch<T>(
-  path: string,
-  accessToken: string,
-  options: RequestInit = {},
-): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => null);
-    const message = errorBody?.error?.message ?? `Request failed with status ${response.status}`;
-    throw new Error(message);
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json();
-}
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 export async function fetchLayouts(
   accessToken: string,
@@ -47,15 +21,16 @@ export async function fetchLayouts(
   const query = params.toString();
   const path = `/layouts${query ? `?${query}` : ''}`;
 
-  return layoutFetch<ApiListResponse<ApiLayout>>(path, accessToken);
+  return apiFetch<ApiListResponse<ApiLayout>>(path, { headers: JSON_HEADERS }, accessToken);
 }
 
 export async function fetchLayout(
   accessToken: string,
   id: number,
 ): Promise<ApiLayoutDetail> {
-  const result = await layoutFetch<ApiResponse<ApiLayoutDetail>>(
+  const result = await apiFetch<ApiResponse<ApiLayoutDetail>>(
     `/layouts/${id}`,
+    { headers: JSON_HEADERS },
     accessToken,
   );
   return result.data;
@@ -65,13 +40,10 @@ export async function createLayout(
   accessToken: string,
   data: CreateLayoutRequest,
 ): Promise<ApiLayoutDetail> {
-  const result = await layoutFetch<ApiResponse<ApiLayoutDetail>>(
+  const result = await apiFetch<ApiResponse<ApiLayoutDetail>>(
     '/layouts',
+    { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(data) },
     accessToken,
-    {
-      method: 'POST',
-      body: JSON.stringify(data),
-    },
   );
   return result.data;
 }
@@ -81,13 +53,10 @@ export async function updateLayout(
   id: number,
   data: CreateLayoutRequest,
 ): Promise<ApiLayoutDetail> {
-  const result = await layoutFetch<ApiResponse<ApiLayoutDetail>>(
+  const result = await apiFetch<ApiResponse<ApiLayoutDetail>>(
     `/layouts/${id}`,
+    { method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify(data) },
     accessToken,
-    {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    },
   );
   return result.data;
 }
@@ -97,13 +66,10 @@ export async function updateLayoutMeta(
   id: number,
   data: UpdateLayoutMetaRequest,
 ): Promise<ApiLayout> {
-  const result = await layoutFetch<ApiResponse<ApiLayout>>(
+  const result = await apiFetch<ApiResponse<ApiLayout>>(
     `/layouts/${id}`,
+    { method: 'PATCH', headers: JSON_HEADERS, body: JSON.stringify(data) },
     accessToken,
-    {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    },
   );
   return result.data;
 }
@@ -112,10 +78,10 @@ export async function deleteLayoutApi(
   accessToken: string,
   id: number,
 ): Promise<void> {
-  await layoutFetch<void>(
+  await apiFetch<void>(
     `/layouts/${id}`,
+    { method: 'DELETE', headers: JSON_HEADERS },
     accessToken,
-    { method: 'DELETE' },
   );
 }
 
@@ -123,11 +89,10 @@ export async function cloneLayout(
   accessToken: string,
   id: number,
 ): Promise<ApiLayoutDetail> {
-  const result = await layoutFetch<ApiResponse<ApiLayoutDetail>>(
+  const result = await apiFetch<ApiResponse<ApiLayoutDetail>>(
     `/layouts/${id}/clone`,
+    { method: 'POST', headers: JSON_HEADERS },
     accessToken,
-    { method: 'POST' },
   );
   return result.data;
 }
-

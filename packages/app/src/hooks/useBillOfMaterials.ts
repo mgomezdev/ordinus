@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import type { PlacedItem, BOMItem, LibraryItem, BinCustomization } from '../types/gridfinity';
+import type { BOMItem } from '@gridfinity/shared';
+import type { PlacedItem, LibraryItem, BinCustomization } from '../types/gridfinity';
 import { isDefaultCustomization, getBOMKey } from '../types/gridfinity';
 
 export function useBillOfMaterials(placedItems: PlacedItem[], libraryItems: LibraryItem[]): BOMItem[] {
@@ -36,8 +37,8 @@ export function useBillOfMaterials(placedItems: PlacedItem[], libraryItems: Libr
           quantity: count,
           customization,
           ...(libraryItem.price !== undefined ? { price: libraryItem.price } : {}),
-          ...(libraryItem.gridfinityExtendedParams && Object.keys(libraryItem.gridfinityExtendedParams).length > 0
-            ? { gridfinityExtendedParams: libraryItem.gridfinityExtendedParams }
+          ...(libraryItem.parameters && Object.keys(libraryItem.parameters).length > 0
+            ? { parameters: libraryItem.parameters }
             : {}),
         });
       }

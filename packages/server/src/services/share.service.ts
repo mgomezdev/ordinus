@@ -1,9 +1,10 @@
 import { eq, and, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
-import type { ApiSharedProject, ApiSharedLayoutView, ApiPlacedItem, ApiLayout } from '@gridfinity/shared';
+import type { ApiSharedProject, ApiSharedLayoutView } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
 import { sharedProjects, layouts, placedItems, users } from '../db/schema.js';
+import { formatLayout, formatPlacedItem } from './formatters.js';
 
 function formatSharedProject(row: typeof sharedProjects.$inferSelect): ApiSharedProject {
   return {
@@ -14,39 +15,6 @@ function formatSharedProject(row: typeof sharedProjects.$inferSelect): ApiShared
     expiresAt: row.expiresAt,
     viewCount: row.viewCount,
     createdAt: row.createdAt,
-  };
-}
-
-function formatLayout(row: typeof layouts.$inferSelect): ApiLayout {
-  return {
-    id: row.id,
-    userId: row.userId,
-    name: row.name,
-    description: row.description,
-    gridX: row.gridX,
-    gridY: row.gridY,
-    widthMm: row.widthMm,
-    depthMm: row.depthMm,
-    spacerHorizontal: row.spacerHorizontal,
-    spacerVertical: row.spacerVertical,
-    isPublic: row.isPublic,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-  };
-}
-
-function formatPlacedItem(row: typeof placedItems.$inferSelect): ApiPlacedItem {
-  return {
-    id: row.id,
-    layoutId: row.layoutId,
-    libraryId: row.libraryId,
-    itemId: row.itemId,
-    x: row.x,
-    y: row.y,
-    width: row.width,
-    height: row.height,
-    rotation: row.rotation,
-    sortOrder: row.sortOrder,
   };
 }
 

@@ -1,11 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { BinCustomizationPanel } from './BinCustomizationPanel';
-import type { BinCustomization, CustomizableField } from '../types/gridfinity';
+import type { BinCustomization, CustomizableFieldDef } from '../types/gridfinity';
 import { DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
 
-const ALL_FIELDS: CustomizableField[] = ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'];
-const SHADOWBOX_FIELDS: CustomizableField[] = ['lipStyle', 'fingerSlide', 'wallCutout', 'height'];
+const ALL_FIELDS: CustomizableFieldDef[] = [
+  { field: 'wallPattern', label: 'Wall Pattern', options: ['none', 'grid', 'hexgrid', 'brick'] },
+  { field: 'lipStyle',    label: 'Lip Style',    options: ['normal', 'reduced', 'minimum', 'none'] },
+  { field: 'fingerSlide', label: 'Finger Slide', options: ['none', 'rounded', 'chamfered'] },
+  { field: 'wallCutout',  label: 'Wall Cutout',  options: ['none', 'vertical', 'horizontal', 'both'] },
+  { field: 'height',      label: 'Height',       min: 1, max: 20 },
+];
+const SHADOWBOX_FIELDS: CustomizableFieldDef[] = [
+  { field: 'lipStyle',    label: 'Lip Style',    options: ['normal', 'reduced', 'minimum', 'none'] },
+  { field: 'fingerSlide', label: 'Finger Slide', options: ['none', 'rounded', 'chamfered'] },
+  { field: 'wallCutout',  label: 'Wall Cutout',  options: ['none', 'vertical', 'horizontal', 'both'] },
+  { field: 'height',      label: 'Height',       min: 1, max: 20 },
+];
 
 describe('BinCustomizationPanel', () => {
   const mockOnChange = vi.fn();
@@ -259,10 +270,10 @@ describe('BinCustomizationPanel', () => {
       );
 
       const wallPatternSelect = screen.getByLabelText(/wall pattern/i);
-      fireEvent.change(wallPatternSelect, { target: { value: 'voronoi' } });
+      fireEvent.change(wallPatternSelect, { target: { value: 'brick' } });
 
       expect(mockOnChange).toHaveBeenCalledWith({
-        wallPattern: 'voronoi',
+        wallPattern: 'brick',
         lipStyle: 'reduced',
         fingerSlide: 'rounded',
         wallCutout: 'vertical',
@@ -437,7 +448,7 @@ describe('BinCustomizationPanel', () => {
   });
 
   describe('Wall pattern select options', () => {
-    it('should have all 6 wall pattern options (none, grid, hexgrid, voronoi, voronoigrid, voronoihexgrid)', () => {
+    it('should have all 4 wall pattern options (none, grid, hexgrid, brick)', () => {
       render(
         <BinCustomizationPanel
           customization={DEFAULT_BIN_CUSTOMIZATION}
@@ -455,12 +466,10 @@ describe('BinCustomizationPanel', () => {
       expect(options).toContain('none');
       expect(options).toContain('grid');
       expect(options).toContain('hexgrid');
-      expect(options).toContain('voronoi');
-      expect(options).toContain('voronoigrid');
-      expect(options).toContain('voronoihexgrid');
+      expect(options).toContain('brick');
     });
 
-    it('should have exactly 6 wall pattern options', () => {
+    it('should have exactly 4 wall pattern options', () => {
       render(
         <BinCustomizationPanel
           customization={DEFAULT_BIN_CUSTOMIZATION}
@@ -473,7 +482,7 @@ describe('BinCustomizationPanel', () => {
       const wallPatternSelect = screen.getByLabelText(/wall pattern/i);
       const options = (wallPatternSelect as HTMLSelectElement).options;
 
-      expect(options).toHaveLength(6);
+      expect(options).toHaveLength(4);
     });
   });
 
@@ -668,7 +677,7 @@ describe('BinCustomizationPanel', () => {
           customization={DEFAULT_BIN_CUSTOMIZATION}
           onChange={mockOnChange}
           onReset={mockOnReset}
-          customizableFields={['height']}
+          customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
         />
       );
       expect(screen.getByLabelText('Height in units')).toBeInTheDocument();
@@ -681,7 +690,7 @@ describe('BinCustomizationPanel', () => {
           customization={{ ...DEFAULT_BIN_CUSTOMIZATION, height: 3 }}
           onChange={mockOnChange}
           onReset={mockOnReset}
-          customizableFields={['height']}
+          customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
         />
       );
       expect(screen.getByLabelText('Height in units')).toHaveValue(3);
@@ -694,7 +703,7 @@ describe('BinCustomizationPanel', () => {
           customization={DEFAULT_BIN_CUSTOMIZATION}
           onChange={mockOnChange}
           onReset={mockOnReset}
-          customizableFields={['height']}
+          customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
         />
       );
       fireEvent.change(screen.getByLabelText('Height in units'), { target: { value: '5' } });
@@ -707,7 +716,7 @@ describe('BinCustomizationPanel', () => {
           customization={DEFAULT_BIN_CUSTOMIZATION}
           onChange={mockOnChange}
           onReset={mockOnReset}
-          customizableFields={['height']}
+          customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
         />
       );
       fireEvent.change(screen.getByLabelText('Height in millimeters'), { target: { value: '35' } });
@@ -721,7 +730,7 @@ describe('BinCustomizationPanel', () => {
           customization={DEFAULT_BIN_CUSTOMIZATION}
           onChange={mockOnChange}
           onReset={mockOnReset}
-          customizableFields={['height']}
+          customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
         />
       );
       fireEvent.change(screen.getByLabelText('Height in millimeters'), { target: { value: '23' } });
@@ -737,7 +746,7 @@ describe('BinCustomizationPanel', () => {
           customization={DEFAULT_BIN_CUSTOMIZATION}
           onChange={mockOnChange}
           onReset={mockOnReset}
-          customizableFields={['height']}
+          customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
         />
       );
       fireEvent.change(screen.getByLabelText('Height in millimeters'), { target: { value: '23' } });
@@ -756,8 +765,8 @@ describe('BinCustomizationPanel', () => {
           customization={{ ...DEFAULT_BIN_CUSTOMIZATION, height: 6 }}
           onChange={mockOnChange}
           onReset={mockOnReset}
-          customizableFields={['height']}
-          customizationDefaults={{ height: 4 }}
+          customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
+          parameters={{ height: 4 }}
         />
       );
       fireEvent.click(screen.getByRole('button', { name: /reset/i }));

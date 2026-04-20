@@ -3,49 +3,20 @@ import type {
   ApiSharedProject,
   ApiSharedLayoutView,
 } from '@gridfinity/shared';
+import { apiFetch } from './apiClient';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3001/api/v1';
-
-async function shareFetch<T>(
-  path: string,
-  options: RequestInit = {},
-  accessToken?: string,
-): Promise<T> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...options.headers as Record<string, string>,
-  };
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
-  }
-
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
-
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => null);
-    const message = errorBody?.error?.message ?? `Request failed with status ${response.status}`;
-    throw new Error(message);
-  }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json();
-}
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 export async function createShareLink(
   accessToken: string,
   layoutId: number,
   expiresInDays?: number,
 ): Promise<ApiSharedProject> {
-  const result = await shareFetch<ApiResponse<ApiSharedProject>>(
+  const result = await apiFetch<ApiResponse<ApiSharedProject>>(
     `/layouts/${layoutId}/share`,
     {
       method: 'POST',
+      headers: JSON_HEADERS,
       body: JSON.stringify(expiresInDays ? { expiresInDays } : {}),
     },
     accessToken,
@@ -56,8 +27,9 @@ export async function createShareLink(
 export async function getSharedLayout(
   slug: string,
 ): Promise<ApiSharedLayoutView> {
-  const result = await shareFetch<ApiResponse<ApiSharedLayoutView>>(
+  const result = await apiFetch<ApiResponse<ApiSharedLayoutView>>(
     `/shared/${slug}`,
+    { headers: JSON_HEADERS },
   );
   return result.data;
 }
@@ -66,9 +38,9 @@ export async function deleteShareLink(
   accessToken: string,
   shareId: number,
 ): Promise<void> {
-  await shareFetch<void>(
+  await apiFetch<void>(
     `/shared/${shareId}`,
-    { method: 'DELETE' },
+    { method: 'DELETE', headers: JSON_HEADERS },
     accessToken,
   );
 }
@@ -77,9 +49,9 @@ export async function getSharesByLayout(
   accessToken: string,
   layoutId: number,
 ): Promise<ApiSharedProject[]> {
-  const result = await shareFetch<ApiResponse<ApiSharedProject[]>>(
+  const result = await apiFetch<ApiResponse<ApiSharedProject[]>>(
     `/layouts/${layoutId}/shares`,
-    {},
+    { headers: JSON_HEADERS },
     accessToken,
   );
   return result.data;

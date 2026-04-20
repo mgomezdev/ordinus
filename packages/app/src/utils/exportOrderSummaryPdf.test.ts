@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { formatOrderSummaryRows, calculateOrderTotal } from './exportOrderSummaryPdf';
-import type { BOMItem } from '../types/gridfinity';
+import type { BOMItem } from '@gridfinity/shared';
 
 const item1: BOMItem = {
   itemId: 'lib1:bin1', name: 'Small Bin', widthUnits: 1, heightUnits: 1,

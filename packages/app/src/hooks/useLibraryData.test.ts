@@ -44,7 +44,7 @@ describe('useLibraryData', () => {
         return itemsByLibrary[libraryId] ?? [];
       },
       async getLibraryMeta(libraryId: string): Promise<LibraryMeta> {
-        return options?.metaByLibrary?.[libraryId] ?? { customizableFields: [], customizationDefaults: {} };
+        return options?.metaByLibrary?.[libraryId] ?? { customizableFields: [], parameters: {} };
       },
       resolveImageUrl(libraryId: string, imagePath: string) {
         if (imagePath.startsWith('/libraries/') || imagePath.startsWith('http')) {
@@ -381,7 +381,7 @@ describe('useLibraryData', () => {
           return mockDefaultItems;
         },
         async getLibraryMeta() {
-          return { customizableFields: [], customizationDefaults: {} };
+          return { customizableFields: [], parameters: {} };
         },
         resolveImageUrl(_libraryId: string, imagePath: string) {
           return imagePath;
@@ -432,7 +432,7 @@ describe('useLibraryData', () => {
       const { result } = renderHook(() => useLibraryData([]), { wrapper });
       const meta = await result.current.getLibraryMeta('nonexistent');
       expect(meta.customizableFields).toEqual([]);
-      expect(meta.customizationDefaults).toEqual({});
+      expect(meta.parameters).toEqual({});
     });
   });
 

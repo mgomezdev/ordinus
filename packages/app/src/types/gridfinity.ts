@@ -56,8 +56,11 @@ export interface LibraryItem {
   stlFile?: string;
   imageUrl?: string;
   perspectiveImageUrl?: string;
+  perspectiveImageUrl90?: string;
+  perspectiveImageUrl180?: string;
+  perspectiveImageUrl270?: string;
   price?: number;
-  gridfinityExtendedParams?: GeneratorParams;
+  parameters?: GeneratorParams;
 }
 
 export interface PlacedItem {
@@ -70,7 +73,7 @@ export interface PlacedItem {
   rotation: Rotation;
   customization?: BinCustomization;
   shadowBoxId?: string | null;
-  gridfinityExtendedParams?: GeneratorParams;
+  parameters?: GeneratorParams;
 }
 
 export interface PlacedItemWithValidity extends PlacedItem {
@@ -86,20 +89,6 @@ export interface DragData {
   refImageName?: string;
 }
 
-export interface BOMItem {
-  libraryId: string;
-  itemId: string;
-  name: string;
-  widthUnits: number;
-  heightUnits: number;
-  color: string;
-  categories: string[];
-  quantity: number;
-  customization?: BinCustomization;
-  shadowboxId?: string;
-  price?: number;
-  gridfinityExtendedParams?: GeneratorParams;
-}
 
 export interface ReferenceImage {
   id: string;
@@ -115,12 +104,27 @@ export interface ReferenceImage {
   rotation: Rotation;
 }
 
-export type WallPattern = 'none' | 'grid' | 'hexgrid' | 'voronoi' | 'voronoigrid' | 'voronoihexgrid';
+export type WallPattern = 'none' | 'grid' | 'hexgrid' | 'brick';
 export type LipStyle = 'normal' | 'reduced' | 'minimum' | 'none';
 export type FingerSlide = 'none' | 'rounded' | 'chamfered';
 export type WallCutout = 'none' | 'vertical' | 'horizontal' | 'both';
 
 export type CustomizableField = 'wallPattern' | 'lipStyle' | 'fingerSlide' | 'wallCutout' | 'height';
+
+export interface CustomizableSelectFieldDef {
+  field: Exclude<CustomizableField, 'height'>;
+  label: string;
+  options: string[];
+}
+
+export interface CustomizableNumericFieldDef {
+  field: 'height';
+  label: string;
+  min: number;
+  max: number;
+}
+
+export type CustomizableFieldDef = CustomizableSelectFieldDef | CustomizableNumericFieldDef;
 
 export interface BinCustomization {
   wallPattern: WallPattern;
@@ -161,8 +165,8 @@ export function getBOMKey(itemId: string, customization?: BinCustomization): str
 export type BOMExtras = Record<string, number>;
 
 export interface LibraryMeta {
-  customizableFields: CustomizableField[];
-  gridfinityExtendedParams: GeneratorParams;
+  customizableFields: CustomizableFieldDef[];
+  parameters: GeneratorParams;
 }
 
 export type ImageViewMode = 'ortho' | 'perspective';
@@ -190,7 +194,7 @@ export interface LibraryManifest {
 export interface LibraryIndex {
   version: string;
   items: LibraryItem[];
-  customizableFields?: CustomizableField[];
-  gridfinityExtendedParams?: GeneratorParams;
+  customizableFields?: CustomizableFieldDef[];
+  parameters?: GeneratorParams;
   baseModel?: string;
 }

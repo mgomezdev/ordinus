@@ -2,17 +2,11 @@
   "version": "1.0.0",
   "baseModel": "gridfinity_basic_cup.scad",
   "customizableFields": [
-    "lipStyle",
-    "wallPattern",
-    "fingerSlide",
-    "wallCutout"
+    { "field": "wallPattern", "label": "Wall Pattern", "options": ["none", "grid", "hexgrid", "brick"] },
+    { "field": "lipStyle",    "label": "Lip Style",    "options": ["normal", "reduced", "minimum", "none"] },
+    { "field": "fingerSlide", "label": "Finger Slide", "options": ["none", "rounded", "chamfered"] },
+    { "field": "wallCutout",  "label": "Wall Cutout",  "options": ["none", "vertical", "horizontal", "both"] }
   ],
-  "gridfinityExtendedParams": {
-    "height": [
-      4,
-      0
-    ]
-  },
   "items": [
     {
       "id": "bin-1x1",
@@ -25,7 +19,7 @@
       ],
       "imageUrl": "bin_1x1.png",
       "perspectiveImageUrl": "bin_1x1-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           1,
           0
@@ -34,7 +28,10 @@
           1,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_1x1-perspective-90.png",
+      "perspectiveImageUrl180": "bin_1x1-perspective-180.png",
+      "perspectiveImageUrl270": "bin_1x1-perspective-270.png"
     },
     {
       "id": "bin-1x2",
@@ -47,7 +44,7 @@
       ],
       "imageUrl": "bin_1x2.png",
       "perspectiveImageUrl": "bin_1x2-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           1,
           0
@@ -56,7 +53,10 @@
           2,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_1x2-perspective-90.png",
+      "perspectiveImageUrl180": "bin_1x2-perspective-180.png",
+      "perspectiveImageUrl270": "bin_1x2-perspective-270.png"
     },
     {
       "id": "bin-1x3",
@@ -69,7 +69,7 @@
       ],
       "imageUrl": "bin_1x3.png",
       "perspectiveImageUrl": "bin_1x3-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           1,
           0
@@ -78,7 +78,10 @@
           3,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_1x3-perspective-90.png",
+      "perspectiveImageUrl180": "bin_1x3-perspective-180.png",
+      "perspectiveImageUrl270": "bin_1x3-perspective-270.png"
     },
     {
       "id": "bin-1x4",
@@ -91,7 +94,7 @@
       ],
       "imageUrl": "bin_1x4.png",
       "perspectiveImageUrl": "bin_1x4-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           1,
           0
@@ -100,7 +103,10 @@
           4,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_1x4-perspective-90.png",
+      "perspectiveImageUrl180": "bin_1x4-perspective-180.png",
+      "perspectiveImageUrl270": "bin_1x4-perspective-270.png"
     },
     {
       "id": "bin-1x5",
@@ -113,7 +119,7 @@
       ],
       "imageUrl": "bin_1x5.png",
       "perspectiveImageUrl": "bin_1x5-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           1,
           0
@@ -122,7 +128,10 @@
           5,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_1x5-perspective-90.png",
+      "perspectiveImageUrl180": "bin_1x5-perspective-180.png",
+      "perspectiveImageUrl270": "bin_1x5-perspective-270.png"
     },
     {
       "id": "bin-2x1",
@@ -135,7 +144,7 @@
       ],
       "imageUrl": "bin_2x1.png",
       "perspectiveImageUrl": "bin_2x1-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           2,
           0
@@ -144,7 +153,10 @@
           1,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_2x1-perspective-90.png",
+      "perspectiveImageUrl180": "bin_2x1-perspective-180.png",
+      "perspectiveImageUrl270": "bin_2x1-perspective-270.png"
     },
     {
       "id": "bin-2x2",
@@ -157,7 +169,7 @@
       ],
       "imageUrl": "bin_2x2.png",
       "perspectiveImageUrl": "bin_2x2-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           2,
           0
@@ -166,7 +178,10 @@
           2,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_2x2-perspective-90.png",
+      "perspectiveImageUrl180": "bin_2x2-perspective-180.png",
+      "perspectiveImageUrl270": "bin_2x2-perspective-270.png"
     },
     {
       "id": "bin-2x3",
@@ -179,7 +194,7 @@
       ],
       "imageUrl": "bin_2x3.png",
       "perspectiveImageUrl": "bin_2x3-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           2,
           0
@@ -188,7 +203,10 @@
           3,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_2x3-perspective-90.png",
+      "perspectiveImageUrl180": "bin_2x3-perspective-180.png",
+      "perspectiveImageUrl270": "bin_2x3-perspective-270.png"
     },
     {
       "id": "bin-2x4",
@@ -201,7 +219,7 @@
       ],
       "imageUrl": "bin_2x4.png",
       "perspectiveImageUrl": "bin_2x4-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           2,
           0
@@ -210,7 +228,10 @@
           4,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_2x4-perspective-90.png",
+      "perspectiveImageUrl180": "bin_2x4-perspective-180.png",
+      "perspectiveImageUrl270": "bin_2x4-perspective-270.png"
     },
     {
       "id": "bin-2x5",
@@ -223,7 +244,7 @@
       ],
       "imageUrl": "bin_2x5.png",
       "perspectiveImageUrl": "bin_2x5-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           2,
           0
@@ -232,7 +253,10 @@
           5,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_2x5-perspective-90.png",
+      "perspectiveImageUrl180": "bin_2x5-perspective-180.png",
+      "perspectiveImageUrl270": "bin_2x5-perspective-270.png"
     },
     {
       "id": "bin-3x1",
@@ -245,7 +269,7 @@
       ],
       "imageUrl": "bin_3x1.png",
       "perspectiveImageUrl": "bin_3x1-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           3,
           0
@@ -254,7 +278,10 @@
           1,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_3x1-perspective-90.png",
+      "perspectiveImageUrl180": "bin_3x1-perspective-180.png",
+      "perspectiveImageUrl270": "bin_3x1-perspective-270.png"
     },
     {
       "id": "bin-3x2",
@@ -267,7 +294,7 @@
       ],
       "imageUrl": "bin_3x2.png",
       "perspectiveImageUrl": "bin_3x2-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           3,
           0
@@ -276,7 +303,10 @@
           2,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_3x2-perspective-90.png",
+      "perspectiveImageUrl180": "bin_3x2-perspective-180.png",
+      "perspectiveImageUrl270": "bin_3x2-perspective-270.png"
     },
     {
       "id": "bin-3x3",
@@ -289,7 +319,7 @@
       ],
       "imageUrl": "bin_3x3.png",
       "perspectiveImageUrl": "bin_3x3-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           3,
           0
@@ -298,7 +328,10 @@
           3,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_3x3-perspective-90.png",
+      "perspectiveImageUrl180": "bin_3x3-perspective-180.png",
+      "perspectiveImageUrl270": "bin_3x3-perspective-270.png"
     },
     {
       "id": "bin-3x4",
@@ -311,7 +344,7 @@
       ],
       "imageUrl": "bin_3x4.png",
       "perspectiveImageUrl": "bin_3x4-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           3,
           0
@@ -320,7 +353,10 @@
           4,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_3x4-perspective-90.png",
+      "perspectiveImageUrl180": "bin_3x4-perspective-180.png",
+      "perspectiveImageUrl270": "bin_3x4-perspective-270.png"
     },
     {
       "id": "bin-3x5",
@@ -333,7 +369,7 @@
       ],
       "imageUrl": "bin_3x5.png",
       "perspectiveImageUrl": "bin_3x5-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           3,
           0
@@ -342,7 +378,10 @@
           5,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_3x5-perspective-90.png",
+      "perspectiveImageUrl180": "bin_3x5-perspective-180.png",
+      "perspectiveImageUrl270": "bin_3x5-perspective-270.png"
     },
     {
       "id": "bin-4x1",
@@ -355,7 +394,7 @@
       ],
       "imageUrl": "bin_4x1.png",
       "perspectiveImageUrl": "bin_4x1-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           4,
           0
@@ -364,7 +403,10 @@
           1,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_4x1-perspective-90.png",
+      "perspectiveImageUrl180": "bin_4x1-perspective-180.png",
+      "perspectiveImageUrl270": "bin_4x1-perspective-270.png"
     },
     {
       "id": "bin-4x2",
@@ -377,7 +419,7 @@
       ],
       "imageUrl": "bin_4x2.png",
       "perspectiveImageUrl": "bin_4x2-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           4,
           0
@@ -386,7 +428,10 @@
           2,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_4x2-perspective-90.png",
+      "perspectiveImageUrl180": "bin_4x2-perspective-180.png",
+      "perspectiveImageUrl270": "bin_4x2-perspective-270.png"
     },
     {
       "id": "bin-4x3",
@@ -399,7 +444,7 @@
       ],
       "imageUrl": "bin_4x3.png",
       "perspectiveImageUrl": "bin_4x3-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           4,
           0
@@ -408,7 +453,10 @@
           3,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_4x3-perspective-90.png",
+      "perspectiveImageUrl180": "bin_4x3-perspective-180.png",
+      "perspectiveImageUrl270": "bin_4x3-perspective-270.png"
     },
     {
       "id": "bin-4x4",
@@ -421,7 +469,7 @@
       ],
       "imageUrl": "bin_4x4.png",
       "perspectiveImageUrl": "bin_4x4-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           4,
           0
@@ -430,7 +478,10 @@
           4,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_4x4-perspective-90.png",
+      "perspectiveImageUrl180": "bin_4x4-perspective-180.png",
+      "perspectiveImageUrl270": "bin_4x4-perspective-270.png"
     },
     {
       "id": "bin-4x5",
@@ -443,7 +494,7 @@
       ],
       "imageUrl": "bin_4x5.png",
       "perspectiveImageUrl": "bin_4x5-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           4,
           0
@@ -452,7 +503,10 @@
           5,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_4x5-perspective-90.png",
+      "perspectiveImageUrl180": "bin_4x5-perspective-180.png",
+      "perspectiveImageUrl270": "bin_4x5-perspective-270.png"
     },
     {
       "id": "bin-5x1",
@@ -465,7 +519,7 @@
       ],
       "imageUrl": "bin_5x1.png",
       "perspectiveImageUrl": "bin_5x1-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           5,
           0
@@ -474,7 +528,10 @@
           1,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_5x1-perspective-90.png",
+      "perspectiveImageUrl180": "bin_5x1-perspective-180.png",
+      "perspectiveImageUrl270": "bin_5x1-perspective-270.png"
     },
     {
       "id": "bin-5x2",
@@ -487,7 +544,7 @@
       ],
       "imageUrl": "bin_5x2.png",
       "perspectiveImageUrl": "bin_5x2-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           5,
           0
@@ -496,7 +553,10 @@
           2,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_5x2-perspective-90.png",
+      "perspectiveImageUrl180": "bin_5x2-perspective-180.png",
+      "perspectiveImageUrl270": "bin_5x2-perspective-270.png"
     },
     {
       "id": "bin-5x3",
@@ -509,7 +569,7 @@
       ],
       "imageUrl": "bin_5x3.png",
       "perspectiveImageUrl": "bin_5x3-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           5,
           0
@@ -518,7 +578,10 @@
           3,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_5x3-perspective-90.png",
+      "perspectiveImageUrl180": "bin_5x3-perspective-180.png",
+      "perspectiveImageUrl270": "bin_5x3-perspective-270.png"
     },
     {
       "id": "bin-5x4",
@@ -531,7 +594,7 @@
       ],
       "imageUrl": "bin_5x4.png",
       "perspectiveImageUrl": "bin_5x4-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           5,
           0
@@ -540,7 +603,10 @@
           4,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_5x4-perspective-90.png",
+      "perspectiveImageUrl180": "bin_5x4-perspective-180.png",
+      "perspectiveImageUrl270": "bin_5x4-perspective-270.png"
     },
     {
       "id": "bin-5x5",
@@ -553,7 +619,7 @@
       ],
       "imageUrl": "bin_5x5.png",
       "perspectiveImageUrl": "bin_5x5-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           5,
           0
@@ -562,7 +628,16 @@
           5,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_5x5-perspective-90.png",
+      "perspectiveImageUrl180": "bin_5x5-perspective-180.png",
+      "perspectiveImageUrl270": "bin_5x5-perspective-270.png"
     }
-  ]
+  ],
+  "parameters": {
+    "height": [
+      4,
+      0
+    ]
+  }
 }
