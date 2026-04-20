@@ -1,0 +1,108 @@
+{
+  "version": "1.0.0",
+  "items": [
+    {
+      "id": "utensils-1x3",
+      "name": "1x3 Utensils",
+      "widthUnits": 1,
+      "heightUnits": 3,
+      "color": "#3B82F6",
+      "categories": [
+        "utensil"
+      ],
+      "stlFile": "Utensils 1x3.stl",
+      "imageUrl": "Utensils 1x3.png",
+      "perspectiveImageUrl": "Utensils 1x3-perspective.png"
+    },
+    {
+      "id": "utensils-1x4",
+      "name": "1x4 Utensils",
+      "widthUnits": 1,
+      "heightUnits": 4,
+      "color": "#3B82F6",
+      "categories": [
+        "utensil"
+      ],
+      "stlFile": "Utensils 1x4.stl",
+      "imageUrl": "Utensils 1x4.png",
+      "perspectiveImageUrl": "Utensils 1x4-perspective.png"
+    },
+    {
+      "id": "utensils-1x5",
+      "name": "1x5 Utensils",
+      "widthUnits": 1,
+      "heightUnits": 5,
+      "color": "#3B82F6",
+      "categories": [
+        "utensil"
+      ],
+      "stlFile": "Utensils 1x5.stl",
+      "imageUrl": "Utensils 1x5.png",
+      "perspectiveImageUrl": "Utensils 1x5-perspective.png"
+    },
+    {
+      "id": "utensils-1x6",
+      "name": "1x6 Utensils",
+      "widthUnits": 1,
+      "heightUnits": 6,
+      "color": "#3B82F6",
+      "categories": [
+        "utensil"
+      ],
+      "stlFile": "Utensils 1x6.stl",
+      "imageUrl": "Utensils 1x6.png",
+      "perspectiveImageUrl": "Utensils 1x6-perspective.png"
+    },
+    {
+      "id": "utensils-2x4",
+      "name": "2x4 Utensils",
+      "widthUnits": 2,
+      "heightUnits": 4,
+      "color": "#3B82F6",
+      "categories": [
+        "utensil"
+      ],
+      "stlFile": "Utensils 2x4.stl",
+      "imageUrl": "Utensils 2x4.png",
+      "perspectiveImageUrl": "Utensils 2x4-perspective.png"
+    },
+    {
+      "id": "utensils-2x5",
+      "name": "2x5 Utensils",
+      "widthUnits": 2,
+      "heightUnits": 5,
+      "color": "#3B82F6",
+      "categories": [
+        "utensil"
+      ],
+      "stlFile": "Utensils 2x5.stl",
+      "imageUrl": "Utensils 2x5.png",
+      "perspectiveImageUrl": "Utensils 2x5-perspective.png"
+    },
+    {
+      "id": "utensils-2x6",
+      "name": "2x6 Utensils",
+      "widthUnits": 2,
+      "heightUnits": 6,
+      "color": "#3B82F6",
+      "categories": [
+        "utensil"
+      ],
+      "stlFile": "Utensils 2x6.stl",
+      "imageUrl": "Utensils 2x6.png",
+      "perspectiveImageUrl": "Utensils 2x6-perspective.png"
+    },
+    {
+      "id": "utensils-offset-2x4",
+      "name": "2x4 Utensils offset",
+      "widthUnits": 2,
+      "heightUnits": 4,
+      "color": "#3B82F6",
+      "categories": [
+        "utensil"
+      ],
+      "stlFile": "Utensils offset 2x4.stl",
+      "imageUrl": "Utensilsoffset2x4.png"
+    }
+  ]
+}

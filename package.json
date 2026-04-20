@@ -21,50 +21,28 @@
   "author": "mgomezdev",
   "type": "module",
   "workspaces": [
-    "shared",
-    "server"
+    "packages/app",
+    "packages/server",
+    "packages/shared"
   ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "npm run dev --workspace=packages/app",
+    "build": "npm run build --workspace=packages/shared && npm run build --workspace=packages/app && npm run build --workspace=packages/server",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "test": "vitest --exclude '**/e2e/**'",
-    "test:run": "vitest run --exclude '**/e2e/**'",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug",
-    "server:dev": "npm run dev --workspace=server",
-    "server:dev:test": "npm run dev:test --workspace=server",
-    "server:build": "npm run build --workspace=server",
-    "server:seed": "npm run seed --workspace=server"
-  },
-  "dependencies": {
-    "@tanstack/react-query": "^5.90.21",
-    "html2canvas": "^1.4.1",
-    "jspdf": "^4.2.0",
-    "jspdf-autotable": "^5.0.7",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "test:run": "npm run test:run --workspace=packages/app && npm run test --workspace=packages/server",
+    "test:e2e": "playwright test --config=packages/app/playwright.config.ts",
+    "test:e2e:ui": "playwright test --config=packages/app/playwright.config.ts --ui",
+    "test:e2e:debug": "playwright test --config=packages/app/playwright.config.ts --debug",
+    "test:e2e:docker": "TARGET=docker playwright test --config=packages/app/playwright.config.ts",
+    "server:dev": "npm run dev --workspace=packages/server",
+    "server:dev:test": "npm run dev:test --workspace=packages/server",
+    "server:build": "npm run build --workspace=packages/server",
+    "server:seed": "npm run seed --workspace=packages/server"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
-    "@playwright/test": "^1.58.0",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@types/node": "^24.10.1",
-    "@types/react": "^19.2.5",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.1.1",
-    "@vitest/ui": "^4.0.18",
     "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
-    "jsdom": "^27.4.0",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.46.4",
-    "vite": "^7.2.4",
-    "vitest": "^4.0.18"
+    "typescript-eslint": "^8.46.4"
   }
 }

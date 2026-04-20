@@ -1,0 +1,568 @@
+{
+  "version": "1.0.0",
+  "baseModel": "gridfinity_basic_cup.scad",
+  "customizableFields": [
+    "lipStyle",
+    "wallPattern",
+    "fingerSlide",
+    "wallCutout"
+  ],
+  "gridfinityExtendedParams": {
+    "height": [
+      4,
+      0
+    ]
+  },
+  "items": [
+    {
+      "id": "bin-1x1",
+      "name": "1x1 Bin",
+      "widthUnits": 1,
+      "heightUnits": 1,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_1x1.png",
+      "perspectiveImageUrl": "bin_1x1-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          1,
+          0
+        ],
+        "depth": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-1x2",
+      "name": "1x2 Bin",
+      "widthUnits": 1,
+      "heightUnits": 2,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_1x2.png",
+      "perspectiveImageUrl": "bin_1x2-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          1,
+          0
+        ],
+        "depth": [
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-1x3",
+      "name": "1x3 Bin",
+      "widthUnits": 1,
+      "heightUnits": 3,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_1x3.png",
+      "perspectiveImageUrl": "bin_1x3-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          1,
+          0
+        ],
+        "depth": [
+          3,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-1x4",
+      "name": "1x4 Bin",
+      "widthUnits": 1,
+      "heightUnits": 4,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_1x4.png",
+      "perspectiveImageUrl": "bin_1x4-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          1,
+          0
+        ],
+        "depth": [
+          4,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-1x5",
+      "name": "1x5 Bin",
+      "widthUnits": 1,
+      "heightUnits": 5,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_1x5.png",
+      "perspectiveImageUrl": "bin_1x5-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          1,
+          0
+        ],
+        "depth": [
+          5,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-2x1",
+      "name": "2x1 Bin",
+      "widthUnits": 2,
+      "heightUnits": 1,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_2x1.png",
+      "perspectiveImageUrl": "bin_2x1-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          2,
+          0
+        ],
+        "depth": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-2x2",
+      "name": "2x2 Bin",
+      "widthUnits": 2,
+      "heightUnits": 2,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_2x2.png",
+      "perspectiveImageUrl": "bin_2x2-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          2,
+          0
+        ],
+        "depth": [
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-2x3",
+      "name": "2x3 Bin",
+      "widthUnits": 2,
+      "heightUnits": 3,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_2x3.png",
+      "perspectiveImageUrl": "bin_2x3-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          2,
+          0
+        ],
+        "depth": [
+          3,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-2x4",
+      "name": "2x4 Bin",
+      "widthUnits": 2,
+      "heightUnits": 4,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_2x4.png",
+      "perspectiveImageUrl": "bin_2x4-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          2,
+          0
+        ],
+        "depth": [
+          4,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-2x5",
+      "name": "2x5 Bin",
+      "widthUnits": 2,
+      "heightUnits": 5,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_2x5.png",
+      "perspectiveImageUrl": "bin_2x5-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          2,
+          0
+        ],
+        "depth": [
+          5,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-3x1",
+      "name": "3x1 Bin",
+      "widthUnits": 3,
+      "heightUnits": 1,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_3x1.png",
+      "perspectiveImageUrl": "bin_3x1-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          3,
+          0
+        ],
+        "depth": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-3x2",
+      "name": "3x2 Bin",
+      "widthUnits": 3,
+      "heightUnits": 2,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_3x2.png",
+      "perspectiveImageUrl": "bin_3x2-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          3,
+          0
+        ],
+        "depth": [
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-3x3",
+      "name": "3x3 Bin",
+      "widthUnits": 3,
+      "heightUnits": 3,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_3x3.png",
+      "perspectiveImageUrl": "bin_3x3-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          3,
+          0
+        ],
+        "depth": [
+          3,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-3x4",
+      "name": "3x4 Bin",
+      "widthUnits": 3,
+      "heightUnits": 4,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_3x4.png",
+      "perspectiveImageUrl": "bin_3x4-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          3,
+          0
+        ],
+        "depth": [
+          4,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-3x5",
+      "name": "3x5 Bin",
+      "widthUnits": 3,
+      "heightUnits": 5,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_3x5.png",
+      "perspectiveImageUrl": "bin_3x5-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          3,
+          0
+        ],
+        "depth": [
+          5,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-4x1",
+      "name": "4x1 Bin",
+      "widthUnits": 4,
+      "heightUnits": 1,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_4x1.png",
+      "perspectiveImageUrl": "bin_4x1-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          4,
+          0
+        ],
+        "depth": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-4x2",
+      "name": "4x2 Bin",
+      "widthUnits": 4,
+      "heightUnits": 2,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_4x2.png",
+      "perspectiveImageUrl": "bin_4x2-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          4,
+          0
+        ],
+        "depth": [
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-4x3",
+      "name": "4x3 Bin",
+      "widthUnits": 4,
+      "heightUnits": 3,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_4x3.png",
+      "perspectiveImageUrl": "bin_4x3-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          4,
+          0
+        ],
+        "depth": [
+          3,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-4x4",
+      "name": "4x4 Bin",
+      "widthUnits": 4,
+      "heightUnits": 4,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_4x4.png",
+      "perspectiveImageUrl": "bin_4x4-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          4,
+          0
+        ],
+        "depth": [
+          4,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-4x5",
+      "name": "4x5 Bin",
+      "widthUnits": 4,
+      "heightUnits": 5,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_4x5.png",
+      "perspectiveImageUrl": "bin_4x5-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          4,
+          0
+        ],
+        "depth": [
+          5,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-5x1",
+      "name": "5x1 Bin",
+      "widthUnits": 5,
+      "heightUnits": 1,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_5x1.png",
+      "perspectiveImageUrl": "bin_5x1-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          5,
+          0
+        ],
+        "depth": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-5x2",
+      "name": "5x2 Bin",
+      "widthUnits": 5,
+      "heightUnits": 2,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_5x2.png",
+      "perspectiveImageUrl": "bin_5x2-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          5,
+          0
+        ],
+        "depth": [
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-5x3",
+      "name": "5x3 Bin",
+      "widthUnits": 5,
+      "heightUnits": 3,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_5x3.png",
+      "perspectiveImageUrl": "bin_5x3-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          5,
+          0
+        ],
+        "depth": [
+          3,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-5x4",
+      "name": "5x4 Bin",
+      "widthUnits": 5,
+      "heightUnits": 4,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_5x4.png",
+      "perspectiveImageUrl": "bin_5x4-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          5,
+          0
+        ],
+        "depth": [
+          4,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-5x5",
+      "name": "5x5 Bin",
+      "widthUnits": 5,
+      "heightUnits": 5,
+      "color": "#3B82F6",
+      "categories": [
+        "bin"
+      ],
+      "imageUrl": "bin_5x5.png",
+      "perspectiveImageUrl": "bin_5x5-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          5,
+          0
+        ],
+        "depth": [
+          5,
+          0
+        ]
+      }
+    }
+  ]
+}

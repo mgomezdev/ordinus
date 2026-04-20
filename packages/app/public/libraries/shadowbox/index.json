@@ -1,0 +1,371 @@
+{
+  "version": "1.0.0",
+  "baseModel": "gridfinity_basic_cup.scad",
+  "customizableFields": [
+    "lipStyle",
+    "fingerSlide",
+    "wallCutout",
+    "height"
+  ],
+  "gridfinityExtendedParams": {
+    "height": [
+      4,
+      0
+    ],
+    "filled_in": "enabled"
+  },
+  "items": [
+    {
+      "id": "shadowbox-2x2",
+      "name": "2x2 Shadowbox",
+      "widthUnits": 2,
+      "heightUnits": 2,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_2x2.png",
+      "perspectiveImageUrl": "shadowbox_2x2-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          2,
+          0
+        ],
+        "depth": [
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shadowbox-2x3",
+      "name": "2x3 Shadowbox",
+      "widthUnits": 2,
+      "heightUnits": 3,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_2x3.png",
+      "perspectiveImageUrl": "shadowbox_2x3-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          2,
+          0
+        ],
+        "depth": [
+          3,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shadowbox-2x4",
+      "name": "2x4 Shadowbox",
+      "widthUnits": 2,
+      "heightUnits": 4,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_2x4.png",
+      "perspectiveImageUrl": "shadowbox_2x4-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          2,
+          0
+        ],
+        "depth": [
+          4,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shadowbox-2x5",
+      "name": "2x5 Shadowbox",
+      "widthUnits": 2,
+      "heightUnits": 5,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_2x5.png",
+      "perspectiveImageUrl": "shadowbox_2x5-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          2,
+          0
+        ],
+        "depth": [
+          5,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shadowbox-3x2",
+      "name": "3x2 Shadowbox",
+      "widthUnits": 3,
+      "heightUnits": 2,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_3x2.png",
+      "perspectiveImageUrl": "shadowbox_3x2-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          3,
+          0
+        ],
+        "depth": [
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shadowbox-3x3",
+      "name": "3x3 Shadowbox",
+      "widthUnits": 3,
+      "heightUnits": 3,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_3x3.png",
+      "perspectiveImageUrl": "shadowbox_3x3-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          3,
+          0
+        ],
+        "depth": [
+          3,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shadowbox-3x4",
+      "name": "3x4 Shadowbox",
+      "widthUnits": 3,
+      "heightUnits": 4,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_3x4.png",
+      "perspectiveImageUrl": "shadowbox_3x4-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          3,
+          0
+        ],
+        "depth": [
+          4,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shadowbox-3x5",
+      "name": "3x5 Shadowbox",
+      "widthUnits": 3,
+      "heightUnits": 5,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_3x5.png",
+      "perspectiveImageUrl": "shadowbox_3x5-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          3,
+          0
+        ],
+        "depth": [
+          5,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shadowbox-4x2",
+      "name": "4x2 Shadowbox",
+      "widthUnits": 4,
+      "heightUnits": 2,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_4x2.png",
+      "perspectiveImageUrl": "shadowbox_4x2-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          4,
+          0
+        ],
+        "depth": [
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shadowbox-4x3",
+      "name": "4x3 Shadowbox",
+      "widthUnits": 4,
+      "heightUnits": 3,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_4x3.png",
+      "perspectiveImageUrl": "shadowbox_4x3-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          4,
+          0
+        ],
+        "depth": [
+          3,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shadowbox-4x4",
+      "name": "4x4 Shadowbox",
+      "widthUnits": 4,
+      "heightUnits": 4,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_4x4.png",
+      "perspectiveImageUrl": "shadowbox_4x4-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          4,
+          0
+        ],
+        "depth": [
+          4,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shadowbox-4x5",
+      "name": "4x5 Shadowbox",
+      "widthUnits": 4,
+      "heightUnits": 5,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_4x5.png",
+      "perspectiveImageUrl": "shadowbox_4x5-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          4,
+          0
+        ],
+        "depth": [
+          5,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shadowbox-5x2",
+      "name": "5x2 Shadowbox",
+      "widthUnits": 5,
+      "heightUnits": 2,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_5x2.png",
+      "perspectiveImageUrl": "shadowbox_5x2-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          5,
+          0
+        ],
+        "depth": [
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shadowbox-5x3",
+      "name": "5x3 Shadowbox",
+      "widthUnits": 5,
+      "heightUnits": 3,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_5x3.png",
+      "perspectiveImageUrl": "shadowbox_5x3-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          5,
+          0
+        ],
+        "depth": [
+          3,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shadowbox-5x4",
+      "name": "5x4 Shadowbox",
+      "widthUnits": 5,
+      "heightUnits": 4,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_5x4.png",
+      "perspectiveImageUrl": "shadowbox_5x4-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          5,
+          0
+        ],
+        "depth": [
+          4,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shadowbox-5x5",
+      "name": "5x5 Shadowbox",
+      "widthUnits": 5,
+      "heightUnits": 5,
+      "color": "#8B5CF6",
+      "categories": [
+        "shadowbox"
+      ],
+      "imageUrl": "shadowbox_5x5.png",
+      "perspectiveImageUrl": "shadowbox_5x5-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          5,
+          0
+        ],
+        "depth": [
+          5,
+          0
+        ]
+      }
+    }
+  ]
+}

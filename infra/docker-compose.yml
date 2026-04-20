@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  frontend:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.frontend
+    ports:
+      - "32888:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.backend
+    expose:
+      - "3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - CORS_ORIGIN=http://localhost:32888
+      - DB_PATH=/data/gridfinity.db
+      - IMAGE_DIR=/data/images
+      - USER_STL_DIR=/data/user-stls
+      - USER_STL_IMAGE_DIR=/data/user-stl-images
+      - LOG_LEVEL=warn
+      - GRIDFINITY_GENERATOR_DIR=/app/tools/gridfinity-generator
+      - GENERATED_STL_DIR=/data/generated
+      - OPENSCAD_PATH=/app/openscad/AppRun
+      - OPENSCAD_BACKEND=Manifold
+      - SCAD_FILE=/app/tools/gridfinity-generator/gridfinity_basic_cup.scad
+      - ADMIN_INITIAL_PASSWORD=admin
+    volumes:
+      - gridfinity-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/v1/health').then(r => { if (!r.ok) process.exit(1) })"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+
+volumes:
+  gridfinity-data:
+    driver: local

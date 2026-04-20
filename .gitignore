@@ -12,11 +12,12 @@ dist
 dist-ssr
 *.local
 
-# Local configuration
+# Local configuration (may contain secrets)
 settings.json
+.mcp.json
 
 # User-uploaded images
-public/images/
+packages/app/public/images/
 
 # Editor directories and files
 .vscode/*
@@ -33,22 +34,35 @@ public/images/
 coverage/
 
 # Playwright
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
 
 # Internal planning and development artifacts
 plans/
+!docs/superpowers/plans/
 TODOs.txt
 
 # Server build output
-server/dist/
+packages/server/dist/
 
 # Server data (SQLite DB + uploaded images)
-server/data/
-!server/data/.gitkeep
+packages/server/data/
+!packages/server/data/.gitkeep
 
 # Environment files
 .env
-server/.env
+packages/server/.env
+infra/.env
+
+# Gridfinity generator outputs (regenerable)
+tools/gridfinity-generator/bins_*/
+tools/gridfinity-generator/__pycache__/
+
+# Playwright CLI session data
+.playwright-cli/
+
+# Git worktrees
+.worktrees/
+.superpowers/

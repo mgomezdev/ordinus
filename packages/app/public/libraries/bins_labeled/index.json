@@ -1,0 +1,575 @@
+{
+  "version": "1.0.0",
+  "baseModel": "gridfinity_basic_cup.scad",
+  "customizableFields": [
+    "lipStyle",
+    "wallPattern",
+    "fingerSlide",
+    "wallCutout"
+  ],
+  "gridfinityExtendedParams": {
+    "label_style": "normal",
+    "label_walls": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "height": [
+      4,
+      0
+    ]
+  },
+  "items": [
+    {
+      "id": "bin-1x1-labeled",
+      "name": "1x1 Labeled Bin",
+      "widthUnits": 1,
+      "heightUnits": 1,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_1x1_labeled.png",
+      "perspectiveImageUrl": "bin_1x1_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          1,
+          0
+        ],
+        "depth": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-1x2-labeled",
+      "name": "1x2 Labeled Bin",
+      "widthUnits": 1,
+      "heightUnits": 2,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_1x2_labeled.png",
+      "perspectiveImageUrl": "bin_1x2_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          1,
+          0
+        ],
+        "depth": [
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-1x3-labeled",
+      "name": "1x3 Labeled Bin",
+      "widthUnits": 1,
+      "heightUnits": 3,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_1x3_labeled.png",
+      "perspectiveImageUrl": "bin_1x3_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          1,
+          0
+        ],
+        "depth": [
+          3,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-1x4-labeled",
+      "name": "1x4 Labeled Bin",
+      "widthUnits": 1,
+      "heightUnits": 4,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_1x4_labeled.png",
+      "perspectiveImageUrl": "bin_1x4_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          1,
+          0
+        ],
+        "depth": [
+          4,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-1x5-labeled",
+      "name": "1x5 Labeled Bin",
+      "widthUnits": 1,
+      "heightUnits": 5,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_1x5_labeled.png",
+      "perspectiveImageUrl": "bin_1x5_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          1,
+          0
+        ],
+        "depth": [
+          5,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-2x1-labeled",
+      "name": "2x1 Labeled Bin",
+      "widthUnits": 2,
+      "heightUnits": 1,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_2x1_labeled.png",
+      "perspectiveImageUrl": "bin_2x1_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          2,
+          0
+        ],
+        "depth": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-2x2-labeled",
+      "name": "2x2 Labeled Bin",
+      "widthUnits": 2,
+      "heightUnits": 2,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_2x2_labeled.png",
+      "perspectiveImageUrl": "bin_2x2_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          2,
+          0
+        ],
+        "depth": [
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-2x3-labeled",
+      "name": "2x3 Labeled Bin",
+      "widthUnits": 2,
+      "heightUnits": 3,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_2x3_labeled.png",
+      "perspectiveImageUrl": "bin_2x3_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          2,
+          0
+        ],
+        "depth": [
+          3,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-2x4-labeled",
+      "name": "2x4 Labeled Bin",
+      "widthUnits": 2,
+      "heightUnits": 4,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_2x4_labeled.png",
+      "perspectiveImageUrl": "bin_2x4_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          2,
+          0
+        ],
+        "depth": [
+          4,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-2x5-labeled",
+      "name": "2x5 Labeled Bin",
+      "widthUnits": 2,
+      "heightUnits": 5,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_2x5_labeled.png",
+      "perspectiveImageUrl": "bin_2x5_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          2,
+          0
+        ],
+        "depth": [
+          5,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-3x1-labeled",
+      "name": "3x1 Labeled Bin",
+      "widthUnits": 3,
+      "heightUnits": 1,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_3x1_labeled.png",
+      "perspectiveImageUrl": "bin_3x1_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          3,
+          0
+        ],
+        "depth": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-3x2-labeled",
+      "name": "3x2 Labeled Bin",
+      "widthUnits": 3,
+      "heightUnits": 2,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_3x2_labeled.png",
+      "perspectiveImageUrl": "bin_3x2_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          3,
+          0
+        ],
+        "depth": [
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-3x3-labeled",
+      "name": "3x3 Labeled Bin",
+      "widthUnits": 3,
+      "heightUnits": 3,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_3x3_labeled.png",
+      "perspectiveImageUrl": "bin_3x3_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          3,
+          0
+        ],
+        "depth": [
+          3,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-3x4-labeled",
+      "name": "3x4 Labeled Bin",
+      "widthUnits": 3,
+      "heightUnits": 4,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_3x4_labeled.png",
+      "perspectiveImageUrl": "bin_3x4_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          3,
+          0
+        ],
+        "depth": [
+          4,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-3x5-labeled",
+      "name": "3x5 Labeled Bin",
+      "widthUnits": 3,
+      "heightUnits": 5,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_3x5_labeled.png",
+      "perspectiveImageUrl": "bin_3x5_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          3,
+          0
+        ],
+        "depth": [
+          5,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-4x1-labeled",
+      "name": "4x1 Labeled Bin",
+      "widthUnits": 4,
+      "heightUnits": 1,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_4x1_labeled.png",
+      "perspectiveImageUrl": "bin_4x1_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          4,
+          0
+        ],
+        "depth": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-4x2-labeled",
+      "name": "4x2 Labeled Bin",
+      "widthUnits": 4,
+      "heightUnits": 2,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_4x2_labeled.png",
+      "perspectiveImageUrl": "bin_4x2_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          4,
+          0
+        ],
+        "depth": [
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-4x3-labeled",
+      "name": "4x3 Labeled Bin",
+      "widthUnits": 4,
+      "heightUnits": 3,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_4x3_labeled.png",
+      "perspectiveImageUrl": "bin_4x3_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          4,
+          0
+        ],
+        "depth": [
+          3,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-4x4-labeled",
+      "name": "4x4 Labeled Bin",
+      "widthUnits": 4,
+      "heightUnits": 4,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_4x4_labeled.png",
+      "perspectiveImageUrl": "bin_4x4_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          4,
+          0
+        ],
+        "depth": [
+          4,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-4x5-labeled",
+      "name": "4x5 Labeled Bin",
+      "widthUnits": 4,
+      "heightUnits": 5,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_4x5_labeled.png",
+      "perspectiveImageUrl": "bin_4x5_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          4,
+          0
+        ],
+        "depth": [
+          5,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-5x1-labeled",
+      "name": "5x1 Labeled Bin",
+      "widthUnits": 5,
+      "heightUnits": 1,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_5x1_labeled.png",
+      "perspectiveImageUrl": "bin_5x1_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          5,
+          0
+        ],
+        "depth": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-5x2-labeled",
+      "name": "5x2 Labeled Bin",
+      "widthUnits": 5,
+      "heightUnits": 2,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_5x2_labeled.png",
+      "perspectiveImageUrl": "bin_5x2_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          5,
+          0
+        ],
+        "depth": [
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-5x3-labeled",
+      "name": "5x3 Labeled Bin",
+      "widthUnits": 5,
+      "heightUnits": 3,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_5x3_labeled.png",
+      "perspectiveImageUrl": "bin_5x3_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          5,
+          0
+        ],
+        "depth": [
+          3,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-5x4-labeled",
+      "name": "5x4 Labeled Bin",
+      "widthUnits": 5,
+      "heightUnits": 4,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_5x4_labeled.png",
+      "perspectiveImageUrl": "bin_5x4_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          5,
+          0
+        ],
+        "depth": [
+          4,
+          0
+        ]
+      }
+    },
+    {
+      "id": "bin-5x5-labeled",
+      "name": "5x5 Labeled Bin",
+      "widthUnits": 5,
+      "heightUnits": 5,
+      "color": "#6B7280",
+      "categories": [
+        "labeled"
+      ],
+      "imageUrl": "bin_5x5_labeled.png",
+      "perspectiveImageUrl": "bin_5x5_labeled-perspective.png",
+      "gridfinityExtendedParams": {
+        "width": [
+          5,
+          0
+        ],
+        "depth": [
+          5,
+          0
+        ]
+      }
+    }
+  ]
+}

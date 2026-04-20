@@ -1,0 +1,97 @@
+.saved-configs-page {
+  padding: var(--space-xl);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.saved-configs-header { margin-bottom: var(--space-xl); }
+
+.saved-configs-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #b91c1c;
+  font-size: 0.875rem;
+  margin-bottom: var(--space-md);
+}
+
+.saved-configs-error-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: inherit;
+  padding: 0 2px;
+  line-height: 1;
+}
+.saved-configs-title { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin: 0 0 var(--space-xs); }
+.saved-configs-subtitle { color: var(--text-secondary); font-size: 0.875rem; margin: 0; }
+
+.saved-configs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-lg);
+}
+
+.saved-config-card {
+  background: var(--surface);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.saved-config-thumbnail {
+  background: var(--bg-primary);
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.saved-config-thumbnail svg {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.grid-cell {
+  fill: var(--bg-secondary);
+  stroke: var(--border-primary);
+  stroke-width: 0.5;
+}
+
+.saved-config-info { padding: var(--space-md); border-bottom: 1px solid var(--border-primary); }
+.saved-config-name-row { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-xs); }
+.saved-config-name { font-weight: 600; font-size: 0.9375rem; color: var(--text-primary); flex: 1; }
+.saved-config-date { font-size: 0.75rem; color: var(--text-secondary); }
+
+.saved-config-actions { padding: var(--space-sm) var(--space-md); display: flex; flex-wrap: wrap; gap: var(--space-xs); }
+.saved-config-btn {
+  padding: 4px 10px; border-radius: var(--radius-sm); font-size: 0.8125rem;
+  border: 1px solid var(--border-primary); background: var(--surface); cursor: pointer;
+  color: var(--text-primary); font-weight: 500;
+}
+.saved-config-btn:hover { background: var(--surface-variant); }
+.saved-config-submit { background: var(--primary); color: #fff; border-color: var(--primary); }
+.saved-config-submit:hover { opacity: 0.9; }
+.saved-config-delete.confirming { background: var(--danger, #dc2626); color: #fff; border-color: var(--danger, #dc2626); }
+
+/* New config card */
+.saved-config-card.new-config {
+  border-style: dashed;
+  cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 220px; color: var(--text-secondary);
+}
+.saved-config-card.new-config:hover { background: var(--surface-variant); }
+.saved-config-new-icon { font-size: 2rem; margin-bottom: var(--space-sm); }
+.saved-config-new-label { font-weight: 600; font-size: 0.9375rem; }
+.saved-config-new-hint { font-size: 0.8125rem; margin-top: var(--space-xs); }
+
+/* Loading / empty states */
+.saved-configs-loading, .saved-configs-empty { text-align: center; padding: var(--space-xl); color: var(--text-secondary); }
