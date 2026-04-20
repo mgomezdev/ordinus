@@ -155,17 +155,18 @@ describe('buildGenerateParams', () => {
     expect(params.height).toEqual([8, 0]);
   });
 
-  it('uses height from gridfinityExtendedParams when provided', () => {
-    const cfg: UniqueConfig = { ...baseConfig(), gridfinityExtendedParams: { height: [4, 0], filled_in: 'enabled' } };
+  it('customization height overrides gridfinityExtendedParams height', () => {
+    const cfg: UniqueConfig = { ...baseConfig({ height: 8 }), gridfinityExtendedParams: { height: [4, 0], filled_in: 'enabled' } };
     const params = buildGenerateParams(cfg);
-    expect(params.height).toEqual([4, 0]);
+    expect(params.height).toEqual([8, 0]);
     expect(params.filled_in).toBe('enabled');
   });
 
-  it('uses customization height when gridfinityExtendedParams has no height', () => {
+  it('passes non-height gridfinityExtendedParams through', () => {
     const cfg: UniqueConfig = { ...baseConfig({ height: 6 }), gridfinityExtendedParams: { filled_in: 'enabled' } };
     const params = buildGenerateParams(cfg);
     expect(params.height).toEqual([6, 0]);
+    expect(params.filled_in).toBe('enabled');
   });
 
   it('always sets label_style to disabled', () => {

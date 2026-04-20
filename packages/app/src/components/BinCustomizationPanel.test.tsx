@@ -710,9 +710,9 @@ describe('BinCustomizationPanel', () => {
           customizableFields={['height']}
         />
       );
-      fireEvent.change(screen.getByLabelText('Height in millimeters'), { target: { value: '28' } });
+      fireEvent.change(screen.getByLabelText('Height in millimeters'), { target: { value: '35' } });
       fireEvent.blur(screen.getByLabelText('Height in millimeters'));
-      expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ height: 4 }));
+      expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ height: 5 }));
     });
 
     it('blurring mm input with unaligned value rounds down and shows correction message', async () => {

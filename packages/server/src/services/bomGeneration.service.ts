@@ -14,7 +14,7 @@ const DEFAULT_CUSTOMIZATION: BinCustomization = {
   lipStyle: 'normal',
   fingerSlide: 'none',
   wallCutout: 'none',
-  height: 8,
+  height: 4,
 };
 
 // ── Pure extraction helpers ───────────────────────────────────────────────────
@@ -24,7 +24,7 @@ function customizationKey(item: BOMItem): string {
   if (!c) return 'default';
   const isDefault =
     c.wallPattern === 'none' && c.lipStyle === 'normal' &&
-    c.fingerSlide === 'none' && c.wallCutout === 'none' && c.height === 8;
+    c.fingerSlide === 'none' && c.wallCutout === 'none' && c.height === 4;
   if (isDefault) return 'default';
   return `${c.wallPattern}|${c.lipStyle}|${c.fingerSlide}|${c.wallCutout}|${c.height}`;
 }
@@ -275,20 +275,12 @@ async function runGenerationPipeline(
 
 export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> {
   const c = cfg.customization;
-  const extParams = cfg.gridfinityExtendedParams ?? {};
-
-  // height from extParams (library/item default) takes precedence over customization height
-  const heightParam = 'height' in extParams ? extParams['height'] : [c.height, 0];
-  const restExtParams = Object.fromEntries(
-    Object.entries(extParams as Record<string, unknown>).filter(([k]) => k !== 'height'),
-  );
-
   const params: Record<string, unknown> = {
     ...gridfinityExtendedDefaultParams,
-    ...restExtParams,
+    ...(cfg.gridfinityExtendedParams ?? {}),
     width: [cfg.widthUnits, 0],
     depth: [cfg.heightUnits, 0],
-    height: heightParam,
+    height: [c.height, 0],
     lip_style: c.lipStyle,
     fingerslide: c.fingerSlide,
   };

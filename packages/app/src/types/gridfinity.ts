@@ -127,7 +127,7 @@ export interface BinCustomization {
   lipStyle: LipStyle;
   fingerSlide: FingerSlide;
   wallCutout: WallCutout;
-  height: number;  // gridfinity units (1-20), default 8
+  height: number;  // gridfinity units (1-20), default 4
 }
 
 export const DEFAULT_BIN_CUSTOMIZATION: BinCustomization = {
@@ -135,7 +135,7 @@ export const DEFAULT_BIN_CUSTOMIZATION: BinCustomization = {
   lipStyle: 'normal',
   fingerSlide: 'none',
   wallCutout: 'none',
-  height: 8,
+  height: 4,
 };
 
 export function serializeCustomization(c: BinCustomization | undefined): string {
@@ -149,7 +149,7 @@ export function isDefaultCustomization(c: BinCustomization | undefined): boolean
     && c.lipStyle === 'normal'
     && c.fingerSlide === 'none'
     && c.wallCutout === 'none'
-    && c.height === 8;
+    && c.height === 4;
 }
 
 export function getBOMKey(itemId: string, customization?: BinCustomization): string {
