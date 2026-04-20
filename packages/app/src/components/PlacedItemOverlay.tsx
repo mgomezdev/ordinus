@@ -83,6 +83,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   }, [showPopover, computePopoverPos]);
 
   const libraryItem = getItemById(item.itemId);
+  const hasStaticStl = !!libraryItem?.stlFile;
   const color = item.isValid ? (libraryItem?.color || DEFAULT_VALID_COLOR) : INVALID_COLOR;
 
   const perspectiveUrl = libraryItem?.perspectiveImageUrl;
@@ -302,7 +303,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
               &#x29C9;
             </button>
           )}
-          {onCustomizationChange && libraryMeta.customizableFields.length > 0 && (
+          {onCustomizationChange && libraryMeta.customizableFields.length > 0 && !hasStaticStl && (
             <button
               ref={gearButtonRef}
               className="placed-item-toolbar-btn"
@@ -366,7 +367,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
           onRotateCw={() => onRotateCw?.(item.instanceId)}
           onRotateCcw={() => onRotateCcw?.(item.instanceId)}
           onDuplicate={() => onDuplicate?.()}
-          onCustomize={() => { computePopoverPos(); setShowPopover(true); }}
+          onCustomize={hasStaticStl ? undefined : () => { computePopoverPos(); setShowPopover(true); }}
           onDelete={() => onDelete?.(item.instanceId)}
           onClose={handleCloseContextMenu}
         />

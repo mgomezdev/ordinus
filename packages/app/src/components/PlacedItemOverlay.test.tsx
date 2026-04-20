@@ -35,6 +35,7 @@ describe('PlacedItemOverlay', () => {
       'bin-2x2': { id: 'bin-2x2', name: '2x2 Bin', widthUnits: 2, heightUnits: 2, color: '#3B82F6', categories: ['bin'] },
       'testlib:bin-1x1': { id: 'testlib:bin-1x1', name: '1x1 Bin', widthUnits: 1, heightUnits: 1, color: '#3B82F6', categories: ['bin'] },
       'testlib:bin-2x2': { id: 'testlib:bin-2x2', name: '2x2 Bin', widthUnits: 2, heightUnits: 2, color: '#3B82F6', categories: ['bin'] },
+      'utensil-1x3': { id: 'utensil-1x3', libraryId: 'simple-utensils', name: '1x3 Utensils', widthUnits: 1, heightUnits: 3, color: '#10B981', categories: ['utensil'], stlFile: 'Utensils 1x3.stl' },
     };
     return items[id];
   };
@@ -2443,6 +2444,57 @@ describe('PlacedItemOverlay', () => {
       expect(topSecond).not.toBe(topFirst);
 
       spy.mockRestore();
+    });
+  });
+
+  describe('Static STL Items', () => {
+    it('does not show customize gear button when item has stlFile', async () => {
+      const item: PlacedItemWithValidity = {
+        instanceId: 'test-utensil',
+        itemId: 'utensil-1x3',
+        x: 0, y: 0, width: 1, height: 3, rotation: 0, isValid: true,
+      };
+
+      render(
+        <PlacedItemOverlay
+          item={item}
+          gridX={4}
+          gridY={4}
+          isSelected={true}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+          onCustomizationChange={vi.fn()}
+          getLibraryMeta={mockGetLibraryMeta}
+        />
+      );
+
+      expect(screen.queryByTitle('Customize bin options')).not.toBeInTheDocument();
+    });
+
+    it('does not show Customize option in context menu when item has stlFile', async () => {
+      const item: PlacedItemWithValidity = {
+        instanceId: 'test-utensil',
+        itemId: 'utensil-1x3',
+        x: 0, y: 0, width: 1, height: 3, rotation: 0, isValid: true,
+      };
+
+      const { container } = render(
+        <PlacedItemOverlay
+          item={item}
+          gridX={4}
+          gridY={4}
+          isSelected={true}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+          onCustomizationChange={vi.fn()}
+          getLibraryMeta={mockGetLibraryMeta}
+        />
+      );
+
+      const root = container.querySelector('.placed-item') as HTMLElement;
+      fireEvent.contextMenu(root);
+
+      expect(screen.queryByRole('menuitem', { name: /customize/i })).not.toBeInTheDocument();
     });
   });
 

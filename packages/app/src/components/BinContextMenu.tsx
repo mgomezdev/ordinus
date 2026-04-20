@@ -8,7 +8,7 @@ interface BinContextMenuProps {
   onRotateCw: () => void;
   onRotateCcw: () => void;
   onDuplicate: () => void;
-  onCustomize: () => void;
+  onCustomize?: () => void;
   onDelete: () => void;
   onClose: () => void;
 }
@@ -103,16 +103,20 @@ export function BinContextMenu({
         <span className="bin-context-menu-label">Duplicate</span>
         <span className="bin-context-menu-hint">Ctrl+D</span>
       </button>
-      <div className="bin-context-menu-divider" />
-      <button
-        className="bin-context-menu-item"
-        role="menuitem"
-        aria-label="Customize"
-        onClick={() => handleAction(onCustomize)}
-      >
-        <span className="bin-context-menu-icon">&#9881;</span>
-        <span className="bin-context-menu-label">Customize…</span>
-      </button>
+      {onCustomize && (
+        <>
+          <div className="bin-context-menu-divider" />
+          <button
+            className="bin-context-menu-item"
+            role="menuitem"
+            aria-label="Customize"
+            onClick={() => handleAction(onCustomize)}
+          >
+            <span className="bin-context-menu-icon">&#9881;</span>
+            <span className="bin-context-menu-label">Customize…</span>
+          </button>
+        </>
+      )}
       <div className="bin-context-menu-divider" />
       <button
         className="bin-context-menu-item bin-context-menu-item--danger"
