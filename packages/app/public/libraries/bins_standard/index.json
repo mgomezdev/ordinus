@@ -28,7 +28,10 @@
           1,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_1x1-perspective-90.png",
+      "perspectiveImageUrl180": "bin_1x1-perspective-180.png",
+      "perspectiveImageUrl270": "bin_1x1-perspective-270.png"
     },
     {
       "id": "bin-1x2",
@@ -50,7 +53,10 @@
           2,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_1x2-perspective-90.png",
+      "perspectiveImageUrl180": "bin_1x2-perspective-180.png",
+      "perspectiveImageUrl270": "bin_1x2-perspective-270.png"
     },
     {
       "id": "bin-1x3",
@@ -72,7 +78,10 @@
           3,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_1x3-perspective-90.png",
+      "perspectiveImageUrl180": "bin_1x3-perspective-180.png",
+      "perspectiveImageUrl270": "bin_1x3-perspective-270.png"
     },
     {
       "id": "bin-1x4",
@@ -94,7 +103,10 @@
           4,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_1x4-perspective-90.png",
+      "perspectiveImageUrl180": "bin_1x4-perspective-180.png",
+      "perspectiveImageUrl270": "bin_1x4-perspective-270.png"
     },
     {
       "id": "bin-1x5",
@@ -116,7 +128,10 @@
           5,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_1x5-perspective-90.png",
+      "perspectiveImageUrl180": "bin_1x5-perspective-180.png",
+      "perspectiveImageUrl270": "bin_1x5-perspective-270.png"
     },
     {
       "id": "bin-2x1",
@@ -138,7 +153,10 @@
           1,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_2x1-perspective-90.png",
+      "perspectiveImageUrl180": "bin_2x1-perspective-180.png",
+      "perspectiveImageUrl270": "bin_2x1-perspective-270.png"
     },
     {
       "id": "bin-2x2",
@@ -160,7 +178,10 @@
           2,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_2x2-perspective-90.png",
+      "perspectiveImageUrl180": "bin_2x2-perspective-180.png",
+      "perspectiveImageUrl270": "bin_2x2-perspective-270.png"
     },
     {
       "id": "bin-2x3",
@@ -182,7 +203,10 @@
           3,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_2x3-perspective-90.png",
+      "perspectiveImageUrl180": "bin_2x3-perspective-180.png",
+      "perspectiveImageUrl270": "bin_2x3-perspective-270.png"
     },
     {
       "id": "bin-2x4",
@@ -204,7 +228,10 @@
           4,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_2x4-perspective-90.png",
+      "perspectiveImageUrl180": "bin_2x4-perspective-180.png",
+      "perspectiveImageUrl270": "bin_2x4-perspective-270.png"
     },
     {
       "id": "bin-2x5",
@@ -226,7 +253,10 @@
           5,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_2x5-perspective-90.png",
+      "perspectiveImageUrl180": "bin_2x5-perspective-180.png",
+      "perspectiveImageUrl270": "bin_2x5-perspective-270.png"
     },
     {
       "id": "bin-3x1",
@@ -248,7 +278,10 @@
           1,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_3x1-perspective-90.png",
+      "perspectiveImageUrl180": "bin_3x1-perspective-180.png",
+      "perspectiveImageUrl270": "bin_3x1-perspective-270.png"
     },
     {
       "id": "bin-3x2",
@@ -270,7 +303,10 @@
           2,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_3x2-perspective-90.png",
+      "perspectiveImageUrl180": "bin_3x2-perspective-180.png",
+      "perspectiveImageUrl270": "bin_3x2-perspective-270.png"
     },
     {
       "id": "bin-3x3",
@@ -292,7 +328,10 @@
           3,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_3x3-perspective-90.png",
+      "perspectiveImageUrl180": "bin_3x3-perspective-180.png",
+      "perspectiveImageUrl270": "bin_3x3-perspective-270.png"
     },
     {
       "id": "bin-3x4",
@@ -314,7 +353,10 @@
           4,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_3x4-perspective-90.png",
+      "perspectiveImageUrl180": "bin_3x4-perspective-180.png",
+      "perspectiveImageUrl270": "bin_3x4-perspective-270.png"
     },
     {
       "id": "bin-3x5",
@@ -336,7 +378,10 @@
           5,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_3x5-perspective-90.png",
+      "perspectiveImageUrl180": "bin_3x5-perspective-180.png",
+      "perspectiveImageUrl270": "bin_3x5-perspective-270.png"
     },
     {
       "id": "bin-4x1",
@@ -358,7 +403,10 @@
           1,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_4x1-perspective-90.png",
+      "perspectiveImageUrl180": "bin_4x1-perspective-180.png",
+      "perspectiveImageUrl270": "bin_4x1-perspective-270.png"
     },
     {
       "id": "bin-4x2",
@@ -380,7 +428,10 @@
           2,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_4x2-perspective-90.png",
+      "perspectiveImageUrl180": "bin_4x2-perspective-180.png",
+      "perspectiveImageUrl270": "bin_4x2-perspective-270.png"
     },
     {
       "id": "bin-4x3",
@@ -402,7 +453,10 @@
           3,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_4x3-perspective-90.png",
+      "perspectiveImageUrl180": "bin_4x3-perspective-180.png",
+      "perspectiveImageUrl270": "bin_4x3-perspective-270.png"
     },
     {
       "id": "bin-4x4",
@@ -424,7 +478,10 @@
           4,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_4x4-perspective-90.png",
+      "perspectiveImageUrl180": "bin_4x4-perspective-180.png",
+      "perspectiveImageUrl270": "bin_4x4-perspective-270.png"
     },
     {
       "id": "bin-4x5",
@@ -446,7 +503,10 @@
           5,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_4x5-perspective-90.png",
+      "perspectiveImageUrl180": "bin_4x5-perspective-180.png",
+      "perspectiveImageUrl270": "bin_4x5-perspective-270.png"
     },
     {
       "id": "bin-5x1",
@@ -468,7 +528,10 @@
           1,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_5x1-perspective-90.png",
+      "perspectiveImageUrl180": "bin_5x1-perspective-180.png",
+      "perspectiveImageUrl270": "bin_5x1-perspective-270.png"
     },
     {
       "id": "bin-5x2",
@@ -490,7 +553,10 @@
           2,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_5x2-perspective-90.png",
+      "perspectiveImageUrl180": "bin_5x2-perspective-180.png",
+      "perspectiveImageUrl270": "bin_5x2-perspective-270.png"
     },
     {
       "id": "bin-5x3",
@@ -512,7 +578,10 @@
           3,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_5x3-perspective-90.png",
+      "perspectiveImageUrl180": "bin_5x3-perspective-180.png",
+      "perspectiveImageUrl270": "bin_5x3-perspective-270.png"
     },
     {
       "id": "bin-5x4",
@@ -534,7 +603,10 @@
           4,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_5x4-perspective-90.png",
+      "perspectiveImageUrl180": "bin_5x4-perspective-180.png",
+      "perspectiveImageUrl270": "bin_5x4-perspective-270.png"
     },
     {
       "id": "bin-5x5",
@@ -556,7 +628,10 @@
           5,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "bin_5x5-perspective-90.png",
+      "perspectiveImageUrl180": "bin_5x5-perspective-180.png",
+      "perspectiveImageUrl270": "bin_5x5-perspective-270.png"
     }
   ],
   "parameters": {

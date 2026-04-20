@@ -28,7 +28,10 @@
           2,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_2x2-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_2x2-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_2x2-perspective-270.png"
     },
     {
       "id": "shadowbox-2x3",
@@ -50,7 +53,10 @@
           3,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_2x3-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_2x3-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_2x3-perspective-270.png"
     },
     {
       "id": "shadowbox-2x4",
@@ -72,7 +78,10 @@
           4,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_2x4-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_2x4-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_2x4-perspective-270.png"
     },
     {
       "id": "shadowbox-2x5",
@@ -94,7 +103,10 @@
           5,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_2x5-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_2x5-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_2x5-perspective-270.png"
     },
     {
       "id": "shadowbox-3x2",
@@ -116,7 +128,10 @@
           2,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_3x2-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_3x2-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_3x2-perspective-270.png"
     },
     {
       "id": "shadowbox-3x3",
@@ -138,7 +153,10 @@
           3,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_3x3-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_3x3-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_3x3-perspective-270.png"
     },
     {
       "id": "shadowbox-3x4",
@@ -160,7 +178,10 @@
           4,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_3x4-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_3x4-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_3x4-perspective-270.png"
     },
     {
       "id": "shadowbox-3x5",
@@ -182,7 +203,10 @@
           5,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_3x5-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_3x5-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_3x5-perspective-270.png"
     },
     {
       "id": "shadowbox-4x2",
@@ -204,7 +228,10 @@
           2,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_4x2-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_4x2-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_4x2-perspective-270.png"
     },
     {
       "id": "shadowbox-4x3",
@@ -226,7 +253,10 @@
           3,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_4x3-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_4x3-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_4x3-perspective-270.png"
     },
     {
       "id": "shadowbox-4x4",
@@ -248,7 +278,10 @@
           4,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_4x4-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_4x4-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_4x4-perspective-270.png"
     },
     {
       "id": "shadowbox-4x5",
@@ -270,7 +303,10 @@
           5,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_4x5-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_4x5-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_4x5-perspective-270.png"
     },
     {
       "id": "shadowbox-5x2",
@@ -292,7 +328,10 @@
           2,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_5x2-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_5x2-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_5x2-perspective-270.png"
     },
     {
       "id": "shadowbox-5x3",
@@ -314,7 +353,10 @@
           3,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_5x3-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_5x3-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_5x3-perspective-270.png"
     },
     {
       "id": "shadowbox-5x4",
@@ -336,7 +378,10 @@
           4,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_5x4-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_5x4-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_5x4-perspective-270.png"
     },
     {
       "id": "shadowbox-5x5",
@@ -358,7 +403,10 @@
           5,
           0
         ]
-      }
+      },
+      "perspectiveImageUrl90": "shadowbox_5x5-perspective-90.png",
+      "perspectiveImageUrl180": "shadowbox_5x5-perspective-180.png",
+      "perspectiveImageUrl270": "shadowbox_5x5-perspective-270.png"
     }
   ],
   "parameters": {
