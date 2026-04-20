@@ -137,11 +137,12 @@ def format_value(value, param_type):
     return str(value)
 
 
-def build_command(params, output_path):
+def build_command(params, output_path, scad_file=None):
     """Build the OpenSCAD CLI command as a list of args."""
+    scad = scad_file if scad_file else SCAD_FILE
     cmd = [
         OPENSCAD_PATH,
-        SCAD_FILE,
+        scad,
         "--backend", OPENSCAD_BACKEND,
         "--export-format", "binstl",
         "--enable", "textmetrics",
@@ -179,6 +180,7 @@ def main():
     parser = argparse.ArgumentParser(description="Generate Gridfinity bin STL from JSON parameters")
     parser.add_argument("params_file", help="JSON file with bin parameters")
     parser.add_argument("--output", "-o", help="Output STL path (default: auto-generated)")
+    parser.add_argument("--model", "-m", help="Path to .scad file (overrides SCAD_FILE env var)")
     parser.add_argument("--dry-run", action="store_true", help="Print command without running")
     args = parser.parse_args()
 
@@ -187,7 +189,8 @@ def main():
 
     output_path = args.output or auto_filename(params)
 
-    cmd = build_command(params, output_path)
+    scad_file = args.model or None
+    cmd = build_command(params, output_path, scad_file=scad_file)
 
     display_cmd = []
     for part in cmd:

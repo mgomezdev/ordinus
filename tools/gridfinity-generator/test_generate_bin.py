@@ -176,3 +176,20 @@ class TestAutoFilename:
     def test_scalar_dimension(self):
         result = auto_filename({"width": 2, "depth": 1, "height": 4})
         assert result == "bin_2x1x4.stl"
+
+
+# ---------------------------------------------------------------------------
+# build_command with optional scad_file parameter
+# ---------------------------------------------------------------------------
+
+class TestBuildCommandModel:
+    def test_uses_default_scad_file_when_no_model_arg(self):
+        from generate_bin import SCAD_FILE
+        params = {}
+        cmd = build_command(params, "out.stl")
+        assert cmd[1] == SCAD_FILE
+
+    def test_uses_custom_model_when_provided(self):
+        params = {}
+        cmd = build_command(params, "out.stl", scad_file="/custom/path/model.scad")
+        assert cmd[1] == "/custom/path/model.scad"
