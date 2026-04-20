@@ -56,8 +56,11 @@ export interface LibraryItem {
   stlFile?: string;
   imageUrl?: string;
   perspectiveImageUrl?: string;
+  perspectiveImageUrl90?: string;
+  perspectiveImageUrl180?: string;
+  perspectiveImageUrl270?: string;
   price?: number;
-  gridfinityExtendedParams?: GeneratorParams;
+  parameters?: GeneratorParams;
 }
 
 export interface PlacedItem {
@@ -70,7 +73,7 @@ export interface PlacedItem {
   rotation: Rotation;
   customization?: BinCustomization;
   shadowBoxId?: string | null;
-  gridfinityExtendedParams?: GeneratorParams;
+  parameters?: GeneratorParams;
 }
 
 export interface PlacedItemWithValidity extends PlacedItem {
@@ -148,7 +151,7 @@ export type BOMExtras = Record<string, number>;
 
 export interface LibraryMeta {
   customizableFields: CustomizableField[];
-  gridfinityExtendedParams: GeneratorParams;
+  parameters: GeneratorParams;
 }
 
 export type ImageViewMode = 'ortho' | 'perspective';
@@ -177,6 +180,6 @@ export interface LibraryIndex {
   version: string;
   items: LibraryItem[];
   customizableFields?: CustomizableField[];
-  gridfinityExtendedParams?: GeneratorParams;
+  parameters?: GeneratorParams;
   baseModel?: string;
 }

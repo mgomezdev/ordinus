@@ -111,7 +111,7 @@ export interface BOMItem {
   quantity: number;
   customization?: BinCustomization;
   price?: number;
-  gridfinityExtendedParams?: GeneratorParams;
+  parameters?: GeneratorParams;
 }
 
 export interface ReferenceImage {

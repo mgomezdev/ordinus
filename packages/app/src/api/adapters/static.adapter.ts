@@ -39,12 +39,12 @@ export class StaticAdapter implements DataSourceAdapter {
     const response = await fetch(lib.path);
     if (!response.ok) throw new Error(`Failed to fetch library ${libraryId}`);
     const data: LibraryIndex = await response.json();
-    const libraryDefaults = data.gridfinityExtendedParams ?? {};
+    const libraryDefaults = data.parameters ?? {};
 
     return (data.items ?? []).map((item) => ({
       ...item,
       libraryId,
-      gridfinityExtendedParams: mergeGeneratorParams(libraryDefaults, item.gridfinityExtendedParams),
+      parameters: mergeGeneratorParams(libraryDefaults, item.parameters),
     }));
   }
 
@@ -52,19 +52,19 @@ export class StaticAdapter implements DataSourceAdapter {
     if (this.metaCache.has(libraryId)) return this.metaCache.get(libraryId)!;
     const manifest = await this.fetchManifest();
     const lib = manifest.libraries.find((l) => l.id === libraryId);
-    if (!lib) return { customizableFields: [], gridfinityExtendedParams: {} };
+    if (!lib) return { customizableFields: [], parameters: {} };
     try {
       const response = await fetch(lib.path);
-      if (!response.ok) return { customizableFields: [], gridfinityExtendedParams: {} };
+      if (!response.ok) return { customizableFields: [], parameters: {} };
       const data: LibraryIndex = await response.json();
       const meta: LibraryMeta = {
         customizableFields: data.customizableFields ?? [],
-        gridfinityExtendedParams: data.gridfinityExtendedParams ?? {},
+        parameters: data.parameters ?? {},
       };
       this.metaCache.set(libraryId, meta);
       return meta;
     } catch {
-      return { customizableFields: [], gridfinityExtendedParams: {} };
+      return { customizableFields: [], parameters: {} };
     }
   }
 

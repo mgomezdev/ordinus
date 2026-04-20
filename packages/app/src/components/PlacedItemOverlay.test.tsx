@@ -42,7 +42,7 @@ describe('PlacedItemOverlay', () => {
 
   const mockGetLibraryMeta = vi.fn().mockResolvedValue({
     customizableFields: ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'],
-    customizationDefaults: {},
+    parameters: {},
   });
 
   const mockOnSelect = vi.fn();
@@ -1808,7 +1808,7 @@ describe('PlacedItemOverlay', () => {
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
           onCustomizationReset={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], parameters: {} })}
         />
       );
       // Wait for libraryMeta to load so the gear button is rendered and ref is attached
@@ -1986,7 +1986,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], parameters: {} })}
         />
       );
 
@@ -2007,7 +2007,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], parameters: {} })}
         />
       );
 
@@ -2034,7 +2034,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], parameters: {} })}
         />
       );
 
@@ -2260,7 +2260,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], parameters: {} })}
         />
       );
 
@@ -2288,7 +2288,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], parameters: {} })}
         />
       );
 
@@ -2316,7 +2316,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], parameters: {} })}
         />
       );
 
@@ -2347,7 +2347,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], parameters: {} })}
         />
       );
 
@@ -2378,7 +2378,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], parameters: {} })}
         />
       );
 
@@ -2415,7 +2415,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], parameters: {} })}
         />
       );
 

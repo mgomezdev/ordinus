@@ -202,8 +202,8 @@ export function useGridItems(
     if (!libraryItem) return;
 
     const allFields = ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'] as const;
-    const prefilledDefaults = libraryItem.gridfinityExtendedParams
-      ? generatorParamsToBinCustomization(libraryItem.gridfinityExtendedParams, [...allFields])
+    const prefilledDefaults = libraryItem.parameters
+      ? generatorParamsToBinCustomization(libraryItem.parameters, [...allFields])
       : {};
     const hasCustomDefaults = Object.keys(prefilledDefaults).length > 0;
 
@@ -218,8 +218,8 @@ export function useGridItems(
       customization: hasCustomDefaults
         ? { ...DEFAULT_BIN_CUSTOMIZATION, ...prefilledDefaults }
         : undefined,
-      gridfinityExtendedParams: libraryItem.gridfinityExtendedParams
-        ? mergeGeneratorParams(libraryItem.gridfinityExtendedParams)
+      parameters: libraryItem.parameters
+        ? mergeGeneratorParams(libraryItem.parameters)
         : undefined,
     };
 

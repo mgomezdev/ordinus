@@ -46,7 +46,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const [popoverPos, setPopoverPos] = useState<PopoverPos | null>(null);
   const gearButtonRef = useRef<HTMLButtonElement>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [libraryMeta, setLibraryMeta] = useState<LibraryMeta>({ customizableFields: [], gridfinityExtendedParams: {} });
+  const [libraryMeta, setLibraryMeta] = useState<LibraryMeta>({ customizableFields: [], parameters: {} });
 
   useEffect(() => {
     if (!getLibraryMeta) return;
@@ -90,10 +90,18 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const orthoUrl = libraryItem?.imageUrl;
   const usingPerspective = imageViewMode === 'perspective' && !!perspectiveUrl;
 
+  // Use explicit rotation-specific URLs when available, fall back to derived
+  const getPerspectiveUrlForRotation = (rotation: typeof item.rotation): string | undefined => {
+    if (!perspectiveUrl) return undefined;
+    if (rotation === 90) return libraryItem?.perspectiveImageUrl90 ?? getRotatedPerspectiveUrl(perspectiveUrl, 90);
+    if (rotation === 180) return libraryItem?.perspectiveImageUrl180 ?? getRotatedPerspectiveUrl(perspectiveUrl, 180);
+    if (rotation === 270) return libraryItem?.perspectiveImageUrl270 ?? getRotatedPerspectiveUrl(perspectiveUrl, 270);
+    return perspectiveUrl; // 0°
+  };
+
   const imageSrc = (() => {
     if (imageViewMode === 'perspective' && perspectiveUrl) {
-      if (item.rotation === 0) return perspectiveUrl;
-      return getRotatedPerspectiveUrl(perspectiveUrl, item.rotation);
+      return getPerspectiveUrlForRotation(item.rotation);
     }
     return imageViewMode === 'perspective' ? (perspectiveUrl || orthoUrl) : orthoUrl;
   })();
@@ -170,8 +178,8 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
 
   const handlePopoverReset = useCallback(() => {
     const allFields = ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'] as const;
-    const libraryDefaults = item.gridfinityExtendedParams
-      ? generatorParamsToBinCustomization(item.gridfinityExtendedParams, [...allFields])
+    const libraryDefaults = item.parameters
+      ? generatorParamsToBinCustomization(item.parameters, [...allFields])
       : {};
     const hasLibraryDefaults = Object.keys(libraryDefaults).length > 0;
     if (hasLibraryDefaults) {
@@ -355,7 +363,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
             onReset={handlePopoverReset}
             idPrefix="inline-"
             customizableFields={libraryMeta.customizableFields}
-            gridfinityExtendedParams={item.gridfinityExtendedParams}
+            parameters={item.parameters}
           />
         </div>,
         document.body

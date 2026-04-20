@@ -37,8 +37,8 @@ export function useBillOfMaterials(placedItems: PlacedItem[], libraryItems: Libr
           quantity: count,
           customization,
           ...(libraryItem.price !== undefined ? { price: libraryItem.price } : {}),
-          ...(libraryItem.gridfinityExtendedParams && Object.keys(libraryItem.gridfinityExtendedParams).length > 0
-            ? { gridfinityExtendedParams: libraryItem.gridfinityExtendedParams }
+          ...(libraryItem.parameters && Object.keys(libraryItem.parameters).length > 0
+            ? { parameters: libraryItem.parameters }
             : {}),
         });
       }

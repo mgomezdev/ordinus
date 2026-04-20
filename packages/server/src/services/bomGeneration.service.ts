@@ -35,7 +35,7 @@ export interface UniqueConfig {
   customization: BinCustomization;
   qty: number;
   filename: string;
-  gridfinityExtendedParams?: GeneratorParams;
+  parameters?: GeneratorParams;
   baseModelPath: string;
 }
 
@@ -110,7 +110,7 @@ export async function resolveItemSources(bomItems: BOMItem[]): Promise<{
       }
 
       const c = item.customization ?? DEFAULT_CUSTOMIZATION;
-      const defaultParams = item.gridfinityExtendedParams ?? {};
+      const defaultParams = item.parameters ?? {};
       const paramsHash = Object.keys(defaultParams).length > 0 ? hashGeneratorParams(defaultParams) : '';
       const key = `${item.widthUnits}x${item.heightUnits}::${customizationKey(item)}::${paramsHash}::${baseModelPath}`;
 
@@ -130,7 +130,7 @@ export async function resolveItemSources(bomItems: BOMItem[]): Promise<{
           customization: c,
           qty: item.quantity,
           filename,
-          gridfinityExtendedParams: Object.keys(defaultParams).length > 0 ? defaultParams : undefined,
+          parameters: Object.keys(defaultParams).length > 0 ? defaultParams : undefined,
           baseModelPath,
         });
       }
@@ -277,7 +277,7 @@ export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> 
   const c = cfg.customization;
   const params: Record<string, unknown> = {
     ...gridfinityExtendedDefaultParams,
-    ...(cfg.gridfinityExtendedParams ?? {}),
+    ...(cfg.parameters ?? {}),
     width: [cfg.widthUnits, 0],
     depth: [cfg.heightUnits, 0],
     height: [c.height, 0],

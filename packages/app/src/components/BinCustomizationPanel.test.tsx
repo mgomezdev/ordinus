@@ -757,7 +757,7 @@ describe('BinCustomizationPanel', () => {
           onChange={mockOnChange}
           onReset={mockOnReset}
           customizableFields={['height']}
-          customizationDefaults={{ height: 4 }}
+          parameters={{ height: 4 }}
         />
       );
       fireEvent.click(screen.getByRole('button', { name: /reset/i }));

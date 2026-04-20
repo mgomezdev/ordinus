@@ -155,15 +155,15 @@ describe('buildGenerateParams', () => {
     expect(params.height).toEqual([8, 0]);
   });
 
-  it('customization height overrides gridfinityExtendedParams height', () => {
-    const cfg: UniqueConfig = { ...baseConfig({ height: 8 }), gridfinityExtendedParams: { height: [4, 0], filled_in: 'enabled' } };
+  it('customization height overrides parameters height', () => {
+    const cfg: UniqueConfig = { ...baseConfig({ height: 8 }), parameters: { height: [4, 0], filled_in: 'enabled' } };
     const params = buildGenerateParams(cfg);
     expect(params.height).toEqual([8, 0]);
     expect(params.filled_in).toBe('enabled');
   });
 
-  it('passes non-height gridfinityExtendedParams through', () => {
-    const cfg: UniqueConfig = { ...baseConfig({ height: 6 }), gridfinityExtendedParams: { filled_in: 'enabled' } };
+  it('passes non-height parameters through', () => {
+    const cfg: UniqueConfig = { ...baseConfig({ height: 6 }), parameters: { filled_in: 'enabled' } };
     const params = buildGenerateParams(cfg);
     expect(params.height).toEqual([6, 0]);
     expect(params.filled_in).toBe('enabled');

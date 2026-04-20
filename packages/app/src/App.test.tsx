@@ -201,7 +201,7 @@ const mockGetItemById = vi.fn((id: string): LibraryItem | undefined => {
   return undefined;
 });
 
-const mockGetLibraryMeta = vi.fn().mockResolvedValue({ customizableFields: [], customizationDefaults: {} });
+const mockGetLibraryMeta = vi.fn().mockResolvedValue({ customizableFields: [], parameters: {} });
 vi.mock('./hooks/useLibraryData', () => ({
   useLibraryData: () => ({
     items: [testItem, testItem2x1],
