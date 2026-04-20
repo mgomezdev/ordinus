@@ -61,6 +61,7 @@ export interface LibraryItem {
   perspectiveImageUrl270?: string;
   price?: number;
   parameters?: GeneratorParams;
+  paramHash?: string;
 }
 
 export interface PlacedItem {

@@ -45,6 +45,7 @@ export class ApiAdapter implements DataSourceAdapter {
         libraryDefaults,
         (item.parameters as Record<string, unknown> | undefined)
       ),
+      paramHash: (item.paramHash as string | undefined) ?? undefined,
     }));
   }
 
