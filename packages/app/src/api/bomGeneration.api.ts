@@ -1,5 +1,5 @@
 import type { ApiResponse, ApiBomGeneration, BOMItem } from '@gridfinity/shared';
-import { apiFetch, API_BASE_URL } from './apiClient';
+import { apiFetch, API_BASE_URL, ApiError } from './apiClient';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
@@ -21,7 +21,7 @@ export async function getBomGeneration(layoutId: number, accessToken: string): P
     );
     return result.data;
   } catch (err) {
-    if (err instanceof Error && err.message.includes('404')) return null;
+    if (err instanceof ApiError && err.status === 404) return null;
     throw err;
   }
 }

@@ -131,7 +131,7 @@ describe('useAdminLayoutsQuery', () => {
     const { result } = renderHook(() => useAdminLayoutsQuery(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.isError).toBe(true));
 
-    expect(result.current.error).toEqual(new Error('Forbidden'));
+    expect(result.current.error).toMatchObject({ message: 'Forbidden' });
   });
 
   it('returns empty array when no layouts exist', async () => {

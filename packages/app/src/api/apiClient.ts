@@ -1,14 +1,13 @@
 export const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3001/api/v1';
 
-/**
- * Shared error-handling fetch wrapper used by the authenticated API modules.
- *
- * - Merges the caller-supplied headers with an optional Authorization header.
- * - Throws an Error with the server's `error.message` on non-OK responses.
- * - Returns `undefined as T` for 204 No Content.
- * - Returns `response.json()` otherwise.
- */
+export class ApiError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -30,7 +29,7 @@ export async function apiFetch<T>(
     const errorBody = await response.json().catch(() => null) as { error?: { message?: string } } | null;
     const message =
       errorBody?.error?.message ?? `Request failed with status ${response.status}`;
-    throw new Error(message);
+    throw new ApiError(message, response.status);
   }
 
   if (response.status === 204) {
