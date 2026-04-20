@@ -140,6 +140,7 @@ export async function triggerGeneration(layoutId: number, bomItems: BOMItem[]): 
   const uniqueConfigs = extractUniqueConfigs(bomItems);
 
   const outDir = path.resolve(config.GENERATED_STL_DIR, `bom-layout-${layoutId}`);
+  await fs.rm(outDir, { recursive: true, force: true });
   await fs.mkdir(outDir, { recursive: true });
 
   await db.delete(bomGenerations).where(eq(bomGenerations.layoutId, layoutId));
