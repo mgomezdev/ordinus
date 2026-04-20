@@ -10,6 +10,7 @@ import { getUserStlImageUrl } from '../api/userStls.api';
 function userStlToLibraryItem(item: ApiUserStl): LibraryItem {
   return {
     id: `user-stl:${item.id}`,
+    libraryId: 'user-stl',
     name: item.name,
     widthUnits: item.gridX ?? 1,
     heightUnits: item.gridY ?? 1,
