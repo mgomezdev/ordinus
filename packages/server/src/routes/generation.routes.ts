@@ -94,6 +94,9 @@ router.post('/generate', requireAuth, async (req: Request, res: Response, next: 
 router.get('/status/:hash', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { hash } = req.params;
+    if (hash.includes('..') || hash.includes('/') || hash.includes('\\')) {
+      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid hash');
+    }
     const status = await generationPipeline.getStatus(hash);
     res.json({ hash, status });
   } catch (err) {
@@ -113,7 +116,7 @@ router.get('/image/:hash/:filename', async (req: Request, res: Response, next: N
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid path');
     }
 
-    const generatedDir = config.GENERATED_STL_DIR;
+    const generatedDir = path.resolve(config.GENERATED_STL_DIR);
 
     for (const subdir of ['library', 'custom'] as const) {
       const dir = path.join(generatedDir, subdir, hash);
@@ -146,7 +149,7 @@ router.get('/stl/:hash', requireAuth, async (req: Request, res: Response, next: 
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid hash');
     }
 
-    const generatedDir = config.GENERATED_STL_DIR;
+    const generatedDir = path.resolve(config.GENERATED_STL_DIR);
     for (const subdir of ['library', 'custom'] as const) {
       const filePath = path.join(generatedDir, subdir, hash, 'bin.stl');
       const normalizedBase = normalize(path.join(generatedDir, subdir)) + path.sep;

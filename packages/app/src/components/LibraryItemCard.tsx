@@ -1,11 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { LibraryItem } from '../types/gridfinity';
 import { usePointerDragSource } from '../hooks/usePointerDrag';
 import { useImageLoadState } from '../hooks/useImageLoadState';
 import { ItemPreviewPopover } from './ItemPreviewPopover';
 import { generatedImageUrl } from '../api/generation.api';
-import { useGenerationState } from '../hooks/useGenerationState';
-import { API_BASE_URL } from '../api/apiClient';
 
 interface LibraryItemCardProps {
   item: LibraryItem;
@@ -14,13 +12,6 @@ interface LibraryItemCardProps {
 const HOVER_DELAY = 200;
 
 export function LibraryItemCard({ item }: LibraryItemCardProps) {
-  const { trackHash } = useGenerationState(API_BASE_URL);
-
-  // Register paramHash items so SSE events update this card
-  useEffect(() => {
-    if (item.paramHash) trackHash(item.paramHash);
-  }, [item.paramHash, trackHash]);
-
   const effectiveImageUrl = (() => {
     if (item.imageUrl) return item.imageUrl;
     if (item.paramHash) {
