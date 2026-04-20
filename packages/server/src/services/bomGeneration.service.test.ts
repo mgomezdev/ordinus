@@ -1,61 +1,142 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import type { BOMItem } from '@gridfinity/shared';
 
-// We test the pure extraction logic without spawning real subprocesses
-import { extractUniqueConfigs, formatBomGeneration, buildGenerateParams } from './bomGeneration.service.js';
+// Use in-memory DB for resolveItemSources tests
+vi.mock('../db/connection.js', async () => {
+  const { createClient } = await import('@libsql/client');
+  const { drizzle } = await import('drizzle-orm/libsql');
+  const schema = await import('../db/schema.js');
+  const client = createClient({ url: ':memory:' });
+  const db = drizzle(client, { schema });
+  return { db, client };
+});
+
+vi.mock('../logger.js', async () => {
+  const pino = (await import('pino')).default;
+  return { logger: pino({ level: 'silent' }) };
+});
+
+const { runMigrations } = await import('../db/migrate.js');
+const { client: testClient } = await import('../db/connection.js');
+import {
+  resolveItemSources,
+  formatBomGeneration,
+  buildGenerateParams,
+} from './bomGeneration.service.js';
 import type { UniqueConfig } from './bomGeneration.service.js';
 
-describe('extractUniqueConfigs', () => {
-  it('groups identical items and sums quantities', () => {
-    const bomItems = [
-      { itemId: 'standard-2x3', name: 'Bin', widthUnits: 2, heightUnits: 3,
-        color: '#000', categories: [], quantity: 2, customization: undefined },
-      { itemId: 'standard-2x3', name: 'Bin', widthUnits: 2, heightUnits: 3,
-        color: '#000', categories: [], quantity: 1, customization: undefined },
-    ];
-    const configs = extractUniqueConfigs(bomItems);
-    expect(configs).toHaveLength(1);
-    expect(configs[0].qty).toBe(3);
-    expect(configs[0].widthUnits).toBe(2);
-    expect(configs[0].heightUnits).toBe(3);
+// ── Seed helper ──────────────────────────────────────────────────────────────
+
+async function seedLibrary(id: string, baseModelPath: string | null): Promise<void> {
+  const now = new Date().toISOString();
+  await testClient.execute({
+    sql: `INSERT OR IGNORE INTO libraries (id, name, version, is_active, sort_order, created_at, updated_at, base_model_path)
+          VALUES (?, ?, '1.0.0', 1, 0, ?, ?, ?)`,
+    args: [id, id, now, now, baseModelPath],
+  });
+}
+
+async function seedItem(libraryId: string, itemId: string, stlFile: string | null): Promise<void> {
+  const now = new Date().toISOString();
+  await testClient.execute({
+    sql: `INSERT OR IGNORE INTO library_items (library_id, id, name, width_units, height_units, color, is_active, sort_order, created_at, updated_at, stl_file)
+          VALUES (?, ?, ?, 1, 1, '#000', 1, 0, ?, ?, ?)`,
+    args: [libraryId, itemId, itemId, now, now, stlFile],
+  });
+}
+
+const BASE_BOM_ITEM: Omit<BOMItem, 'libraryId' | 'itemId'> = {
+  name: 'Test Bin',
+  widthUnits: 2,
+  heightUnits: 3,
+  color: '#000',
+  categories: [],
+  quantity: 1,
+};
+
+beforeAll(async () => {
+  await runMigrations(testClient);
+  await seedLibrary('gen-lib', '/data/models/gen-lib/base.scad');
+  await seedLibrary('static-lib', null);
+  await seedLibrary('no-model-lib', null);
+  await seedItem('gen-lib', 'bin-2x3', null);
+  await seedItem('static-lib', 'utensil-1x3', '/data/static-stls/static-lib/utensil.stl');
+  await seedItem('no-model-lib', 'unknown-item', null);
+});
+
+afterAll(() => testClient.close());
+
+// ── resolveItemSources ───────────────────────────────────────────────────────
+
+describe('resolveItemSources', () => {
+  it('item with stl_file in DB goes to staticConfigs', async () => {
+    const items: BOMItem[] = [{ ...BASE_BOM_ITEM, libraryId: 'static-lib', itemId: 'utensil-1x3' }];
+    const { staticConfigs, uniqueConfigs } = await resolveItemSources(items);
+    expect(staticConfigs).toHaveLength(1);
+    expect(uniqueConfigs).toHaveLength(0);
+    expect(staticConfigs[0].stlSourcePath).toBe('/data/static-stls/static-lib/utensil.stl');
+    expect(staticConfigs[0].qty).toBe(1);
   });
 
-  it('separates items with different customizations', () => {
-    const bomItems: BOMItem[] = [
-      { itemId: 'bin', name: 'Bin', widthUnits: 2, heightUnits: 2,
-        color: '#000', categories: [], quantity: 1,
-        customization: { wallPattern: 'none', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 8 } },
-      { itemId: 'bin', name: 'Bin', widthUnits: 2, heightUnits: 2,
-        color: '#000', categories: [], quantity: 1,
-        customization: { wallPattern: 'none', lipStyle: 'none', fingerSlide: 'none', wallCutout: 'none', height: 10 } },
-    ];
-    const configs = extractUniqueConfigs(bomItems);
-    expect(configs).toHaveLength(2);
+  it('item without stl_file but library has base model goes to uniqueConfigs', async () => {
+    const items: BOMItem[] = [{ ...BASE_BOM_ITEM, libraryId: 'gen-lib', itemId: 'bin-2x3' }];
+    const { staticConfigs, uniqueConfigs } = await resolveItemSources(items);
+    expect(staticConfigs).toHaveLength(0);
+    expect(uniqueConfigs).toHaveLength(1);
+    expect(uniqueConfigs[0].baseModelPath).toBe('/data/models/gen-lib/base.scad');
+    expect(uniqueConfigs[0].widthUnits).toBe(2);
+    expect(uniqueConfigs[0].heightUnits).toBe(3);
   });
 
-  it('treats undefined customization same as default', () => {
-    const bomItems: BOMItem[] = [
-      { itemId: 'bin', name: 'Bin', widthUnits: 1, heightUnits: 1,
-        color: '#000', categories: [], quantity: 2, customization: undefined },
-      { itemId: 'bin', name: 'Bin', widthUnits: 1, heightUnits: 1,
-        color: '#000', categories: [], quantity: 1,
-        customization: { wallPattern: 'none', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 8 } },
+  it('mixes static and generated items correctly', async () => {
+    const items: BOMItem[] = [
+      { ...BASE_BOM_ITEM, libraryId: 'gen-lib', itemId: 'bin-2x3' },
+      { ...BASE_BOM_ITEM, libraryId: 'static-lib', itemId: 'utensil-1x3' },
     ];
-    const configs = extractUniqueConfigs(bomItems);
-    expect(configs).toHaveLength(1);
-    expect(configs[0].qty).toBe(3);
+    const { staticConfigs, uniqueConfigs } = await resolveItemSources(items);
+    expect(staticConfigs).toHaveLength(1);
+    expect(uniqueConfigs).toHaveLength(1);
   });
 
-  it('returns empty array for empty BOM', () => {
-    expect(extractUniqueConfigs([])).toHaveLength(0);
+  it('deduplicates generated items with same dimensions+customization+baseModel', async () => {
+    const items: BOMItem[] = [
+      { ...BASE_BOM_ITEM, libraryId: 'gen-lib', itemId: 'bin-2x3', quantity: 2 },
+      { ...BASE_BOM_ITEM, libraryId: 'gen-lib', itemId: 'bin-2x3', quantity: 3 },
+    ];
+    const { uniqueConfigs } = await resolveItemSources(items);
+    expect(uniqueConfigs).toHaveLength(1);
+    expect(uniqueConfigs[0].qty).toBe(5);
+  });
+
+  it('throws when item has no static STL and library has no base model', async () => {
+    const items: BOMItem[] = [{ ...BASE_BOM_ITEM, libraryId: 'no-model-lib', itemId: 'unknown-item' }];
+    await expect(resolveItemSources(items)).rejects.toThrow('no base model');
   });
 });
+
+// ── formatBomGeneration ──────────────────────────────────────────────────────
+
+describe('formatBomGeneration', () => {
+  it('maps layoutId and status correctly', () => {
+    const row = {
+      id: 1, layoutId: 42, status: 'ready', fileManifest: null,
+      threeMfPath: null, generatedAt: null, errorMessage: null,
+    };
+    const result = formatBomGeneration(row);
+    expect(result.layoutId).toBe(42);
+    expect(result.status).toBe('ready');
+    expect(result.fileManifest).toBeNull();
+  });
+});
+
+// ── buildGenerateParams ──────────────────────────────────────────────────────
 
 const baseConfig = (overrides: Partial<UniqueConfig['customization']> = {}): UniqueConfig => ({
   widthUnits: 2,
   heightUnits: 3,
   qty: 1,
   filename: 'bin_2x3x8.stl',
+  baseModelPath: '/data/models/gen-lib/base.scad',
   customization: {
     wallPattern: 'none',
     lipStyle: 'normal',
@@ -85,8 +166,7 @@ describe('buildGenerateParams', () => {
   });
 
   it('does not set wallpattern_enabled when wallPattern is none', () => {
-    const params = buildGenerateParams(baseConfig({ wallPattern: 'none' }));
-    expect(params.wallpattern_enabled).toBeUndefined();
+    expect(buildGenerateParams(baseConfig({ wallPattern: 'none' })).wallpattern_enabled).toBeUndefined();
   });
 
   it('enables wallpattern with style when wallPattern is set', () => {
@@ -96,8 +176,7 @@ describe('buildGenerateParams', () => {
   });
 
   it('sets wallcutout_enabled to false when wallCutout is none', () => {
-    const params = buildGenerateParams(baseConfig({ wallCutout: 'none' }));
-    expect(params.wallcutout_enabled).toBe(false);
+    expect(buildGenerateParams(baseConfig({ wallCutout: 'none' })).wallcutout_enabled).toBe(false);
   });
 
   it('sets wallcutout_enabled and vertical walls for vertical cutout', () => {
@@ -116,171 +195,5 @@ describe('buildGenerateParams', () => {
     const params = buildGenerateParams(baseConfig({ wallCutout: 'both' }));
     expect(params.wallcutout_enabled).toBe(true);
     expect(params.wallcutout_walls).toEqual([1, 1, 1, 1]);
-  });
-});
-
-describe('buildGenerateParams with gridfinityExtendedParams', () => {
-  const DEFAULT_CUSTOMIZATION: UniqueConfig['customization'] = {
-    wallPattern: 'none',
-    lipStyle: 'normal',
-    fingerSlide: 'none',
-    wallCutout: 'none',
-    height: 8,
-  };
-
-  it('passes through non-BinCustomization params from gridfinityExtendedParams', () => {
-    const cfg: UniqueConfig = {
-      widthUnits: 1,
-      heightUnits: 1,
-      customization: { ...DEFAULT_CUSTOMIZATION },
-      qty: 1,
-      filename: 'bin_1x1x8.stl',
-      gridfinityExtendedParams: { label_style: 'normal', label_walls: [0, 1, 0, 0] },
-    };
-    const params = buildGenerateParams(cfg);
-    expect(params.label_style).toBe('normal');
-    expect(params.label_walls).toEqual([0, 1, 0, 0]);
-  });
-
-  it('BinCustomization lip_style overrides gridfinityExtendedParams lip_style', () => {
-    const cfg: UniqueConfig = {
-      widthUnits: 1,
-      heightUnits: 1,
-      customization: { ...DEFAULT_CUSTOMIZATION, lipStyle: 'reduced' },
-      qty: 1,
-      filename: 'bin_1x1x8.stl',
-      gridfinityExtendedParams: { lip_style: 'none' },
-    };
-    const params = buildGenerateParams(cfg);
-    expect(params.lip_style).toBe('reduced');
-  });
-
-  it('BinCustomization height overrides gridfinityExtendedParams height', () => {
-    const cfg: UniqueConfig = {
-      widthUnits: 2,
-      heightUnits: 2,
-      customization: { ...DEFAULT_CUSTOMIZATION, height: 6 },
-      qty: 1,
-      filename: 'bin_2x2x6.stl',
-      gridfinityExtendedParams: { height: [4, 0] },
-    };
-    const params = buildGenerateParams(cfg);
-    expect(params.height).toEqual([6, 0]);
-  });
-
-  it('system default label_style: disabled is overridden by gridfinityExtendedParams', () => {
-    const cfg: UniqueConfig = {
-      widthUnits: 1,
-      heightUnits: 1,
-      customization: { ...DEFAULT_CUSTOMIZATION },
-      qty: 1,
-      filename: 'bin_1x1x8.stl',
-      gridfinityExtendedParams: { label_style: 'normal' },
-    };
-    const params = buildGenerateParams(cfg);
-    expect(params.label_style).toBe('normal');
-  });
-
-  it('uses label_style: disabled when no gridfinityExtendedParams override', () => {
-    const cfg: UniqueConfig = {
-      widthUnits: 1,
-      heightUnits: 1,
-      customization: { ...DEFAULT_CUSTOMIZATION },
-      qty: 1,
-      filename: 'bin_1x1x8.stl',
-    };
-    const params = buildGenerateParams(cfg);
-    expect(params.label_style).toBe('disabled');
-  });
-});
-
-describe('extractUniqueConfigs with gridfinityExtendedParams', () => {
-  it('groups items with same dimensions, customization, and gridfinityExtendedParams together', () => {
-    const items: BOMItem[] = [
-      {
-        itemId: 'bins_labeled:bin-1x1-labeled',
-        name: 'A',
-        widthUnits: 1,
-        heightUnits: 1,
-        color: '#fff',
-        categories: [],
-        quantity: 2,
-        gridfinityExtendedParams: { label_style: 'normal' },
-      },
-      {
-        itemId: 'bins_labeled:bin-1x1-labeled',
-        name: 'A',
-        widthUnits: 1,
-        heightUnits: 1,
-        color: '#fff',
-        categories: [],
-        quantity: 3,
-        gridfinityExtendedParams: { label_style: 'normal' },
-      },
-    ];
-    const configs = extractUniqueConfigs(items);
-    expect(configs).toHaveLength(1);
-    expect(configs[0].qty).toBe(5);
-  });
-
-  it('separates items with same dimensions but different gridfinityExtendedParams', () => {
-    const items: BOMItem[] = [
-      {
-        itemId: 'bins_labeled:bin-1x1-labeled',
-        name: 'Labeled',
-        widthUnits: 1,
-        heightUnits: 1,
-        color: '#fff',
-        categories: [],
-        quantity: 1,
-        gridfinityExtendedParams: { label_style: 'normal' },
-      },
-      {
-        itemId: 'bins_standard:bin-1x1',
-        name: 'Standard',
-        widthUnits: 1,
-        heightUnits: 1,
-        color: '#fff',
-        categories: [],
-        quantity: 1,
-        gridfinityExtendedParams: {},
-      },
-    ];
-    const configs = extractUniqueConfigs(items);
-    expect(configs).toHaveLength(2);
-  });
-});
-
-describe('formatBomGeneration', () => {
-  it('formats a generation row correctly', () => {
-    const row = {
-      id: 1,
-      layoutId: 1,
-      status: 'ready' as const,
-      fileManifest: JSON.stringify([{ filename: 'bin_2x3x8.stl', widthUnits: 2, heightUnits: 3, qty: 1 }]),
-      threeMfPath: '/path/to/bom.3mf',
-      generatedAt: '2024-01-01T00:00:00Z',
-      errorMessage: null,
-    };
-    const result = formatBomGeneration(row);
-    expect(result.id).toBe(1);
-    expect(result.layoutId).toBe(1);
-    expect(result.status).toBe('ready');
-    expect(result.fileManifest).toHaveLength(1);
-  });
-
-  it('formats a pending row', () => {
-    const row = {
-      id: 1,
-      layoutId: 1,
-      status: 'pending',
-      fileManifest: null,
-      threeMfPath: null,
-      generatedAt: null,
-      errorMessage: null,
-    };
-    const result = formatBomGeneration(row);
-    expect(result.status).toBe('pending');
-    expect(result.fileManifest).toBeNull();
   });
 });

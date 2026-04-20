@@ -1,11 +1,11 @@
 import { spawn } from 'child_process';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import fs from 'fs/promises';
 import path from 'path';
-import { gridfinityExtendedDefaultParams } from '@gridfinity/shared';
+import { AppError, ErrorCodes, gridfinityExtendedDefaultParams } from '@gridfinity/shared';
 import type { BOMItem, ApiBomGeneration, BomGenerationManifestEntry, BinCustomization, GeneratorParams } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
-import { bomGenerations } from '../db/schema.js';
+import { bomGenerations, libraries, libraryItems } from '../db/schema.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 
@@ -17,7 +17,7 @@ const DEFAULT_CUSTOMIZATION: BinCustomization = {
   height: 8,
 };
 
-// ── Pure extraction helpers (exported for testing) ───────────────────────────
+// ── Pure extraction helpers ───────────────────────────────────────────────────
 
 function customizationKey(item: BOMItem): string {
   const c = item.customization;
@@ -36,6 +36,13 @@ export interface UniqueConfig {
   qty: number;
   filename: string;
   gridfinityExtendedParams?: GeneratorParams;
+  baseModelPath: string;
+}
+
+export interface StaticConfig {
+  stlSourcePath: string;
+  filename: string;
+  qty: number;
 }
 
 function hashGeneratorParams(params: GeneratorParams): string {
@@ -49,33 +56,6 @@ function hashGeneratorParams(params: GeneratorParams): string {
   return (h >>> 0).toString(36);
 }
 
-export function extractUniqueConfigs(bomItems: BOMItem[]): UniqueConfig[] {
-  const map = new Map<string, UniqueConfig>();
-
-  for (const item of bomItems) {
-    const c = item.customization ?? DEFAULT_CUSTOMIZATION;
-    const defaultParams = item.gridfinityExtendedParams ?? {};
-    const paramsHash = Object.keys(defaultParams).length > 0 ? hashGeneratorParams(defaultParams) : '';
-    const key = `${item.widthUnits}x${item.heightUnits}::${customizationKey(item)}::${paramsHash}`;
-    const existing = map.get(key);
-    if (existing) {
-      existing.qty += item.quantity;
-    } else {
-      const filename = buildStlFilename(item.widthUnits, item.heightUnits, c, defaultParams);
-      map.set(key, {
-        widthUnits: item.widthUnits,
-        heightUnits: item.heightUnits,
-        customization: c,
-        qty: item.quantity,
-        filename,
-        gridfinityExtendedParams: Object.keys(defaultParams).length > 0 ? defaultParams : undefined,
-      });
-    }
-  }
-
-  return Array.from(map.values());
-}
-
 function buildStlFilename(w: number, d: number, c: BinCustomization, defaultParams?: GeneratorParams): string {
   const parts = [`bin_${w}x${d}x${c.height}`];
   if (c.lipStyle !== 'normal') parts.push(c.lipStyle);
@@ -86,6 +66,78 @@ function buildStlFilename(w: number, d: number, c: BinCustomization, defaultPara
     parts.push(hashGeneratorParams(defaultParams));
   }
   return parts.join('_') + '.stl';
+}
+
+// ── resolveItemSources ────────────────────────────────────────────────────────
+
+export async function resolveItemSources(bomItems: BOMItem[]): Promise<{
+  staticConfigs: StaticConfig[];
+  uniqueConfigs: UniqueConfig[];
+}> {
+  const staticConfigs: StaticConfig[] = [];
+  const generatedMap = new Map<string, UniqueConfig>();
+
+  for (const item of bomItems) {
+    const itemRows = await db
+      .select({ stlFile: libraryItems.stlFile })
+      .from(libraryItems)
+      .where(and(eq(libraryItems.libraryId, item.libraryId), eq(libraryItems.id, item.itemId)))
+      .limit(1);
+
+    const stlFile = itemRows.length > 0 ? itemRows[0].stlFile : null;
+
+    if (stlFile) {
+      const filename = path.basename(stlFile);
+      const existing = staticConfigs.find((s) => s.stlSourcePath === stlFile);
+      if (existing) {
+        existing.qty += item.quantity;
+      } else {
+        staticConfigs.push({ stlSourcePath: stlFile, filename, qty: item.quantity });
+      }
+    } else {
+      const libRows = await db
+        .select({ baseModelPath: libraries.baseModelPath })
+        .from(libraries)
+        .where(eq(libraries.id, item.libraryId))
+        .limit(1);
+
+      const baseModelPath = libRows.length > 0 ? libRows[0].baseModelPath : null;
+      if (!baseModelPath) {
+        throw new AppError(
+          ErrorCodes.INTERNAL_ERROR,
+          `Library ${item.libraryId} has no base model and item ${item.itemId} has no static STL`,
+        );
+      }
+
+      const c = item.customization ?? DEFAULT_CUSTOMIZATION;
+      const defaultParams = item.gridfinityExtendedParams ?? {};
+      const paramsHash = Object.keys(defaultParams).length > 0 ? hashGeneratorParams(defaultParams) : '';
+      const key = `${item.widthUnits}x${item.heightUnits}::${customizationKey(item)}::${paramsHash}::${baseModelPath}`;
+
+      const existing = generatedMap.get(key);
+      if (existing) {
+        existing.qty += item.quantity;
+      } else {
+        const filename = buildStlFilename(
+          item.widthUnits,
+          item.heightUnits,
+          c,
+          Object.keys(defaultParams).length > 0 ? defaultParams : undefined,
+        );
+        generatedMap.set(key, {
+          widthUnits: item.widthUnits,
+          heightUnits: item.heightUnits,
+          customization: c,
+          qty: item.quantity,
+          filename,
+          gridfinityExtendedParams: Object.keys(defaultParams).length > 0 ? defaultParams : undefined,
+          baseModelPath,
+        });
+      }
+    }
+  }
+
+  return { staticConfigs, uniqueConfigs: Array.from(generatedMap.values()) };
 }
 
 // ── DB helpers ────────────────────────────────────────────────────────────────
@@ -137,7 +189,7 @@ function runPython(args: string[]): Promise<string> {
 // ── Main generation pipeline ──────────────────────────────────────────────────
 
 export async function triggerGeneration(layoutId: number, bomItems: BOMItem[]): Promise<ApiBomGeneration> {
-  const uniqueConfigs = extractUniqueConfigs(bomItems);
+  const { staticConfigs, uniqueConfigs } = await resolveItemSources(bomItems);
 
   const outDir = path.resolve(config.GENERATED_STL_DIR, `bom-layout-${layoutId}`);
   await fs.rm(outDir, { recursive: true, force: true });
@@ -150,14 +202,15 @@ export async function triggerGeneration(layoutId: number, bomItems: BOMItem[]): 
     exportJson: JSON.stringify(bomItems),
   }).returning();
 
-  void runGenerationPipeline(layoutId, uniqueConfigs, outDir);
+  void runGenerationPipeline(layoutId, staticConfigs, uniqueConfigs, outDir);
 
   return formatBomGeneration(genRows[0]);
 }
 
 async function runGenerationPipeline(
   layoutId: number,
-  configs: UniqueConfig[],
+  staticConfigs: StaticConfig[],
+  uniqueConfigs: UniqueConfig[],
   outDir: string,
 ): Promise<void> {
   const generatorDir = path.resolve(config.GRIDFINITY_GENERATOR_DIR);
@@ -165,23 +218,40 @@ async function runGenerationPipeline(
   const bundleScript = path.join(generatorDir, 'bundle_3mf.py');
 
   try {
-    for (const cfg of configs) {
+    // Step 1: Copy static STLs
+    for (const cfg of staticConfigs) {
+      await fs.copyFile(cfg.stlSourcePath, path.join(outDir, cfg.filename));
+      logger.info({ filename: cfg.filename }, 'Copied static STL');
+    }
+
+    // Step 2: Generate parametric STLs
+    for (const cfg of uniqueConfigs) {
       const stlPath = path.join(outDir, cfg.filename);
       const paramsPath = path.join(outDir, `params_${cfg.filename.replace('.stl', '')}.json`);
 
       const params = buildGenerateParams(cfg);
       await fs.writeFile(paramsPath, JSON.stringify(params));
-      await runPython([generateBinScript, paramsPath, '--output', stlPath]);
+      await runPython([generateBinScript, paramsPath, '--output', stlPath, '--model', cfg.baseModelPath]);
       logger.info({ stlPath }, 'Generated STL');
     }
 
-    const manifest: BomGenerationManifestEntry[] = configs.map(cfg => ({
-      filename: cfg.filename,
-      widthUnits: cfg.widthUnits,
-      heightUnits: cfg.heightUnits,
-      customization: cfg.customization,
-      qty: cfg.qty,
-    }));
+    // Step 3: Build manifest + bundle 3MF
+    const manifest: BomGenerationManifestEntry[] = [
+      ...staticConfigs.map((cfg) => ({
+        filename: cfg.filename,
+        widthUnits: 0,
+        heightUnits: 0,
+        customization: DEFAULT_CUSTOMIZATION,
+        qty: cfg.qty,
+      })),
+      ...uniqueConfigs.map((cfg) => ({
+        filename: cfg.filename,
+        widthUnits: cfg.widthUnits,
+        heightUnits: cfg.heightUnits,
+        customization: cfg.customization,
+        qty: cfg.qty,
+      })),
+    ];
     const manifestPath = path.join(outDir, 'manifest.json');
     const threeMfPath = path.join(outDir, `bom-${layoutId}.3mf`);
     await fs.writeFile(manifestPath, JSON.stringify(manifest));
