@@ -10,6 +10,7 @@ export const libraries = sqliteTable('libraries', {
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: text('created_at').notNull().default(''),
   updatedAt: text('updated_at').notNull().default(''),
+  baseModelPath: text('base_model_path'),
 });
 
 export const libraryItems = sqliteTable('library_items', {
@@ -25,6 +26,7 @@ export const libraryItems = sqliteTable('library_items', {
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: text('created_at').notNull().default(''),
   updatedAt: text('updated_at').notNull().default(''),
+  stlFile: text('stl_file'),
 }, (table) => [
   primaryKey({ columns: [table.libraryId, table.id] }),
 ]);

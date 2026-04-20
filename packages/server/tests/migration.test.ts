@@ -45,4 +45,16 @@ describe('DB migrations', () => {
     const names = cols.rows.map((r) => (r as Record<string, unknown>).name);
     expect(names).not.toContain('shadow_box_id');
   });
+
+  it('libraries table has base_model_path column', async () => {
+    const cols = await client.execute('PRAGMA table_info(libraries)');
+    const names = cols.rows.map((r) => (r as Record<string, unknown>).name);
+    expect(names).toContain('base_model_path');
+  });
+
+  it('library_items table has stl_file column', async () => {
+    const cols = await client.execute('PRAGMA table_info(library_items)');
+    const names = cols.rows.map((r) => (r as Record<string, unknown>).name);
+    expect(names).toContain('stl_file');
+  });
 });

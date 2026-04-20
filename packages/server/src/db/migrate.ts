@@ -306,4 +306,18 @@ export async function runMigrations(client: Client): Promise<void> {
       );
     `);
   }
+
+  // Add base_model_path to libraries if missing
+  try {
+    await client.execute(`ALTER TABLE libraries ADD COLUMN base_model_path TEXT;`);
+  } catch {
+    // Column already exists — ignore
+  }
+
+  // Add stl_file to library_items if missing
+  try {
+    await client.execute(`ALTER TABLE library_items ADD COLUMN stl_file TEXT;`);
+  } catch {
+    // Column already exists — ignore
+  }
 }
