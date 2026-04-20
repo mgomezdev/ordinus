@@ -33,6 +33,8 @@ import { useLayoutLoader } from '../hooks/useLayoutLoader';
 import { useLayoutActions } from '../hooks/useLayoutActions';
 import { STORAGE_KEYS } from '../utils/storageKeys';
 import type { WalkthroughStep } from './WalkthroughContext';
+import { GridDimensionsContext } from './GridDimensionsContext';
+import { LibraryContext } from './LibraryContext';
 
 // Re-export for convenience
 export type { WalkthroughStep };
@@ -484,9 +486,54 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     setExportPdfError,
   };
 
+  const gridDimensionsValue = useMemo(() => ({
+    width,
+    setWidth,
+    depth,
+    setDepth,
+    unitSystem,
+    setUnitSystem,
+    imperialFormat,
+    setImperialFormat,
+    spacerConfig,
+    setSpacerConfig,
+    handleUnitChange,
+    gridResult,
+    drawerWidth,
+    drawerDepth,
+    spacers,
+  }), [
+    width, setWidth, depth, setDepth,
+    unitSystem, setUnitSystem, imperialFormat, setImperialFormat,
+    spacerConfig, setSpacerConfig, handleUnitChange,
+    gridResult, drawerWidth, drawerDepth, spacers,
+  ]);
+
+  const libraryValue = useMemo(() => ({
+    libraryItems,
+    isLibraryLoading,
+    isLibrariesLoading,
+    libraryError,
+    librariesError,
+    categories,
+    getItemById,
+    getLibraryMeta,
+    refreshLibraries,
+    refreshLibrary,
+    selectedLibraryMeta,
+  }), [
+    libraryItems, isLibraryLoading, isLibrariesLoading,
+    libraryError, librariesError, categories,
+    getItemById, getLibraryMeta, refreshLibraries, refreshLibrary, selectedLibraryMeta,
+  ]);
+
   return (
-    <WorkspaceContext.Provider value={value}>
-      {children}
-    </WorkspaceContext.Provider>
+    <GridDimensionsContext.Provider value={gridDimensionsValue}>
+      <LibraryContext.Provider value={libraryValue}>
+        <WorkspaceContext.Provider value={value}>
+          {children}
+        </WorkspaceContext.Provider>
+      </LibraryContext.Provider>
+    </GridDimensionsContext.Provider>
   );
 }
