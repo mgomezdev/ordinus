@@ -179,7 +179,7 @@ interface WorkspaceContextValue {
 
   // Generation
   getGenerationEntry: (hash: string) => GenerationEntry | undefined;
-  trackGeneration: (instanceId: string, libraryId: string, itemId: string, customization: BinCustomization | undefined) => void;
+  trackGeneration: (instanceId: string, libraryId: string, itemId: string, customization: BinCustomization | undefined) => Promise<void>;
   generatedImageUrl: (hash: string, filename: string) => string;
   instanceGenerationHash: Map<string, string>;
   recordInstanceHash: (instanceId: string, hash: string) => void;
