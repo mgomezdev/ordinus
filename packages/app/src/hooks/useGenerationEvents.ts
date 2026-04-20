@@ -19,5 +19,6 @@ export function useGenerationEvents(
       } catch { /* ignore malformed */ }
     };
     return () => es.close();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiBase]); // onEvent intentionally not in deps — callers must stabilize with useCallback
 }
