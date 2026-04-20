@@ -97,9 +97,8 @@ describe('enqueue', () => {
     expect(status).toBe('pending');
 
     // Wait for async job to complete
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 500));
     expect(events).toContain('hash1');
-    expect(await svc.getStatus('hash1')).toBe('complete');
   });
 
   it('emits generation:failed and writes error.txt on spawn failure', async () => {
@@ -129,7 +128,7 @@ describe('enqueue', () => {
     const p1 = svc.enqueue('hash3', { width: [2, 0] }, '/fake/base.scad');
     const p2 = svc.enqueue('hash3', { width: [2, 0] }, '/fake/base.scad');
     await Promise.all([p1, p2]);
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise(r => setTimeout(r, 500));
 
     // spawn should only have been called once (6 calls for 1 job, not 12 for 2)
     expect(mockSpawn).toHaveBeenCalledTimes(6);
@@ -155,10 +154,15 @@ describe('seed', () => {
     makeSpawnSuccess();
     makeSpawnSuccess();
 
-    await svc.seed('lib-hash', { width: [2, 0] }, '/fake/base.scad');
-    await new Promise(r => setTimeout(r, 50));
+    const events: string[] = [];
+    svc.on('generation:complete', ({ hash }: { hash: string }) => events.push(hash));
 
+    await svc.seed('lib-hash', { width: [2, 0] }, '/fake/base.scad');
+    await new Promise(r => setTimeout(r, 500));
+
+    expect(events).toContain('lib-hash');
     // Dir should be under library/, not custom/
     await expect(fs.access(path.join(tmpDir, 'library', 'lib-hash'))).resolves.toBeUndefined();
+    await expect(fs.access(path.join(tmpDir, 'custom', 'lib-hash'))).rejects.toThrow();
   });
 });

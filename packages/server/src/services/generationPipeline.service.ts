@@ -136,14 +136,6 @@ export class GenerationPipelineService extends EventEmitter {
         ]);
       }
 
-      // Write completion marker if the image script didn't create the file
-      // (e.g. in test environments with mocked spawn)
-      try {
-        await fs.access(orthoPng);
-      } catch {
-        await fs.writeFile(orthoPng, '');
-      }
-
       this.emit('generation:complete', { hash });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
