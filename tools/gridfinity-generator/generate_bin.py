@@ -28,7 +28,7 @@ PARAM_REGISTRY = {
     "width":          {"default": [2, 0],   "type": "array"},
     "depth":          {"default": [1, 0],   "type": "array"},
     "height":         {"default": [3, 0],   "type": "array"},
-    "filled_in":      {"default": False,    "type": "bool"},
+    "filled_in":      {"default": "disabled", "type": "string"},
     "wall_thickness": {"default": 0,        "type": "number"},
     "lip_style":      {"default": "normal", "type": "string"},
     "position":       {"default": "center", "type": "string"},

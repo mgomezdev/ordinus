@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "baseModel": "gridfinity_basic_cup.scad",
   "customizableFields": ["lipStyle", "fingerSlide", "wallCutout", "height"],
-  "gridfinityExtendedParams": { "height": [4, 0], "filled_in": true },
+  "gridfinityExtendedParams": { "height": [4, 0], "filled_in": "enabled" },
   "items": [
     { "id": "shadowbox-2x2", "name": "2x2 Shadowbox", "widthUnits": 2, "heightUnits": 2, "color": "#8B5CF6", "categories": ["shadowbox"], "imageUrl": "shadowbox_2x2.png", "perspectiveImageUrl": "shadowbox_2x2-perspective.png" },
     { "id": "shadowbox-2x3", "name": "2x3 Shadowbox", "widthUnits": 2, "heightUnits": 3, "color": "#8B5CF6", "categories": ["shadowbox"], "imageUrl": "shadowbox_2x3.png", "perspectiveImageUrl": "shadowbox_2x3-perspective.png" },
