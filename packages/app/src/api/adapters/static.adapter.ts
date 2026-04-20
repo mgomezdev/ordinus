@@ -82,9 +82,4 @@ export class StaticAdapter implements DataSourceAdapter {
     this.manifestCache = await response.json();
     return this.manifestCache!;
   }
-
-  clearCache(): void {
-    this.manifestCache = null;
-    this.metaCache.clear();
-  }
 }
