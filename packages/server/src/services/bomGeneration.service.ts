@@ -8,6 +8,7 @@ import { db } from '../db/connection.js';
 import { bomGenerations, libraries, libraryItems } from '../db/schema.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { computeParamHash } from '../utils/generationParams.js';
 
 const DEFAULT_CUSTOMIZATION: BinCustomization = {
   wallPattern: 'none',
@@ -224,15 +225,33 @@ async function runGenerationPipeline(
       logger.info({ filename: cfg.filename }, 'Copied static STL');
     }
 
-    // Step 2: Generate parametric STLs
+    // Step 2: Generate or reuse parametric STLs
     for (const cfg of uniqueConfigs) {
       const stlPath = path.join(outDir, cfg.filename);
-      const paramsPath = path.join(outDir, `params_${cfg.filename.replace('.stl', '')}.json`);
 
+      // Check if already generated in library/ or custom/
       const params = buildGenerateParams(cfg);
-      await fs.writeFile(paramsPath, JSON.stringify(params));
-      await runPython([generateBinScript, paramsPath, '--output', stlPath, '--model', cfg.baseModelPath]);
-      logger.info({ stlPath }, 'Generated STL');
+      const hash = computeParamHash(params as Record<string, unknown>);
+
+      let cachedStl: string | null = null;
+      for (const subdir of ['library', 'custom'] as const) {
+        const candidate = path.join(config.GENERATED_STL_DIR, subdir, hash, 'bin.stl');
+        try {
+          await fs.access(candidate);
+          cachedStl = candidate;
+          break;
+        } catch { /* not cached */ }
+      }
+
+      if (cachedStl) {
+        await fs.copyFile(cachedStl, stlPath);
+        logger.info({ stlPath, hash }, 'Reused cached STL for 3MF');
+      } else {
+        const paramsPath = path.join(outDir, `params_${cfg.filename.replace('.stl', '')}.json`);
+        await fs.writeFile(paramsPath, JSON.stringify(params));
+        await runPython([generateBinScript, paramsPath, '--output', stlPath, '--model', cfg.baseModelPath]);
+        logger.info({ stlPath }, 'Generated STL for 3MF');
+      }
     }
 
     // Step 3: Build manifest + bundle 3MF
