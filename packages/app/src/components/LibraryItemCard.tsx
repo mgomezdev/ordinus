@@ -1,8 +1,11 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { LibraryItem } from '../types/gridfinity';
 import { usePointerDragSource } from '../hooks/usePointerDrag';
 import { useImageLoadState } from '../hooks/useImageLoadState';
 import { ItemPreviewPopover } from './ItemPreviewPopover';
+import { generatedImageUrl } from '../api/generation.api';
+import { useGenerationState } from '../hooks/useGenerationState';
+import { API_BASE_URL } from '../api/apiClient';
 
 interface LibraryItemCardProps {
   item: LibraryItem;
@@ -11,8 +14,24 @@ interface LibraryItemCardProps {
 const HOVER_DELAY = 200;
 
 export function LibraryItemCard({ item }: LibraryItemCardProps) {
+  const { trackHash } = useGenerationState(API_BASE_URL);
+
+  // Register paramHash items so SSE events update this card
+  useEffect(() => {
+    if (item.paramHash) trackHash(item.paramHash);
+  }, [item.paramHash, trackHash]);
+
+  const effectiveImageUrl = (() => {
+    if (item.imageUrl) return item.imageUrl;
+    if (item.paramHash) {
+      // Try loading speculatively — may already be done from prior server start
+      return generatedImageUrl(item.paramHash, 'ortho.png');
+    }
+    return undefined;
+  })();
+
   const { imageError, shouldShowImage, handleImageLoad, handleImageError } =
-    useImageLoadState(item.imageUrl);
+    useImageLoadState(effectiveImageUrl);
 
   const [previewAnchorRect, setPreviewAnchorRect] = useState<DOMRect | null>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,6 +89,8 @@ export function LibraryItemCard({ item }: LibraryItemCardProps) {
     [hidePopover, onPointerDown],
   );
 
+  const isGenerating = !!(item.paramHash && !shouldShowImage && !imageError);
+
   // Generate mini grid preview
   const previewCells = [];
   const maxPreviewSize = 3;
@@ -105,9 +126,14 @@ export function LibraryItemCard({ item }: LibraryItemCardProps) {
         }}
       >
         <div className="library-item-preview-container">
-          {item.imageUrl && !imageError && (
+          {isGenerating && (
+            <div className="generation-spinner" aria-label="Generating" role="status">
+              <div className="spinner" />
+            </div>
+          )}
+          {effectiveImageUrl && !imageError && (
             <img
-              src={item.imageUrl}
+              src={effectiveImageUrl}
               alt={item.name}
               className={`library-item-image ${shouldShowImage ? 'visible' : 'hidden'}`}
               loading="lazy"
