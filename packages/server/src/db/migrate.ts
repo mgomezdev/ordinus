@@ -320,4 +320,18 @@ export async function runMigrations(client: Client): Promise<void> {
   } catch {
     // Column already exists — ignore
   }
+
+  // Add param_hash to library_items if missing
+  try {
+    await client.execute(`ALTER TABLE library_items ADD COLUMN param_hash TEXT;`);
+  } catch {
+    // Column already exists — ignore
+  }
+
+  // Add parameters JSON to libraries if missing (stores index.json parameters for generation)
+  try {
+    await client.execute(`ALTER TABLE libraries ADD COLUMN parameters TEXT;`);
+  } catch {
+    // Column already exists — ignore
+  }
 }

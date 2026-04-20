@@ -11,6 +11,7 @@ export const libraries = sqliteTable('libraries', {
   createdAt: text('created_at').notNull().default(''),
   updatedAt: text('updated_at').notNull().default(''),
   baseModelPath: text('base_model_path'),
+  parameters: text('parameters'),
 });
 
 export const libraryItems = sqliteTable('library_items', {
@@ -27,6 +28,7 @@ export const libraryItems = sqliteTable('library_items', {
   createdAt: text('created_at').notNull().default(''),
   updatedAt: text('updated_at').notNull().default(''),
   stlFile: text('stl_file'),
+  paramHash: text('param_hash'),
 }, (table) => [
   primaryKey({ columns: [table.libraryId, table.id] }),
 ]);
