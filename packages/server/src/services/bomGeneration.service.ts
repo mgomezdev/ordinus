@@ -275,13 +275,20 @@ async function runGenerationPipeline(
 
 export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> {
   const c = cfg.customization;
+  const extParams = cfg.gridfinityExtendedParams ?? {};
+
+  // height from extParams (library/item default) takes precedence over customization height
+  const heightParam = 'height' in extParams ? extParams['height'] : [c.height, 0];
+  const restExtParams = Object.fromEntries(
+    Object.entries(extParams as Record<string, unknown>).filter(([k]) => k !== 'height'),
+  );
 
   const params: Record<string, unknown> = {
     ...gridfinityExtendedDefaultParams,
-    ...(cfg.gridfinityExtendedParams ?? {}),
+    ...restExtParams,
     width: [cfg.widthUnits, 0],
     depth: [cfg.heightUnits, 0],
-    height: [c.height, 0],
+    height: heightParam,
     lip_style: c.lipStyle,
     fingerslide: c.fingerSlide,
   };
