@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import path from 'path';
 import { createApp } from './app.js';
 import { config } from './config.js';
 import { logger } from './logger.js';
@@ -17,6 +18,8 @@ async function main(): Promise<void> {
   // Create data directories
   await fs.mkdir(config.USER_STL_DIR, { recursive: true });
   await fs.mkdir(config.USER_STL_IMAGE_DIR, { recursive: true });
+  await fs.mkdir(path.join(config.GENERATED_STL_DIR, 'library'), { recursive: true });
+  await fs.mkdir(path.join(config.GENERATED_STL_DIR, 'custom'), { recursive: true });
 
   // Startup recovery: reset stuck processing/pending rows and re-enqueue
   const stuckIds = await getPendingAndProcessingIds(client);
