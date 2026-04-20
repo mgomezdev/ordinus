@@ -5,6 +5,7 @@ import { db } from '../db/connection.js';
 import { layouts, placedItems, userStorage, referenceImages, refImages, users } from '../db/schema.js';
 import * as referenceImageService from './referenceImage.service.js';
 import { formatLayout, formatPlacedItem } from './formatters.js';
+import { ensureStorageRow } from './storage.helpers.js';
 
 interface CursorData {
   createdAt: string;
@@ -191,25 +192,6 @@ interface CreateLayoutData {
     isLocked: boolean;
     rotation: number;
   }>;
-}
-
-async function ensureStorageRow(userId: number): Promise<typeof userStorage.$inferSelect> {
-  const existing = await db
-    .select()
-    .from(userStorage)
-    .where(eq(userStorage.userId, userId))
-    .limit(1);
-
-  if (existing.length > 0) {
-    return existing[0];
-  }
-
-  const inserted = await db
-    .insert(userStorage)
-    .values({ userId, layoutCount: 0, imageBytes: 0 })
-    .returning();
-
-  return inserted[0];
 }
 
 export async function createLayout(
