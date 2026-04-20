@@ -101,6 +101,7 @@ export interface DragData {
 }
 
 export interface BOMItem {
+  libraryId: string;
   itemId: string;
   name: string;
   widthUnits: number;
@@ -187,6 +188,7 @@ export interface ApiLibraryItem {
   isActive: boolean;
   sortOrder: number;
   categories: string[];
+  stlFile: string | null;
 }
 
 export interface ApiCategory {
