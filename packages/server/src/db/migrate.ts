@@ -307,6 +307,32 @@ export async function runMigrations(client: Client): Promise<void> {
     `);
   }
 
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS favorites (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      library_id TEXT NOT NULL,
+      library_item_id TEXT NOT NULL,
+      library_item_name TEXT NOT NULL,
+      width_units INTEGER NOT NULL,
+      height_units INTEGER NOT NULL,
+      color TEXT NOT NULL DEFAULT '#3B82F6',
+      param_hash TEXT,
+      image_url TEXT NOT NULL DEFAULT '',
+      perspective_image_url TEXT,
+      perspective_image_url90 TEXT,
+      perspective_image_url180 TEXT,
+      perspective_image_url270 TEXT,
+      customization TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+  `);
+
+  await client.execute(`
+    CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id);
+  `);
+
   // Add base_model_path to libraries if missing
   try {
     await client.execute(`ALTER TABLE libraries ADD COLUMN base_model_path TEXT;`);
