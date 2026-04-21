@@ -150,6 +150,17 @@ vi.mock('./hooks/useLayouts', () => ({
   useSaveLayoutMutation: () => ({ mutateAsync: vi.fn(), isPending: false, isError: false, error: null }),
 }));
 
+vi.mock('./hooks/useFavorites', () => ({
+  useFavorites: () => ({
+    favorites: [],
+    isLoading: false,
+    isFavorite: vi.fn(() => false),
+    toggleFavorite: vi.fn(),
+    removeFavorite: vi.fn(),
+    renameFavorite: vi.fn(),
+  }),
+}));
+
 vi.mock('./components/DimensionInput', () => ({
   DimensionInput: (props: Record<string, unknown>) => (
     <div data-testid={`dimension-input-${props.label}`} data-value={props.value} />

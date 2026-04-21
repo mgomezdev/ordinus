@@ -32,6 +32,16 @@ vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
+vi.mock('../hooks/useFavorites', () => ({
+  useFavorites: () => ({
+    isFavorite: () => false,
+    toggleFavorite: vi.fn(),
+    favorites: [],
+    isLoading: false,
+    removeFavorite: vi.fn(),
+    renameFavorite: vi.fn(),
+  }),
+}));
 
 // Mock generation.api
 vi.mock('../api/generation.api', () => ({
