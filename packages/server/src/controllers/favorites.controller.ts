@@ -81,7 +81,7 @@ export async function createFavorite(req: Request, res: Response, next: NextFunc
 export async function deleteFavorite(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const userId = req.user!.userId;
-    const deleted = await favoritesService.deleteFavorite(req.params.id, userId);
+    const deleted = await favoritesService.deleteFavorite(req.params.id as string, userId);
     if (!deleted) {
       throw new AppError(ErrorCodes.NOT_FOUND, 'Favorite not found');
     }
@@ -98,11 +98,11 @@ export async function renameFavorite(req: Request, res: Response, next: NextFunc
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'name is required');
     }
     const userId = req.user!.userId;
-    const updated = await favoritesService.renameFavorite(req.params.id, userId, parsed.data.name);
+    const updated = await favoritesService.renameFavorite(req.params.id as string, userId, parsed.data.name);
     if (!updated) {
       throw new AppError(ErrorCodes.NOT_FOUND, 'Favorite not found');
     }
-    res.json({ data: { id: req.params.id, name: parsed.data.name } });
+    res.json({ data: { id: req.params.id as string, name: parsed.data.name } });
   } catch (err) {
     next(err);
   }
