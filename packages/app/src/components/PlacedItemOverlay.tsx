@@ -50,6 +50,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const [showPopover, setShowPopover] = useState(false);
   interface PopoverPos { top: number; left: number; direction: 'above' | 'below' }
   const [popoverPos, setPopoverPos] = useState<PopoverPos | null>(null);
+  const [popoverDraft, setPopoverDraft] = useState<BinCustomization | undefined>(undefined);
   const gearButtonRef = useRef<HTMLButtonElement>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [libraryMeta, setLibraryMeta] = useState<LibraryMeta>({ customizableFields: [], parameters: {} });
@@ -192,15 +193,15 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
       setSearchParams({ authRequired: '1' }, { replace: true });
       return;
     }
+    setPopoverDraft(item.customization);
     computePopoverPos();
     setShowPopover(true);
-  }, [isAuthenticated, setSearchParams, computePopoverPos]);
+  }, [isAuthenticated, setSearchParams, item.customization, computePopoverPos]);
 
+  // Updates draft only — generation fires when popover is dismissed
   const handlePopoverChange = useCallback((customization: BinCustomization) => {
-    onCustomizationChange?.(item.instanceId, customization);
-    onCustomizationChangeWithGeneration?.(item.instanceId, customization);
-    setShowPopover(false);
-  }, [onCustomizationChange, onCustomizationChangeWithGeneration, item.instanceId]);
+    setPopoverDraft(customization);
+  }, []);
 
   const handlePopoverReset = useCallback(() => {
     const allFields = ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'] as const;
@@ -215,6 +216,10 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
       onCustomizationReset?.(item.instanceId);
     }
     onGenerationReset?.(item.instanceId);
+    // Close without triggering generation — reset already reverts to library images
+    setPopoverDraft(undefined);
+    setShowPopover(false);
+    setPopoverPos(null);
   }, [item, onCustomizationChange, onCustomizationReset, onGenerationReset]);
 
   const handleDuplicateClick = (e: React.MouseEvent) => {
@@ -226,6 +231,14 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const handleClosePopover = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    if (popoverDraft !== undefined) {
+      const hasChanges = JSON.stringify(popoverDraft) !== JSON.stringify(item.customization ?? null);
+      if (hasChanges) {
+        onCustomizationChange?.(item.instanceId, popoverDraft);
+        onCustomizationChangeWithGeneration?.(item.instanceId, popoverDraft);
+      }
+    }
+    setPopoverDraft(undefined);
     setShowPopover(false);
     setPopoverPos(null);
   };
@@ -394,7 +407,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
             </button>
           </div>
           <BinCustomizationPanel
-            customization={item.customization}
+            customization={popoverDraft ?? item.customization}
             onChange={handlePopoverChange}
             onReset={handlePopoverReset}
             idPrefix="inline-"

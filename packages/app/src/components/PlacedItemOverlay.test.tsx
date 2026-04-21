@@ -2138,7 +2138,7 @@ describe('PlacedItemOverlay', () => {
       expect(screen.getByLabelText('Wall Cutout')).toBeInTheDocument();
     });
 
-    it('should call onCustomizationChange when a select value changes', async () => {
+    it('should call onCustomizationChange when popover is closed after a select value changes', async () => {
       const item = createMockItemWithLibrary({
         instanceId: 'custom-item-123',
         customization: { ...DEFAULT_BIN_CUSTOMIZATION, wallPatternEnabled: true, wallPattern: 'grid' },
@@ -2161,6 +2161,13 @@ describe('PlacedItemOverlay', () => {
 
       const wallPatternStyleSelect = screen.getByLabelText('Style') as HTMLSelectElement;
       fireEvent.change(wallPatternStyleSelect, { target: { value: 'hexgrid' } });
+
+      // Change is buffered in draft — onCustomizationChange not called yet
+      expect(mockOnCustomizationChange).not.toHaveBeenCalled();
+
+      // Dismiss the popover
+      const closeBtn = screen.getByRole('button', { name: 'Close customization' });
+      fireEvent.click(closeBtn);
 
       expect(mockOnCustomizationChange).toHaveBeenCalledWith(
         'custom-item-123',
