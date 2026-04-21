@@ -2175,6 +2175,59 @@ describe('PlacedItemOverlay', () => {
       );
     });
 
+    it('should apply draft and trigger generation when item is deselected while popover is open', async () => {
+      const mockOnCustomizationChangeWithGeneration = vi.fn();
+      const item = createMockItemWithLibrary({
+        instanceId: 'custom-item-deselect',
+        customization: { ...DEFAULT_BIN_CUSTOMIZATION, wallPatternEnabled: true, wallPattern: 'grid' },
+      });
+      const { rerender } = render(
+        <PlacedItemOverlay
+          item={item}
+          gridX={4}
+          gridY={4}
+          isSelected={true}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+          onCustomizationChange={mockOnCustomizationChange}
+          onCustomizationChangeWithGeneration={mockOnCustomizationChangeWithGeneration}
+          getLibraryMeta={mockGetLibraryMeta}
+        />
+      );
+
+      const customizeBtn = await waitFor(() => screen.getByRole('button', { name: 'Customize' }));
+      fireEvent.click(customizeBtn);
+
+      const wallPatternStyleSelect = screen.getByLabelText('Style') as HTMLSelectElement;
+      fireEvent.change(wallPatternStyleSelect, { target: { value: 'hexgrid' } });
+
+      expect(mockOnCustomizationChange).not.toHaveBeenCalled();
+
+      // Simulate click-outside by deselecting the item
+      rerender(
+        <PlacedItemOverlay
+          item={item}
+          gridX={4}
+          gridY={4}
+          isSelected={false}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+          onCustomizationChange={mockOnCustomizationChange}
+          onCustomizationChangeWithGeneration={mockOnCustomizationChangeWithGeneration}
+          getLibraryMeta={mockGetLibraryMeta}
+        />
+      );
+
+      expect(mockOnCustomizationChange).toHaveBeenCalledWith(
+        'custom-item-deselect',
+        expect.objectContaining({ wallPattern: 'hexgrid' })
+      );
+      expect(mockOnCustomizationChangeWithGeneration).toHaveBeenCalledWith(
+        'custom-item-deselect',
+        expect.objectContaining({ wallPattern: 'hexgrid' })
+      );
+    });
+
     it('should render reset button in popover', async () => {
       const item = createMockItemWithLibrary();
       render(

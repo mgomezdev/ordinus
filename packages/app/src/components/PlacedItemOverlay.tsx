@@ -92,6 +92,19 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
     return () => window.removeEventListener('resize', handler);
   }, [showPopover, computePopoverPos]);
 
+  // Apply draft when item is deselected while popover is open (e.g. click outside)
+  useEffect(() => {
+    if (isSelected || !showPopover || popoverDraft === undefined) return;
+    const hasChanges = JSON.stringify(popoverDraft) !== JSON.stringify(item.customization ?? null);
+    if (hasChanges) {
+      onCustomizationChange?.(item.instanceId, popoverDraft);
+      onCustomizationChangeWithGeneration?.(item.instanceId, popoverDraft);
+    }
+    setPopoverDraft(undefined);
+    setShowPopover(false);
+    setPopoverPos(null);
+  }, [isSelected, showPopover, popoverDraft, item.customization, item.instanceId, onCustomizationChange, onCustomizationChangeWithGeneration]);
+
   const libraryItem = getItemById(item.itemId);
   const hasStaticStl = !!libraryItem?.stlFile;
   const color = item.isValid ? (libraryItem?.color || DEFAULT_VALID_COLOR) : INVALID_COLOR;
