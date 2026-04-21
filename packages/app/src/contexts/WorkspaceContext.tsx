@@ -183,6 +183,7 @@ interface WorkspaceContextValue {
   generatedImageUrl: (hash: string, filename: string) => string;
   instanceGenerationHash: Map<string, string>;
   recordInstanceHash: (instanceId: string, hash: string) => void;
+  clearInstanceHash: (instanceId: string) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -380,6 +381,10 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     setInstanceGenerationHash(prev => { const m = new Map(prev); m.set(instanceId, hash); return m; });
   }, []);
 
+  const clearInstanceHash = useCallback((instanceId: string) => {
+    setInstanceGenerationHash(prev => { const m = new Map(prev); m.delete(instanceId); return m; });
+  }, []);
+
   const trackGeneration = useCallback(
     async (instanceId: string, libraryId: string, itemId: string, customization: BinCustomization | undefined) => {
       const token = getAccessToken();
@@ -525,6 +530,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     generatedImageUrl,
     instanceGenerationHash,
     recordInstanceHash,
+    clearInstanceHash,
   };
 
   const gridDimensionsValue = useMemo(() => ({

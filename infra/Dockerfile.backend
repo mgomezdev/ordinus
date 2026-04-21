@@ -52,6 +52,8 @@ COPY --from=build /app/packages/server/node_modules packages/server/node_modules
 COPY packages/server/scripts/ scripts/
 # Copy gridfinity generator tools (generate_bin.py, bundle_3mf.py, gridfinity_basic_cup.scad)
 COPY tools/gridfinity-generator/ tools/gridfinity-generator/
+# Copy library builder tools (stl_to_png.py — required for generation image rendering)
+COPY tools/library-builder/ tools/library-builder/
 # Seed data: library manifests and images from public/
 COPY packages/app/public/libraries/ packages/app/public/libraries/
 COPY infra/docker-entrypoint.backend.sh /docker-entrypoint.sh

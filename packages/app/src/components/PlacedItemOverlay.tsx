@@ -29,6 +29,7 @@ interface PlacedItemOverlayProps {
   getLibraryMeta?: (libraryId: string) => Promise<LibraryMeta>;
   generationEntry?: { hash: string; status: 'pending' | 'complete' | 'failed' };
   onCustomizationChangeWithGeneration?: (instanceId: string, customization: BinCustomization) => void;
+  onGenerationReset?: (instanceId: string) => void;
 }
 
 const DEFAULT_VALID_COLOR = '#3B82F6';
@@ -45,7 +46,7 @@ function getCustomizationBadges(customization: BinCustomization | undefined): st
   return badges;
 }
 
-export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, gridY, isSelected, onSelect, getItemById, onDelete, onRotateCw, onRotateCcw, onCustomizationChange, onCustomizationReset, onDuplicate, imageViewMode = 'ortho', getLibraryMeta, generationEntry, onCustomizationChangeWithGeneration }: PlacedItemOverlayProps) {
+export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, gridY, isSelected, onSelect, getItemById, onDelete, onRotateCw, onRotateCcw, onCustomizationChange, onCustomizationReset, onDuplicate, imageViewMode = 'ortho', getLibraryMeta, generationEntry, onCustomizationChangeWithGeneration, onGenerationReset }: PlacedItemOverlayProps) {
   const [showPopover, setShowPopover] = useState(false);
   interface PopoverPos { top: number; left: number; direction: 'above' | 'below' }
   const [popoverPos, setPopoverPos] = useState<PopoverPos | null>(null);
@@ -213,7 +214,8 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
     } else {
       onCustomizationReset?.(item.instanceId);
     }
-  }, [item, onCustomizationChange, onCustomizationReset]);
+    onGenerationReset?.(item.instanceId);
+  }, [item, onCustomizationChange, onCustomizationReset, onGenerationReset]);
 
   const handleDuplicateClick = (e: React.MouseEvent) => {
     e.stopPropagation();

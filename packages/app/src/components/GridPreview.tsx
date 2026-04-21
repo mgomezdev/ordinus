@@ -83,7 +83,7 @@ export function GridPreview({
 }: GridPreviewProps) {
   const gridRef = useRef<HTMLDivElement>(null);
 
-  const { trackGeneration, instanceGenerationHash, getGenerationEntry } = useWorkspace();
+  const { trackGeneration, instanceGenerationHash, getGenerationEntry, clearInstanceHash } = useWorkspace();
 
   usePointerDropTarget({
     gridRef,
@@ -213,6 +213,7 @@ export function GridPreview({
                     void trackGeneration(instanceId, libraryId, bareItemId, customization);
                   }
                 }}
+                onGenerationReset={clearInstanceHash}
               />
             );
           })}
