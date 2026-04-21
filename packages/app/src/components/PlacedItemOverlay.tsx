@@ -133,11 +133,14 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const generationFailed = generationEntry?.status === 'failed';
 
   const effectiveImageSrc = (() => {
-    if (generationEntry?.status === 'complete') {
+    const hash = generationEntry?.status === 'complete'
+      ? generationEntry.hash
+      : libraryItem?.paramHash ?? null;
+    if (hash) {
       const filename = imageViewMode === 'perspective'
         ? `perspective_${item.rotation}.png`
         : 'ortho.png';
-      return generatedImageUrl(generationEntry.hash, filename);
+      return generatedImageUrl(hash, filename);
     }
     return imageSrc;
   })();
