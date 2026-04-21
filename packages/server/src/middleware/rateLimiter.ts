@@ -33,12 +33,12 @@ export const authLimiter = rateLimit({
  */
 export const generalLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  limit: (req: Request) => (req.user ? 100 : 30),
+  limit: (req: Request) => (req.user ? 200 : 100),
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   keyGenerator: (req: Request) =>
     req.user ? `user:${req.user.userId}` : (req.ip ?? 'unknown'),
-  skip: () => isTest,
+  skip: (req: Request) => isTest || req.path === '/generation/events',
   validate: false,
   handler: (req: Request, res: Response) => {
     res.status(429).json({
