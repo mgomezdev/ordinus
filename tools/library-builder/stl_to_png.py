@@ -188,42 +188,6 @@ def render_stl_to_png(stl_path, output_path, max_dimension=800, dpi=100, quiet=F
         return False
 
 
-def _rotate_mesh_z90_ccw(stl_mesh):
-    """Rotate mesh 90° CCW around Z: new_x = -old_y, new_y = old_x."""
-    v = stl_mesh.vectors
-    x_all = v[:, :, 0].copy()
-    y_all = v[:, :, 1].copy()
-    v[:, :, 0] = -y_all
-    v[:, :, 1] = x_all
-    n = stl_mesh.normals
-    nx = n[:, 0].copy()
-    ny = n[:, 1].copy()
-    n[:, 0] = -ny
-    n[:, 1] = nx
-    for attr in ('_min', '_max'):
-        if hasattr(stl_mesh, attr):
-            delattr(stl_mesh, attr)
-
-
-def _normalize_gridfinity_orientation(stl_mesh, quiet=False):
-    """
-    Ensure the longest horizontal (XY) dimension aligns with the X axis so
-    that rotation=0 always shows the widest face of the bin toward the camera.
-
-    OpenSCAD places Gridfinity bins with depth along Y, so a 1×3 bin has its
-    long axis along Y rather than X. Rotating 90° CCW maps Y→X, giving a
-    consistent front-view across all bin shapes.
-    """
-    min_b = stl_mesh.min_
-    max_b = stl_mesh.max_
-    x_extent = max_b[0] - min_b[0]
-    y_extent = max_b[1] - min_b[1]
-    if y_extent > x_extent * 1.05:  # 5% tolerance to ignore near-square bins
-        if not quiet:
-            print(f"  Auto-rotating 90° CCW: Y-extent ({y_extent:.1f}) > X-extent ({x_extent:.1f})")
-        _rotate_mesh_z90_ccw(stl_mesh)
-
-
 def render_stl_to_png_perspective(stl_path, output_path, max_dimension=800, camera_tilt=22.5,
                                    fov=45, dpi=100, quiet=False, rotation=0):
     """
@@ -252,10 +216,6 @@ def render_stl_to_png_perspective(stl_path, output_path, max_dimension=800, came
 
         stl_mesh = mesh.Mesh.from_file(stl_path)
         debug_mesh_info(stl_mesh, quiet=quiet)
-
-        # Normalize orientation: rotate so longest XY dimension is along X.
-        # This ensures rotation=0 always shows the widest face of the bin.
-        _normalize_gridfinity_orientation(stl_mesh, quiet=quiet)
 
         # Exact sin/cos for 90-degree rotation stops (avoids floating-point noise)
         EXACT_ROTATIONS = {
