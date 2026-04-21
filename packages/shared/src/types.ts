@@ -190,6 +190,7 @@ export interface ApiLibraryItem {
   sortOrder: number;
   categories: string[];
   stlFile: string | null;
+  paramHash?: string | null;
 }
 
 export interface ApiCategory {
