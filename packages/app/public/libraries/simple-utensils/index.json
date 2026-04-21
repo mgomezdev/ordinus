@@ -102,7 +102,8 @@
         "utensil"
       ],
       "stlFile": "Utensils offset 2x4.stl",
-      "imageUrl": "Utensilsoffset2x4.png"
+      "imageUrl": "Utensils offset 2x4.png",
+      "perspectiveImageUrl": "Utensils offset 2x4-perspective.png"
     }
   ]
 }
