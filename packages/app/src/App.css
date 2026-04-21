@@ -4350,3 +4350,73 @@
   text-align: center;
   z-index: 5000;
 }
+
+/* FavoriteCard */
+.favorite-card {
+  position: relative;
+  background: var(--blue-50, #eff6ff);
+  border: 1px solid var(--blue-200, #bfdbfe);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+}
+
+.favorite-card:active {
+  cursor: grabbing;
+}
+
+.favorite-card-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+
+.favorite-card-remove:hover {
+  background: #fee2e2;
+}
+
+.favorite-card-name {
+  padding: 4px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favorite-card-name-input {
+  width: 100%;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--blue-400, #60a5fa);
+  border-radius: 3px;
+  padding: 1px 3px;
+  text-align: center;
+  outline: none;
+}
+
+/* Heart button in placed item toolbar */
+.placed-item-toolbar-btn--heart {
+  color: #d1d5db;
+}
+
+.placed-item-toolbar-btn--heart.favorited {
+  color: #ec4899;
+  background: #fff1f8;
+  border-color: #f9a8d4;
+}
