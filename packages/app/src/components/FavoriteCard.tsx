@@ -33,6 +33,7 @@ export function FavoriteCard({ favorite, onRemove, onRename }: FavoriteCardProps
       type: 'favorite',
       itemId: `${favorite.libraryId}:${favorite.libraryItemId}`,
       favoriteCustomization: favorite.customization,
+      favoriteParamHash: favorite.paramHash,
     },
   });
 

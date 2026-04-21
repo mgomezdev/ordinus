@@ -113,7 +113,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
 
   const perspectiveUrl = libraryItem?.perspectiveImageUrl;
   const orthoUrl = libraryItem?.imageUrl;
-  const hasGeneratedImages = !!(libraryItem?.paramHash) || generationEntry?.status === 'complete';
+  const hasGeneratedImages = !!(item.paramHash ?? libraryItem?.paramHash) || generationEntry?.status === 'complete';
   const usingPerspective = imageViewMode === 'perspective' && (!!perspectiveUrl || hasGeneratedImages);
 
   // Use explicit rotation-specific URLs when available, fall back to derived
@@ -138,7 +138,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const effectiveImageSrc = (() => {
     const hash = generationEntry?.status === 'complete'
       ? generationEntry.hash
-      : libraryItem?.paramHash ?? null;
+      : item.paramHash ?? libraryItem?.paramHash ?? null;
     if (hash) {
       const filename = imageViewMode === 'perspective'
         ? `perspective_${item.rotation}.png`

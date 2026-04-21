@@ -229,7 +229,7 @@ export function useGridItems(
   }, [getItemById, updateItems, updateSelected]);
 
   const addItemWithCustomization = useCallback(
-    (itemId: string, x: number, y: number, customization: BinCustomization) => {
+    (itemId: string, x: number, y: number, customization: BinCustomization, paramHash?: string | null) => {
       const libraryItem = getItemById(itemId);
       if (!libraryItem) return;
 
@@ -243,6 +243,7 @@ export function useGridItems(
         rotation: 0,
         customization,
         parameters: libraryItem.parameters ? mergeGeneratorParams(libraryItem.parameters) : undefined,
+        paramHash: paramHash ?? null,
       };
 
       updateItems([...itemsRef.current, newItem]);
@@ -339,7 +340,7 @@ export function useGridItems(
     if (dragData.type === 'library') {
       addItem(dragData.itemId, dropX, dropY);
     } else if (dragData.type === 'favorite' && dragData.favoriteCustomization) {
-      addItemWithCustomization(dragData.itemId, dropX, dropY, dragData.favoriteCustomization);
+      addItemWithCustomization(dragData.itemId, dropX, dropY, dragData.favoriteCustomization, dragData.favoriteParamHash);
     } else if (dragData.type === 'placed' && dragData.instanceId) {
       const currentSelected = selectedRef.current;
       // Group move: if dragged item is part of a multi-selection, move the whole group

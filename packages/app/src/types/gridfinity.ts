@@ -75,6 +75,7 @@ export interface PlacedItem {
   customization?: BinCustomization;
   shadowBoxId?: string | null;
   parameters?: GeneratorParams;
+  paramHash?: string | null;
 }
 
 export interface PlacedItemWithValidity extends PlacedItem {
@@ -89,6 +90,7 @@ export interface DragData {
   refImageUrl?: string;
   refImageName?: string;
   favoriteCustomization?: BinCustomization;
+  favoriteParamHash?: string | null;
 }
 
 
