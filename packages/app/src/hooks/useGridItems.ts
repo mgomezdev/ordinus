@@ -228,6 +228,29 @@ export function useGridItems(
     updateSelected(new Set([newItem.instanceId]));
   }, [getItemById, updateItems, updateSelected]);
 
+  const addItemWithCustomization = useCallback(
+    (itemId: string, x: number, y: number, customization: BinCustomization) => {
+      const libraryItem = getItemById(itemId);
+      if (!libraryItem) return;
+
+      const newItem: PlacedItem = {
+        instanceId: generateInstanceId(),
+        itemId,
+        x,
+        y,
+        width: libraryItem.widthUnits,
+        height: libraryItem.heightUnits,
+        rotation: 0,
+        customization,
+        parameters: libraryItem.parameters ? mergeGeneratorParams(libraryItem.parameters) : undefined,
+      };
+
+      updateItems([...itemsRef.current, newItem]);
+      updateSelected(new Set([newItem.instanceId]));
+    },
+    [getItemById, updateItems, updateSelected],
+  );
+
   const moveItem = useCallback((instanceId: string, newX: number, newY: number) => {
     const updated = itemsRef.current.map(item =>
       item.instanceId === instanceId ? { ...item, x: newX, y: newY } : item
@@ -315,6 +338,8 @@ export function useGridItems(
   const handleDrop = useCallback((dragData: DragData, dropX: number, dropY: number) => {
     if (dragData.type === 'library') {
       addItem(dragData.itemId, dropX, dropY);
+    } else if (dragData.type === 'favorite' && dragData.favoriteCustomization) {
+      addItemWithCustomization(dragData.itemId, dropX, dropY, dragData.favoriteCustomization);
     } else if (dragData.type === 'placed' && dragData.instanceId) {
       const currentSelected = selectedRef.current;
       // Group move: if dragged item is part of a multi-selection, move the whole group
@@ -343,7 +368,7 @@ export function useGridItems(
         moveItem(dragData.instanceId, dropX, dropY);
       }
     }
-  }, [addItem, moveItem, gridX, gridY, updateItems]);
+  }, [addItem, addItemWithCustomization, moveItem, gridX, gridY, updateItems]);
 
   const deleteSelected = useCallback(() => {
     const ids = selectedRef.current;
@@ -479,6 +504,7 @@ export function useGridItems(
     selectedItemIds,
     clipboard,
     addItem,
+    addItemWithCustomization,
     moveItem,
     rotateItem,
     updateItemCustomization,
