@@ -4,6 +4,7 @@ import { existsSync } from 'fs';
 import path from 'path';
 import { normalize } from 'node:path';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
+import type { BinCustomization } from '@gridfinity/shared';
 import type { Request, Response, NextFunction } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { db } from '../db/connection.js';
@@ -69,12 +70,14 @@ router.post('/generate', requireAuth, async (req: Request, res: Response, next: 
 
     const { widthUnits, heightUnits } = itemRows[0];
 
+    const defaultCustomization: BinCustomization = {
+      wallPattern: 'none', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 4,
+    };
+
     const params = buildGenerateParams({
       widthUnits,
       heightUnits,
-      customization: customization ?? {
-        wallPattern: 'none', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 4,
-      },
+      customization: (customization as BinCustomization | undefined) ?? defaultCustomization,
       qty: 1,
       filename: 'bin.stl',
       baseModelPath,
@@ -93,7 +96,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response, next: 
 // GET /generation/status/:hash
 router.get('/status/:hash', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { hash } = req.params;
+    const hash = req.params['hash'] as string;
     if (hash.includes('..') || hash.includes('/') || hash.includes('\\')) {
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid hash');
     }
@@ -107,7 +110,8 @@ router.get('/status/:hash', async (req: Request, res: Response, next: NextFuncti
 // GET /generation/image/:hash/:filename — serve image, touch .accessed for custom
 router.get('/image/:hash/:filename', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { hash, filename } = req.params;
+    const hash = req.params['hash'] as string;
+    const filename = req.params['filename'] as string;
 
     if (
       !VALID_IMAGE_FILENAMES.has(filename) ||
@@ -144,7 +148,7 @@ router.get('/image/:hash/:filename', async (req: Request, res: Response, next: N
 // GET /generation/stl/:hash — serve STL
 router.get('/stl/:hash', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { hash } = req.params;
+    const hash = req.params['hash'] as string;
     if (hash.includes('..') || hash.includes('/') || hash.includes('\\')) {
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid hash');
     }

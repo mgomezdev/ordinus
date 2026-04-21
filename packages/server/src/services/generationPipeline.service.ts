@@ -24,13 +24,15 @@ function runPython(args: string[]): Promise<void> {
 
 export class GenerationPipelineService extends EventEmitter {
   private readonly jobs = new Map<string, Promise<void>>();
+  private readonly generatedDir: string;
+  private readonly generatorDir: string;
+  private readonly libraryBuilderDir: string;
 
-  constructor(
-    private readonly generatedDir: string,
-    private readonly generatorDir: string,
-    private readonly libraryBuilderDir: string,
-  ) {
+  constructor(generatedDir: string, generatorDir: string, libraryBuilderDir: string) {
     super();
+    this.generatedDir = generatedDir;
+    this.generatorDir = generatorDir;
+    this.libraryBuilderDir = libraryBuilderDir;
   }
 
   async getStatus(hash: string): Promise<GenerationStatus> {

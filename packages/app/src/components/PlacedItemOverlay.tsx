@@ -1,7 +1,7 @@
 import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
-import type { PlacedItemWithValidity, LibraryItem, ImageViewMode, BinCustomization, LibraryMeta } from '../types/gridfinity';
+import type { PlacedItemWithValidity, LibraryItem, ImageViewMode, BinCustomization, LibraryMeta, CustomizableFieldDef } from '../types/gridfinity';
 import { isDefaultCustomization, DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
 import { generatorParamsToBinCustomization } from '../utils/generatorParams';
 import { usePointerDragSource } from '../hooks/usePointerDrag';
@@ -203,8 +203,9 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
 
   const handlePopoverReset = useCallback(() => {
     const allFields = ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'] as const;
+    const allFieldDefs = allFields.map(f => ({ field: f })) as CustomizableFieldDef[];
     const libraryDefaults = item.parameters
-      ? generatorParamsToBinCustomization(item.parameters, [...allFields])
+      ? generatorParamsToBinCustomization(item.parameters, allFieldDefs)
       : {};
     const hasLibraryDefaults = Object.keys(libraryDefaults).length > 0;
     if (hasLibraryDefaults) {

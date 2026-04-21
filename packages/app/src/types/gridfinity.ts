@@ -105,7 +105,7 @@ export interface ReferenceImage {
   rotation: Rotation;
 }
 
-export type WallPattern = 'none' | 'grid' | 'hexgrid' | 'brick';
+export type WallPattern = 'none' | 'grid' | 'hexgrid' | 'brick' | 'voronoi' | 'voronoigrid' | 'voronoihexgrid';
 export type LipStyle = 'normal' | 'reduced' | 'minimum' | 'none';
 export type FingerSlide = 'none' | 'rounded' | 'chamfered';
 export type WallCutout = 'none' | 'vertical' | 'horizontal' | 'both';
