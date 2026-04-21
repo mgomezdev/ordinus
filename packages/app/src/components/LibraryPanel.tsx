@@ -3,6 +3,8 @@ import { useWorkspace } from '../contexts/WorkspaceContext';
 import { ItemLibrary } from './ItemLibrary';
 import { RefImageLibrary } from './RefImageLibrary';
 import { UserStlLibrarySection } from './UserStlLibrarySection';
+import { FavoriteCard } from './FavoriteCard';
+import { useFavorites } from '../hooks/useFavorites';
 
 interface LibraryPanelProps {
   width: number;
@@ -16,8 +18,9 @@ export function LibraryPanel({ width, isMobile, isOpen }: LibraryPanelProps) {
     libraryItems, isLibraryLoading, isLibrariesLoading,
     libraryError, librariesError, categories,
   } = useWorkspace();
+  const { favorites, removeFavorite, renameFavorite } = useFavorites();
 
-  const [libraryTab, setLibraryTab] = useState<'items' | 'images'>('items');
+  const [libraryTab, setLibraryTab] = useState<'favorites' | 'items' | 'images'>('items');
   const [libraryCategory, setLibraryCategory] = useState<string | null>(null);
 
   return (
@@ -33,6 +36,13 @@ export function LibraryPanel({ width, isMobile, isOpen }: LibraryPanelProps) {
         </div>
       </div>
       <div className="library-panel-tabs">
+        {isAuthenticated && (
+          <button
+            className={`library-cat-tab${libraryTab === 'favorites' ? ' active' : ''}`}
+            onClick={() => setLibraryTab('favorites')}
+            type="button"
+          >♥</button>
+        )}
         <button
           className={`library-cat-tab${libraryTab === 'items' && !libraryCategory ? ' active' : ''}`}
           onClick={() => { setLibraryTab('items'); setLibraryCategory(null); }}
@@ -55,7 +65,24 @@ export function LibraryPanel({ width, isMobile, isOpen }: LibraryPanelProps) {
         )}
       </div>
       <div className="library-panel-content">
-        {libraryTab === 'items' ? (
+        {libraryTab === 'favorites' && isAuthenticated ? (
+          favorites.length === 0 ? (
+            <div className="favorites-empty-state">
+              <p>No favorites yet. Click the ♥ button on any item to save it here.</p>
+            </div>
+          ) : (
+            <div className="favorites-grid">
+              {favorites.map((fav) => (
+                <FavoriteCard
+                  key={fav.id}
+                  favorite={fav}
+                  onRemove={() => removeFavorite(fav.id)}
+                  onRename={(name) => renameFavorite(fav.id, name)}
+                />
+              ))}
+            </div>
+          )
+        ) : libraryTab === 'items' ? (
           <>
             <ItemLibrary
               items={libraryItems}
