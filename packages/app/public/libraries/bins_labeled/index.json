@@ -18,8 +18,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_1x1_labeled.png",
-      "perspectiveImageUrl": "bin_1x1_labeled-perspective.png",
       "parameters": {
         "width": [
           1,
@@ -29,10 +27,7 @@
           1,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_1x1_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_1x1_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_1x1_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-1x2-labeled",
@@ -43,8 +38,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_1x2_labeled.png",
-      "perspectiveImageUrl": "bin_1x2_labeled-perspective.png",
       "parameters": {
         "width": [
           1,
@@ -54,10 +47,7 @@
           2,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_1x2_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_1x2_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_1x2_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-1x3-labeled",
@@ -68,8 +58,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_1x3_labeled.png",
-      "perspectiveImageUrl": "bin_1x3_labeled-perspective.png",
       "parameters": {
         "width": [
           1,
@@ -79,10 +67,7 @@
           3,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_1x3_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_1x3_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_1x3_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-1x4-labeled",
@@ -93,8 +78,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_1x4_labeled.png",
-      "perspectiveImageUrl": "bin_1x4_labeled-perspective.png",
       "parameters": {
         "width": [
           1,
@@ -104,10 +87,7 @@
           4,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_1x4_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_1x4_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_1x4_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-1x5-labeled",
@@ -118,8 +98,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_1x5_labeled.png",
-      "perspectiveImageUrl": "bin_1x5_labeled-perspective.png",
       "parameters": {
         "width": [
           1,
@@ -129,10 +107,7 @@
           5,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_1x5_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_1x5_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_1x5_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-2x1-labeled",
@@ -143,8 +118,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_2x1_labeled.png",
-      "perspectiveImageUrl": "bin_2x1_labeled-perspective.png",
       "parameters": {
         "width": [
           2,
@@ -154,10 +127,7 @@
           1,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_2x1_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_2x1_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_2x1_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-2x2-labeled",
@@ -168,8 +138,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_2x2_labeled.png",
-      "perspectiveImageUrl": "bin_2x2_labeled-perspective.png",
       "parameters": {
         "width": [
           2,
@@ -179,10 +147,7 @@
           2,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_2x2_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_2x2_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_2x2_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-2x3-labeled",
@@ -193,8 +158,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_2x3_labeled.png",
-      "perspectiveImageUrl": "bin_2x3_labeled-perspective.png",
       "parameters": {
         "width": [
           2,
@@ -204,10 +167,7 @@
           3,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_2x3_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_2x3_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_2x3_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-2x4-labeled",
@@ -218,8 +178,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_2x4_labeled.png",
-      "perspectiveImageUrl": "bin_2x4_labeled-perspective.png",
       "parameters": {
         "width": [
           2,
@@ -229,10 +187,7 @@
           4,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_2x4_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_2x4_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_2x4_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-2x5-labeled",
@@ -243,8 +198,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_2x5_labeled.png",
-      "perspectiveImageUrl": "bin_2x5_labeled-perspective.png",
       "parameters": {
         "width": [
           2,
@@ -254,10 +207,7 @@
           5,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_2x5_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_2x5_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_2x5_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-3x1-labeled",
@@ -268,8 +218,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_3x1_labeled.png",
-      "perspectiveImageUrl": "bin_3x1_labeled-perspective.png",
       "parameters": {
         "width": [
           3,
@@ -279,10 +227,7 @@
           1,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_3x1_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_3x1_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_3x1_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-3x2-labeled",
@@ -293,8 +238,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_3x2_labeled.png",
-      "perspectiveImageUrl": "bin_3x2_labeled-perspective.png",
       "parameters": {
         "width": [
           3,
@@ -304,10 +247,7 @@
           2,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_3x2_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_3x2_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_3x2_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-3x3-labeled",
@@ -318,8 +258,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_3x3_labeled.png",
-      "perspectiveImageUrl": "bin_3x3_labeled-perspective.png",
       "parameters": {
         "width": [
           3,
@@ -329,10 +267,7 @@
           3,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_3x3_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_3x3_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_3x3_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-3x4-labeled",
@@ -343,8 +278,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_3x4_labeled.png",
-      "perspectiveImageUrl": "bin_3x4_labeled-perspective.png",
       "parameters": {
         "width": [
           3,
@@ -354,10 +287,7 @@
           4,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_3x4_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_3x4_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_3x4_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-3x5-labeled",
@@ -368,8 +298,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_3x5_labeled.png",
-      "perspectiveImageUrl": "bin_3x5_labeled-perspective.png",
       "parameters": {
         "width": [
           3,
@@ -379,10 +307,7 @@
           5,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_3x5_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_3x5_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_3x5_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-4x1-labeled",
@@ -393,8 +318,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_4x1_labeled.png",
-      "perspectiveImageUrl": "bin_4x1_labeled-perspective.png",
       "parameters": {
         "width": [
           4,
@@ -404,10 +327,7 @@
           1,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_4x1_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_4x1_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_4x1_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-4x2-labeled",
@@ -418,8 +338,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_4x2_labeled.png",
-      "perspectiveImageUrl": "bin_4x2_labeled-perspective.png",
       "parameters": {
         "width": [
           4,
@@ -429,10 +347,7 @@
           2,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_4x2_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_4x2_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_4x2_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-4x3-labeled",
@@ -443,8 +358,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_4x3_labeled.png",
-      "perspectiveImageUrl": "bin_4x3_labeled-perspective.png",
       "parameters": {
         "width": [
           4,
@@ -454,10 +367,7 @@
           3,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_4x3_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_4x3_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_4x3_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-4x4-labeled",
@@ -468,8 +378,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_4x4_labeled.png",
-      "perspectiveImageUrl": "bin_4x4_labeled-perspective.png",
       "parameters": {
         "width": [
           4,
@@ -479,10 +387,7 @@
           4,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_4x4_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_4x4_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_4x4_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-4x5-labeled",
@@ -493,8 +398,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_4x5_labeled.png",
-      "perspectiveImageUrl": "bin_4x5_labeled-perspective.png",
       "parameters": {
         "width": [
           4,
@@ -504,10 +407,7 @@
           5,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_4x5_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_4x5_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_4x5_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-5x1-labeled",
@@ -518,8 +418,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_5x1_labeled.png",
-      "perspectiveImageUrl": "bin_5x1_labeled-perspective.png",
       "parameters": {
         "width": [
           5,
@@ -529,10 +427,7 @@
           1,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_5x1_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_5x1_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_5x1_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-5x2-labeled",
@@ -543,8 +438,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_5x2_labeled.png",
-      "perspectiveImageUrl": "bin_5x2_labeled-perspective.png",
       "parameters": {
         "width": [
           5,
@@ -554,10 +447,7 @@
           2,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_5x2_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_5x2_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_5x2_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-5x3-labeled",
@@ -568,8 +458,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_5x3_labeled.png",
-      "perspectiveImageUrl": "bin_5x3_labeled-perspective.png",
       "parameters": {
         "width": [
           5,
@@ -579,10 +467,7 @@
           3,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_5x3_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_5x3_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_5x3_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-5x4-labeled",
@@ -593,8 +478,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_5x4_labeled.png",
-      "perspectiveImageUrl": "bin_5x4_labeled-perspective.png",
       "parameters": {
         "width": [
           5,
@@ -604,10 +487,7 @@
           4,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_5x4_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_5x4_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_5x4_labeled-perspective-270.png"
+      }
     },
     {
       "id": "bin-5x5-labeled",
@@ -618,8 +498,6 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_5x5_labeled.png",
-      "perspectiveImageUrl": "bin_5x5_labeled-perspective.png",
       "parameters": {
         "width": [
           5,
@@ -629,10 +507,7 @@
           5,
           0
         ]
-      },
-      "perspectiveImageUrl90": "bin_5x5_labeled-perspective-90.png",
-      "perspectiveImageUrl180": "bin_5x5_labeled-perspective-180.png",
-      "perspectiveImageUrl270": "bin_5x5_labeled-perspective-270.png"
+      }
     }
   ],
   "parameters": {

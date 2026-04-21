@@ -17,8 +17,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_2x2.png",
-      "perspectiveImageUrl": "shadowbox_2x2-perspective.png",
       "parameters": {
         "width": [
           2,
@@ -28,10 +26,7 @@
           2,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_2x2-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_2x2-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_2x2-perspective-270.png"
+      }
     },
     {
       "id": "shadowbox-2x3",
@@ -42,8 +37,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_2x3.png",
-      "perspectiveImageUrl": "shadowbox_2x3-perspective.png",
       "parameters": {
         "width": [
           2,
@@ -53,10 +46,7 @@
           3,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_2x3-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_2x3-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_2x3-perspective-270.png"
+      }
     },
     {
       "id": "shadowbox-2x4",
@@ -67,8 +57,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_2x4.png",
-      "perspectiveImageUrl": "shadowbox_2x4-perspective.png",
       "parameters": {
         "width": [
           2,
@@ -78,10 +66,7 @@
           4,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_2x4-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_2x4-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_2x4-perspective-270.png"
+      }
     },
     {
       "id": "shadowbox-2x5",
@@ -92,8 +77,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_2x5.png",
-      "perspectiveImageUrl": "shadowbox_2x5-perspective.png",
       "parameters": {
         "width": [
           2,
@@ -103,10 +86,7 @@
           5,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_2x5-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_2x5-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_2x5-perspective-270.png"
+      }
     },
     {
       "id": "shadowbox-3x2",
@@ -117,8 +97,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_3x2.png",
-      "perspectiveImageUrl": "shadowbox_3x2-perspective.png",
       "parameters": {
         "width": [
           3,
@@ -128,10 +106,7 @@
           2,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_3x2-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_3x2-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_3x2-perspective-270.png"
+      }
     },
     {
       "id": "shadowbox-3x3",
@@ -142,8 +117,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_3x3.png",
-      "perspectiveImageUrl": "shadowbox_3x3-perspective.png",
       "parameters": {
         "width": [
           3,
@@ -153,10 +126,7 @@
           3,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_3x3-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_3x3-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_3x3-perspective-270.png"
+      }
     },
     {
       "id": "shadowbox-3x4",
@@ -167,8 +137,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_3x4.png",
-      "perspectiveImageUrl": "shadowbox_3x4-perspective.png",
       "parameters": {
         "width": [
           3,
@@ -178,10 +146,7 @@
           4,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_3x4-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_3x4-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_3x4-perspective-270.png"
+      }
     },
     {
       "id": "shadowbox-3x5",
@@ -192,8 +157,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_3x5.png",
-      "perspectiveImageUrl": "shadowbox_3x5-perspective.png",
       "parameters": {
         "width": [
           3,
@@ -203,10 +166,7 @@
           5,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_3x5-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_3x5-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_3x5-perspective-270.png"
+      }
     },
     {
       "id": "shadowbox-4x2",
@@ -217,8 +177,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_4x2.png",
-      "perspectiveImageUrl": "shadowbox_4x2-perspective.png",
       "parameters": {
         "width": [
           4,
@@ -228,10 +186,7 @@
           2,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_4x2-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_4x2-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_4x2-perspective-270.png"
+      }
     },
     {
       "id": "shadowbox-4x3",
@@ -242,8 +197,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_4x3.png",
-      "perspectiveImageUrl": "shadowbox_4x3-perspective.png",
       "parameters": {
         "width": [
           4,
@@ -253,10 +206,7 @@
           3,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_4x3-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_4x3-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_4x3-perspective-270.png"
+      }
     },
     {
       "id": "shadowbox-4x4",
@@ -267,8 +217,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_4x4.png",
-      "perspectiveImageUrl": "shadowbox_4x4-perspective.png",
       "parameters": {
         "width": [
           4,
@@ -278,10 +226,7 @@
           4,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_4x4-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_4x4-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_4x4-perspective-270.png"
+      }
     },
     {
       "id": "shadowbox-4x5",
@@ -292,8 +237,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_4x5.png",
-      "perspectiveImageUrl": "shadowbox_4x5-perspective.png",
       "parameters": {
         "width": [
           4,
@@ -303,10 +246,7 @@
           5,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_4x5-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_4x5-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_4x5-perspective-270.png"
+      }
     },
     {
       "id": "shadowbox-5x2",
@@ -317,8 +257,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_5x2.png",
-      "perspectiveImageUrl": "shadowbox_5x2-perspective.png",
       "parameters": {
         "width": [
           5,
@@ -328,10 +266,7 @@
           2,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_5x2-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_5x2-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_5x2-perspective-270.png"
+      }
     },
     {
       "id": "shadowbox-5x3",
@@ -342,8 +277,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_5x3.png",
-      "perspectiveImageUrl": "shadowbox_5x3-perspective.png",
       "parameters": {
         "width": [
           5,
@@ -353,10 +286,7 @@
           3,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_5x3-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_5x3-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_5x3-perspective-270.png"
+      }
     },
     {
       "id": "shadowbox-5x4",
@@ -367,8 +297,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_5x4.png",
-      "perspectiveImageUrl": "shadowbox_5x4-perspective.png",
       "parameters": {
         "width": [
           5,
@@ -378,10 +306,7 @@
           4,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_5x4-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_5x4-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_5x4-perspective-270.png"
+      }
     },
     {
       "id": "shadowbox-5x5",
@@ -392,8 +317,6 @@
       "categories": [
         "shadowbox"
       ],
-      "imageUrl": "shadowbox_5x5.png",
-      "perspectiveImageUrl": "shadowbox_5x5-perspective.png",
       "parameters": {
         "width": [
           5,
@@ -403,10 +326,7 @@
           5,
           0
         ]
-      },
-      "perspectiveImageUrl90": "shadowbox_5x5-perspective-90.png",
-      "perspectiveImageUrl180": "shadowbox_5x5-perspective-180.png",
-      "perspectiveImageUrl270": "shadowbox_5x5-perspective-270.png"
+      }
     }
   ],
   "parameters": {

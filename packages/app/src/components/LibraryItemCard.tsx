@@ -13,11 +13,9 @@ const HOVER_DELAY = 200;
 
 export function LibraryItemCard({ item }: LibraryItemCardProps) {
   const effectiveImageUrl = (() => {
+    // Prefer generated image when paramHash is available — it's the authoritative render
+    if (item.paramHash) return generatedImageUrl(item.paramHash, 'ortho.png');
     if (item.imageUrl) return item.imageUrl;
-    if (item.paramHash) {
-      // Try loading speculatively — may already be done from prior server start
-      return generatedImageUrl(item.paramHash, 'ortho.png');
-    }
     return undefined;
   })();
 
@@ -28,7 +26,7 @@ export function LibraryItemCard({ item }: LibraryItemCardProps) {
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const hasAnyImage = !!(item.perspectiveImageUrl || item.imageUrl);
+  const hasAnyImage = !!(item.perspectiveImageUrl || item.imageUrl || item.paramHash);
 
   const hidePopover = useCallback(() => {
     if (hoverTimerRef.current) {
