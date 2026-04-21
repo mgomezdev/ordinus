@@ -78,10 +78,14 @@ export async function deleteFavorite(
   favoriteId: string,
   userId: number,
 ): Promise<boolean> {
-  const result = await db
-    .delete(favorites)
-    .where(and(eq(favorites.id, favoriteId), eq(favorites.userId, userId)));
-  return (result.rowsAffected ?? 0) > 0;
+  const existing = await db
+    .select({ id: favorites.id })
+    .from(favorites)
+    .where(and(eq(favorites.id, favoriteId), eq(favorites.userId, userId)))
+    .limit(1);
+  if (existing.length === 0) return false;
+  await db.delete(favorites).where(eq(favorites.id, favoriteId));
+  return true;
 }
 
 export async function renameFavorite(
@@ -89,9 +93,12 @@ export async function renameFavorite(
   userId: number,
   name: string,
 ): Promise<boolean> {
-  const result = await db
-    .update(favorites)
-    .set({ name })
-    .where(and(eq(favorites.id, favoriteId), eq(favorites.userId, userId)));
-  return (result.rowsAffected ?? 0) > 0;
+  const existing = await db
+    .select({ id: favorites.id })
+    .from(favorites)
+    .where(and(eq(favorites.id, favoriteId), eq(favorites.userId, userId)))
+    .limit(1);
+  if (existing.length === 0) return false;
+  await db.update(favorites).set({ name }).where(eq(favorites.id, favoriteId));
+  return true;
 }
