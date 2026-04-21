@@ -209,7 +209,8 @@ export function GridPreview({
                   if (libraryItem) {
                     const colonIdx = item.itemId.indexOf(':');
                     const libraryId = colonIdx !== -1 ? item.itemId.slice(0, colonIdx) : item.itemId;
-                    void trackGeneration(instanceId, libraryId, item.itemId, customization);
+                    const bareItemId = colonIdx !== -1 ? item.itemId.slice(colonIdx + 1) : item.itemId;
+                    void trackGeneration(instanceId, libraryId, bareItemId, customization);
                   }
                 }}
               />

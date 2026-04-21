@@ -6,7 +6,13 @@ import type React from 'react';
 
 // Mock the PlacedItemOverlay component
 vi.mock('./PlacedItemOverlay', () => ({
-  PlacedItemOverlay: ({ item, gridX, gridY, isSelected, imageViewMode }: { item: { instanceId: string; itemId: string; x: number; y: number; width: number; height: number }; gridX: number; gridY: number; isSelected: boolean; imageViewMode?: string }) => (
+  PlacedItemOverlay: ({
+    item, gridX, gridY, isSelected, imageViewMode, onCustomizationChangeWithGeneration,
+  }: {
+    item: { instanceId: string; itemId: string; x: number; y: number; width: number; height: number };
+    gridX: number; gridY: number; isSelected: boolean; imageViewMode?: string;
+    onCustomizationChangeWithGeneration?: (instanceId: string, customization: unknown) => void;
+  }) => (
     <div
       data-testid={`placed-item-${item.instanceId}`}
       className="placed-item"
@@ -20,6 +26,12 @@ vi.mock('./PlacedItemOverlay', () => ({
       data-image-view-mode={imageViewMode || 'ortho'}
     >
       {item.itemId}
+      <button
+        data-testid={`trigger-customization-${item.instanceId}`}
+        onClick={() => onCustomizationChangeWithGeneration?.(item.instanceId, { wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 4 })}
+      >
+        change customization
+      </button>
     </div>
   ),
 }));
@@ -54,9 +66,12 @@ vi.mock('../hooks/usePointerDrag', () => ({
 }));
 
 // Mock WorkspaceContext since GridPreview now calls useWorkspace()
+const { mockTrackGeneration } = vi.hoisted(() => ({
+  mockTrackGeneration: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('../contexts/WorkspaceContext', () => ({
   useWorkspace: () => ({
-    trackGeneration: vi.fn(),
+    trackGeneration: mockTrackGeneration,
     instanceGenerationHash: new Map<string, string>(),
     getGenerationEntry: vi.fn(() => undefined),
   }),
@@ -79,6 +94,7 @@ describe('GridPreview', () => {
     vi.clearAllMocks();
     mockRegisterDropTarget.mockClear();
     mockUnregisterDropTarget.mockClear();
+    mockTrackGeneration.mockClear();
     originalGetBoundingClientRect = Element.prototype.getBoundingClientRect;
   });
 
@@ -1216,6 +1232,45 @@ describe('GridPreview', () => {
       fireEvent.keyDown(gridContainer, { key: 'a' });
 
       expect(mockOnSelectItem).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Generation on Customization Change', () => {
+    it('calls trackGeneration with bare itemId (not prefixed) when customization changes', () => {
+      // item.itemId uses the libraryId:itemId format; the server lookup expects
+      // libraryId and itemId as separate values — passing the full prefixed string
+      // as itemId causes a 404 and silently suppresses spinner + image update.
+      const item = createMockItem({ instanceId: 'inst-1', itemId: 'bins_standard:2x2_basic' });
+      const libraryItem: LibraryItem = {
+        id: '2x2_basic',
+        name: '2x2 Basic',
+        widthUnits: 2,
+        heightUnits: 2,
+        color: '#3B82F6',
+        categories: [],
+      };
+      const getItemById = vi.fn((_id: string) => libraryItem);
+
+      render(
+        <GridPreview
+          gridX={4}
+          gridY={4}
+          placedItems={[item]}
+          selectedItemIds={new Set(['inst-1'])}
+          onDrop={vi.fn()}
+          onSelectItem={vi.fn()}
+          getItemById={getItemById}
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId('trigger-customization-inst-1'));
+
+      expect(mockTrackGeneration).toHaveBeenCalledWith(
+        'inst-1',
+        'bins_standard',         // libraryId — part before the colon
+        '2x2_basic',             // itemId   — part after the colon (bare)
+        expect.objectContaining({ wallPattern: 'grid' }),
+      );
     });
   });
 
