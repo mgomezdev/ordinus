@@ -18,6 +18,14 @@ import { logger } from '../logger.js';
 
 const router = Router();
 
+// Fan-out registry: single pair of EventEmitter listeners broadcast to all SSE clients,
+// keeping the emitter's listener count at 2 regardless of concurrent connections.
+const sseSubscribers = new Set<(data: object) => void>();
+generationPipeline.on('generation:complete', (d: { hash: string }) =>
+  sseSubscribers.forEach(send => send({ type: 'generation:complete', hash: d.hash })));
+generationPipeline.on('generation:failed', (d: { hash: string; error: string }) =>
+  sseSubscribers.forEach(send => send({ type: 'generation:failed', hash: d.hash, error: d.error })));
+
 const VALID_IMAGE_FILENAMES = new Set([
   'ortho.png',
   'perspective_0.png',
@@ -177,21 +185,10 @@ router.get('/events', (req: Request, res: Response) => {
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 
-  const send = (data: object) => {
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
-  };
+  const send = (data: object) => { res.write(`data: ${JSON.stringify(data)}\n\n`); };
 
-  const onComplete = (d: { hash: string }) => send({ type: 'generation:complete', hash: d.hash });
-  const onFailed = (d: { hash: string; error: string }) =>
-    send({ type: 'generation:failed', hash: d.hash, error: d.error });
-
-  generationPipeline.on('generation:complete', onComplete);
-  generationPipeline.on('generation:failed', onFailed);
-
-  req.on('close', () => {
-    generationPipeline.off('generation:complete', onComplete);
-    generationPipeline.off('generation:failed', onFailed);
-  });
+  sseSubscribers.add(send);
+  req.on('close', () => { sseSubscribers.delete(send); });
 
   logger.debug('SSE client connected for generation events');
 });
