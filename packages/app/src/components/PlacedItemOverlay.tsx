@@ -10,6 +10,7 @@ import { BinCustomizationPanel } from './BinCustomizationPanel';
 import { getRotatedPerspectiveUrl } from '../utils/imageHelpers';
 import { BinContextMenu } from './BinContextMenu';
 import { useAuth } from '../contexts/AuthContext';
+import { useFavorites } from '../hooks/useFavorites';
 import { generatedImageUrl } from '../api/generation.api';
 
 interface PlacedItemOverlayProps {
@@ -56,6 +57,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const [libraryMeta, setLibraryMeta] = useState<LibraryMeta>({ customizableFields: [], parameters: {} });
 
   const { isAuthenticated } = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [, setSearchParams] = useSearchParams();
 
   useEffect(() => {
@@ -273,6 +275,8 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const effectiveContextMenuPos = isSelected ? contextMenuPos : null;
 
   const badges = getCustomizationBadges(item.customization);
+  const currentCustomization = item.customization ?? DEFAULT_BIN_CUSTOMIZATION;
+  const isFavorited = isAuthenticated && isFavorite(item.itemId, currentCustomization);
 
   return (
     <div
@@ -344,6 +348,21 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
+          {isAuthenticated && libraryItem && (
+            <button
+              className={`placed-item-toolbar-btn placed-item-toolbar-btn--heart${isFavorited ? ' favorited' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                const generationHash = generationEntry?.status === 'complete' ? generationEntry.hash : (libraryItem.paramHash ?? null);
+                toggleFavorite(libraryItem, currentCustomization, generationHash);
+              }}
+              draggable={false}
+              aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+              title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              {isFavorited ? '♥' : '♡'}
+            </button>
+          )}
           {onRotateCcw && (
             <button
               className="placed-item-toolbar-btn"
