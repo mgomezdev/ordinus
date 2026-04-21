@@ -11,7 +11,7 @@ export interface GenerationEntry {
 
 export interface UseGenerationStateReturn {
   getEntry(hash: string): GenerationEntry | undefined;
-  trackHash(hash: string): void;
+  trackHash(hash: string, initialStatus?: GenerationStatus): void;
 }
 
 export function useGenerationState(apiBase: string): UseGenerationStateReturn {
@@ -31,11 +31,11 @@ export function useGenerationState(apiBase: string): UseGenerationStateReturn {
 
   useGenerationEvents(apiBase, onEvent);
 
-  const trackHash = useCallback((hash: string) => {
+  const trackHash = useCallback((hash: string, initialStatus: GenerationStatus = 'pending') => {
     setEntries((prev) => {
       if (prev.has(hash)) return prev;
       const next = new Map(prev);
-      next.set(hash, { hash, status: 'pending' });
+      next.set(hash, { hash, status: initialStatus });
       return next;
     });
   }, []);

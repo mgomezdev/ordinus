@@ -390,8 +390,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       const token = getAccessToken();
       if (!token) return;
       try {
-        const { hash } = await requestGenerationApi(libraryId, itemId, customization, token);
-        trackHash(hash);
+        const { hash, status } = await requestGenerationApi(libraryId, itemId, customization, token);
+        trackHash(hash, status);
         recordInstanceHash(instanceId, hash);
       } catch {
         // non-critical — UI will just not show spinner

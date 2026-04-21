@@ -70,9 +70,13 @@ export class GenerationPipelineService extends EventEmitter {
     this.jobs.set(hash, Promise.resolve());
 
     const current = await this.checkDisk(hash);
-    if (current === 'complete' || current === 'failed') {
+    if (current === 'complete') {
       this.jobs.delete(hash);
-      return current;
+      return 'complete';
+    }
+    // Always retry failed jobs — prior failure may have been transient
+    if (current === 'failed') {
+      await this.clearError(hash, 'custom');
     }
 
     this.startJob(hash, params, baseModelPath, 'custom');
@@ -90,12 +94,21 @@ export class GenerationPipelineService extends EventEmitter {
     this.jobs.set(hash, Promise.resolve());
 
     const current = await this.checkDisk(hash);
-    if (current === 'complete' || current === 'failed') {
+    if (current === 'complete') {
       this.jobs.delete(hash);
       return;
     }
+    // Always retry failed jobs — prior failure may have been transient
+    if (current === 'failed') {
+      await this.clearError(hash, 'library');
+    }
 
     this.startJob(hash, params, baseModelPath, 'library');
+  }
+
+  private async clearError(hash: string, subdir: 'library' | 'custom'): Promise<void> {
+    const errorFile = path.join(this.generatedDir, subdir, hash, 'error.txt');
+    try { await fs.unlink(errorFile); } catch { /* ok if already gone */ }
   }
 
   private startJob(
