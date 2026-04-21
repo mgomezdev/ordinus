@@ -225,11 +225,7 @@ def render_stl_to_png_perspective(stl_path, output_path, max_dimension=800, came
             270: (0.0, -1.0),
         }
 
-        if rotation != 0:
-            key = rotation % 360
-            cos_a, sin_a = EXACT_ROTATIONS.get(
-                key, (np.cos(np.radians(rotation)), np.sin(np.radians(rotation)))
-            )
+        def _apply_z_rotation(cos_a, sin_a):
             v = stl_mesh.vectors
             x_all = v[:, :, 0].copy()
             y_all = v[:, :, 1].copy()
@@ -243,6 +239,16 @@ def render_stl_to_png_perspective(stl_path, output_path, max_dimension=800, came
             for attr in ('_min', '_max'):
                 if hasattr(stl_mesh, attr):
                     delattr(stl_mesh, attr)
+
+        # Flip 180° so the label/front face appears at the top of the image
+        _apply_z_rotation(*EXACT_ROTATIONS[180])
+
+        if rotation != 0:
+            key = rotation % 360
+            cos_a, sin_a = EXACT_ROTATIONS.get(
+                key, (np.cos(np.radians(rotation)), np.sin(np.radians(rotation)))
+            )
+            _apply_z_rotation(cos_a, sin_a)
 
         min_b = stl_mesh.min_
         max_b = stl_mesh.max_

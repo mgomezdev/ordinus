@@ -2152,6 +2152,31 @@
   display: none;
 }
 
+/* Generation Spinner — shared by LibraryItemCard and PlacedItemOverlay */
+.generation-spinner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: inherit;
+  z-index: 2;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(59, 130, 246, 0.25);
+  border-top-color: var(--blue-500, #3b82f6);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Library Item Image Support */
 .library-item-image {
   width: 100%;
