@@ -240,9 +240,6 @@ def render_stl_to_png_perspective(stl_path, output_path, max_dimension=800, came
                 if hasattr(stl_mesh, attr):
                     delattr(stl_mesh, attr)
 
-        # Flip 180° so the label/front face appears at the top of the image
-        _apply_z_rotation(*EXACT_ROTATIONS[180])
-
         if rotation != 0:
             key = rotation % 360
             cos_a, sin_a = EXACT_ROTATIONS.get(
