@@ -222,7 +222,7 @@ export async function reseedLibraryData(client: Client, logger: Logger): Promise
         const generateParams = buildGenerateParams({
           widthUnits: item.widthUnits,
           heightUnits: item.heightUnits,
-          customization: { wallPattern: 'none', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 4 },
+          customization: { wallPatternEnabled: false, wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 4 },
           qty: 1,
           filename: 'bin.stl',
           baseModelPath,

@@ -22,11 +22,13 @@ export function generatorParamsToBinCustomization(
     result.fingerSlide = params.fingerslide as FingerSlide;
   }
 
-  if (hasField(customizableFields, 'wallPattern')) {
+  if ((hasField(customizableFields, 'wallPatternEnabled') || hasField(customizableFields, 'wallPattern')) && params.wallpattern_enabled !== undefined) {
     if (params.wallpattern_enabled === true) {
+      result.wallPatternEnabled = true;
       result.wallPattern = ((params.wallpattern_style ?? 'grid') as WallPattern);
-    } else if (params.wallpattern_enabled === false) {
-      result.wallPattern = 'none';
+    } else {
+      result.wallPatternEnabled = false;
+      result.wallPattern = ((params.wallpattern_style ?? 'grid') as WallPattern);
     }
   }
 

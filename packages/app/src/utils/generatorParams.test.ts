@@ -3,12 +3,12 @@ import { mergeGeneratorParams, generatorParamsToBinCustomization } from './gener
 import type { CustomizableFieldDef } from '../types/gridfinity';
 
 // Build minimal field defs for test assertions — only `field` matters for inclusion checks
-function defs(...fields: Array<'wallPattern' | 'lipStyle' | 'fingerSlide' | 'wallCutout' | 'height'>): CustomizableFieldDef[] {
-  return fields.map(f =>
-    f === 'height'
-      ? { field: f, label: 'Height', min: 1, max: 20 }
-      : { field: f, label: f, options: [] }
-  );
+function defs(...fields: Array<'wallPatternEnabled' | 'wallPattern' | 'lipStyle' | 'fingerSlide' | 'wallCutout' | 'height'>): CustomizableFieldDef[] {
+  return fields.map(f => {
+    if (f === 'height') return { field: f, label: 'Height', min: 1, max: 20 };
+    if (f === 'wallPatternEnabled') return { field: f, label: 'Wall Pattern' };
+    return { field: f, label: f, options: [] };
+  });
 }
 
 describe('mergeGeneratorParams', () => {
@@ -68,12 +68,13 @@ describe('generatorParamsToBinCustomization', () => {
     expect(result.wallPattern).toBe('grid');
   });
 
-  it('maps wallpattern_enabled: false to none', () => {
+  it('maps wallpattern_enabled: false to wallPatternEnabled: false', () => {
     const result = generatorParamsToBinCustomization(
       { wallpattern_enabled: false },
       defs('wallPattern')
     );
-    expect(result.wallPattern).toBe('none');
+    expect(result.wallPatternEnabled).toBe(false);
+    expect(result.wallPattern).toBe('grid');
   });
 
   it('ignores wallPattern params when wallPattern not in customizableFields', () => {

@@ -75,7 +75,8 @@ describe('PlacedItemOverlay', () => {
 
   const mockGetLibraryMeta = vi.fn().mockResolvedValue({
     customizableFields: [
-      { field: 'wallPattern', label: 'Wall Pattern', options: ['none', 'grid', 'hexgrid', 'brick'] },
+      { field: 'wallPatternEnabled', label: 'Wall Pattern' },
+      { field: 'wallPattern', label: 'Wall Pattern', options: ['grid', 'hexgrid', 'brick'] },
       { field: 'lipStyle',    label: 'Lip Style',    options: ['normal', 'reduced', 'minimum', 'none'] },
       { field: 'fingerSlide', label: 'Finger Slide', options: ['none', 'rounded', 'chamfered'] },
       { field: 'wallCutout',  label: 'Wall Cutout',  options: ['none', 'vertical', 'horizontal', 'both'] },
@@ -1641,10 +1642,11 @@ describe('PlacedItemOverlay', () => {
       expect(badges).not.toBeInTheDocument();
     });
 
-    it('should render wall pattern badge when wall pattern is non-default', () => {
+    it('should render wall pattern badge when wall pattern is enabled', () => {
       const item = createMockItem({
         customization: {
           ...DEFAULT_BIN_CUSTOMIZATION,
+          wallPatternEnabled: true,
           wallPattern: 'grid',
         },
       });
@@ -1736,10 +1738,12 @@ describe('PlacedItemOverlay', () => {
     it('should render multiple badges when multiple customizations are non-default', () => {
       const item = createMockItem({
         customization: {
+          wallPatternEnabled: true,
           wallPattern: 'grid',
           lipStyle: 'reduced',
           fingerSlide: 'rounded',
           wallCutout: 'none',
+          height: 4,
         },
       });
       const { container } = render(
@@ -1761,6 +1765,7 @@ describe('PlacedItemOverlay', () => {
       const item = createMockItem({
         customization: {
           ...DEFAULT_BIN_CUSTOMIZATION,
+          wallPatternEnabled: true,
           wallPattern: 'grid',
         },
       });
@@ -2134,7 +2139,10 @@ describe('PlacedItemOverlay', () => {
     });
 
     it('should call onCustomizationChange when a select value changes', async () => {
-      const item = createMockItemWithLibrary({ instanceId: 'custom-item-123' });
+      const item = createMockItemWithLibrary({
+        instanceId: 'custom-item-123',
+        customization: { ...DEFAULT_BIN_CUSTOMIZATION, wallPatternEnabled: true, wallPattern: 'grid' },
+      });
       render(
         <PlacedItemOverlay
           item={item}
@@ -2151,12 +2159,12 @@ describe('PlacedItemOverlay', () => {
       const customizeBtn = await waitFor(() => screen.getByRole('button', { name: 'Customize' }));
       fireEvent.click(customizeBtn);
 
-      const wallPatternSelect = screen.getByLabelText('Wall Pattern') as HTMLSelectElement;
-      fireEvent.change(wallPatternSelect, { target: { value: 'grid' } });
+      const wallPatternStyleSelect = screen.getByLabelText('Style') as HTMLSelectElement;
+      fireEvent.change(wallPatternStyleSelect, { target: { value: 'hexgrid' } });
 
       expect(mockOnCustomizationChange).toHaveBeenCalledWith(
         'custom-item-123',
-        expect.objectContaining({ wallPattern: 'grid' })
+        expect.objectContaining({ wallPattern: 'hexgrid' })
       );
     });
 
@@ -2187,10 +2195,12 @@ describe('PlacedItemOverlay', () => {
       const item = createMockItemWithLibrary({
         instanceId: 'custom-item-456',
         customization: {
+          wallPatternEnabled: true,
           wallPattern: 'grid',
           lipStyle: 'normal',
           fingerSlide: 'none',
           wallCutout: 'none',
+          height: 4,
         },
       });
       render(

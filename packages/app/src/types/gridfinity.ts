@@ -105,15 +105,20 @@ export interface ReferenceImage {
   rotation: Rotation;
 }
 
-export type WallPattern = 'none' | 'grid' | 'hexgrid' | 'brick' | 'voronoi' | 'voronoigrid' | 'voronoihexgrid';
+export type WallPattern = 'grid' | 'hexgrid' | 'brick' | 'voronoi' | 'voronoigrid' | 'voronoihexgrid';
 export type LipStyle = 'normal' | 'reduced' | 'minimum' | 'none';
 export type FingerSlide = 'none' | 'rounded' | 'chamfered';
 export type WallCutout = 'none' | 'vertical' | 'horizontal' | 'both';
 
-export type CustomizableField = 'wallPattern' | 'lipStyle' | 'fingerSlide' | 'wallCutout' | 'height';
+export type CustomizableField = 'wallPatternEnabled' | 'wallPattern' | 'lipStyle' | 'fingerSlide' | 'wallCutout' | 'height';
+
+export interface CustomizableBooleanFieldDef {
+  field: 'wallPatternEnabled';
+  label: string;
+}
 
 export interface CustomizableSelectFieldDef {
-  field: Exclude<CustomizableField, 'height'>;
+  field: Exclude<CustomizableField, 'height' | 'wallPatternEnabled'>;
   label: string;
   options: string[];
 }
@@ -125,9 +130,10 @@ export interface CustomizableNumericFieldDef {
   max: number;
 }
 
-export type CustomizableFieldDef = CustomizableSelectFieldDef | CustomizableNumericFieldDef;
+export type CustomizableFieldDef = CustomizableBooleanFieldDef | CustomizableSelectFieldDef | CustomizableNumericFieldDef;
 
 export interface BinCustomization {
+  wallPatternEnabled: boolean;
   wallPattern: WallPattern;
   lipStyle: LipStyle;
   fingerSlide: FingerSlide;
@@ -136,7 +142,8 @@ export interface BinCustomization {
 }
 
 export const DEFAULT_BIN_CUSTOMIZATION: BinCustomization = {
-  wallPattern: 'none',
+  wallPatternEnabled: false,
+  wallPattern: 'grid',
   lipStyle: 'normal',
   fingerSlide: 'none',
   wallCutout: 'none',
@@ -145,12 +152,12 @@ export const DEFAULT_BIN_CUSTOMIZATION: BinCustomization = {
 
 export function serializeCustomization(c: BinCustomization | undefined): string {
   if (!c) return '';
-  return `${c.wallPattern}|${c.lipStyle}|${c.fingerSlide}|${c.wallCutout}|${c.height}`;
+  return `${c.wallPatternEnabled ? c.wallPattern : 'none'}|${c.lipStyle}|${c.fingerSlide}|${c.wallCutout}|${c.height}`;
 }
 
 export function isDefaultCustomization(c: BinCustomization | undefined): boolean {
   if (!c) return true;
-  return c.wallPattern === 'none'
+  return !c.wallPatternEnabled
     && c.lipStyle === 'normal'
     && c.fingerSlide === 'none'
     && c.wallCutout === 'none'

@@ -28,7 +28,7 @@ vi.mock('./PlacedItemOverlay', () => ({
       {item.itemId}
       <button
         data-testid={`trigger-customization-${item.instanceId}`}
-        onClick={() => onCustomizationChangeWithGeneration?.(item.instanceId, { wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 4 })}
+        onClick={() => onCustomizationChangeWithGeneration?.(item.instanceId, { wallPatternEnabled: true, wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 4 })}
       >
         change customization
       </button>
@@ -1249,7 +1249,7 @@ describe('GridPreview', () => {
         color: '#3B82F6',
         categories: [],
       };
-      const getItemById = vi.fn((_id: string) => libraryItem);
+      const getItemById = vi.fn(() => libraryItem);
 
       render(
         <GridPreview

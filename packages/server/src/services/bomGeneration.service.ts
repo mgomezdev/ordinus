@@ -11,7 +11,8 @@ import { logger } from '../logger.js';
 import { computeParamHash } from '../utils/generationParams.js';
 
 const DEFAULT_CUSTOMIZATION: BinCustomization = {
-  wallPattern: 'none',
+  wallPatternEnabled: false,
+  wallPattern: 'grid',
   lipStyle: 'normal',
   fingerSlide: 'none',
   wallCutout: 'none',
@@ -24,10 +25,11 @@ function customizationKey(item: BOMItem): string {
   const c = item.customization;
   if (!c) return 'default';
   const isDefault =
-    c.wallPattern === 'none' && c.lipStyle === 'normal' &&
+    !c.wallPatternEnabled && c.lipStyle === 'normal' &&
     c.fingerSlide === 'none' && c.wallCutout === 'none' && c.height === 4;
   if (isDefault) return 'default';
-  return `${c.wallPattern}|${c.lipStyle}|${c.fingerSlide}|${c.wallCutout}|${c.height}`;
+  const wallKey = c.wallPatternEnabled ? c.wallPattern : 'none';
+  return `${wallKey}|${c.lipStyle}|${c.fingerSlide}|${c.wallCutout}|${c.height}`;
 }
 
 export interface UniqueConfig {
@@ -61,7 +63,7 @@ function buildStlFilename(w: number, d: number, c: BinCustomization, defaultPara
   const parts = [`bin_${w}x${d}x${c.height}`];
   if (c.lipStyle !== 'normal') parts.push(c.lipStyle);
   if (c.fingerSlide !== 'none') parts.push('fingerslid');
-  if (c.wallPattern !== 'none') parts.push('patterned');
+  if (c.wallPatternEnabled) parts.push('patterned');
   if (c.wallCutout !== 'none') parts.push('cutout');
   if (defaultParams && Object.keys(defaultParams).length > 0) {
     parts.push(hashGeneratorParams(defaultParams));
@@ -304,7 +306,7 @@ export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> 
     fingerslide: c.fingerSlide,
   };
 
-  if (c.wallPattern !== 'none') {
+  if (c.wallPatternEnabled) {
     params.wallpattern_enabled = true;
     params.wallpattern_style = c.wallPattern;
   } else {

@@ -24,7 +24,7 @@ export function getOrientation(gridX: number, gridY: number): 'l' | 'p' {
 function formatCustomizationText(item: BOMItem): string {
   if (!item.customization) return '';
   const parts: string[] = [];
-  if (item.customization.wallPattern !== 'none') parts.push(item.customization.wallPattern);
+  if (item.customization.wallPatternEnabled) parts.push(item.customization.wallPattern);
   if (item.customization.lipStyle !== 'normal') parts.push(`lip: ${item.customization.lipStyle}`);
   if (item.customization.fingerSlide !== 'none') parts.push(`slide: ${item.customization.fingerSlide}`);
   if (item.customization.wallCutout !== 'none') parts.push(`cutout: ${item.customization.wallCutout}`);

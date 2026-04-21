@@ -12,6 +12,7 @@ import type {
   WallCutout,
   WallPattern,
 } from '../types/gridfinity';
+
 import { generatorParamsToBinCustomization } from '../utils/generatorParams';
 
 const MM_PER_HEIGHT_UNIT = 7;
@@ -121,7 +122,7 @@ export function BinCustomizationPanel({
   const effectiveDefaults = { ...DEFAULT_BIN_CUSTOMIZATION, ...libraryDefaults };
   const current: BinCustomization = customization ?? effectiveDefaults;
   const isDefault =
-    current.wallPattern === effectiveDefaults.wallPattern &&
+    !current.wallPatternEnabled &&
     current.lipStyle === effectiveDefaults.lipStyle &&
     current.fingerSlide === effectiveDefaults.fingerSlide &&
     current.wallCutout === effectiveDefaults.wallCutout &&
@@ -140,9 +141,20 @@ export function BinCustomizationPanel({
 
   return (
     <div className="bin-customization-panel">
-      {has('wallPattern') && (
+      {has('wallPatternEnabled') && (
         <div className="bin-customization-field">
-          <label htmlFor={`${idPrefix}wall-pattern-select`}>Wall Pattern</label>
+          <label htmlFor={`${idPrefix}wall-pattern-enabled`}>Wall Pattern</label>
+          <input
+            id={`${idPrefix}wall-pattern-enabled`}
+            type="checkbox"
+            checked={current.wallPatternEnabled}
+            onChange={(e) => onChange({ ...current, wallPatternEnabled: e.target.checked })}
+          />
+        </div>
+      )}
+      {has('wallPattern') && current.wallPatternEnabled && (
+        <div className="bin-customization-field">
+          <label htmlFor={`${idPrefix}wall-pattern-select`}>Style</label>
           <select
             id={`${idPrefix}wall-pattern-select`}
             value={current.wallPattern}

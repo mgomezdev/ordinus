@@ -38,7 +38,7 @@ const INVALID_COLOR = '#EF4444';
 function getCustomizationBadges(customization: BinCustomization | undefined): string[] {
   if (!customization || isDefaultCustomization(customization)) return [];
   const badges: string[] = [];
-  if (customization.wallPattern !== 'none') badges.push(customization.wallPattern);
+  if (customization.wallPatternEnabled) badges.push(customization.wallPattern);
   if (customization.lipStyle !== 'normal') badges.push(`lip: ${customization.lipStyle}`);
   if (customization.fingerSlide !== 'none') badges.push(`slide: ${customization.fingerSlide}`);
   if (customization.wallCutout !== 'none') badges.push(`cutout: ${customization.wallCutout}`);

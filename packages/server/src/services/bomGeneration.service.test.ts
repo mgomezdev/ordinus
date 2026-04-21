@@ -138,7 +138,8 @@ const baseConfig = (overrides: Partial<UniqueConfig['customization']> = {}): Uni
   filename: 'bin_2x3x8.stl',
   baseModelPath: '/data/models/gen-lib/base.scad',
   customization: {
-    wallPattern: 'none',
+    wallPatternEnabled: false,
+    wallPattern: 'grid',
     lipStyle: 'normal',
     fingerSlide: 'none',
     wallCutout: 'none',
@@ -179,12 +180,12 @@ describe('buildGenerateParams', () => {
     expect(params.fingerslide).toBe('rounded');
   });
 
-  it('does not set wallpattern_enabled when wallPattern is none', () => {
-    expect(buildGenerateParams(baseConfig({ wallPattern: 'none' })).wallpattern_enabled).toBeUndefined();
+  it('does not set wallpattern_enabled when wallPatternEnabled is false', () => {
+    expect(buildGenerateParams(baseConfig({ wallPatternEnabled: false })).wallpattern_enabled).toBeUndefined();
   });
 
-  it('enables wallpattern with style when wallPattern is set', () => {
-    const params = buildGenerateParams(baseConfig({ wallPattern: 'hexgrid' }));
+  it('enables wallpattern with style when wallPatternEnabled is true', () => {
+    const params = buildGenerateParams(baseConfig({ wallPatternEnabled: true, wallPattern: 'hexgrid' }));
     expect(params.wallpattern_enabled).toBe(true);
     expect(params.wallpattern_style).toBe('hexgrid');
   });
