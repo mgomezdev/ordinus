@@ -1,9 +1,11 @@
 import { eq, and, lt, desc, sql, or } from 'drizzle-orm';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
-import type { ApiLayout, ApiLayoutDetail, ApiPlacedItem, ApiRefImagePlacement, BinCustomization } from '@gridfinity/shared';
+import type { ApiLayout, ApiLayoutDetail, ApiRefImagePlacement, BinCustomization } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
 import { layouts, placedItems, userStorage, referenceImages, refImages, users } from '../db/schema.js';
 import * as referenceImageService from './referenceImage.service.js';
+import { formatLayout, formatPlacedItem } from './formatters.js';
+import { ensureStorageRow } from './storage.helpers.js';
 
 interface CursorData {
   createdAt: string;
@@ -27,51 +29,6 @@ function decodeCursor(cursor: string): CursorData {
   } catch {
     throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid cursor');
   }
-}
-
-function formatLayout(row: typeof layouts.$inferSelect, ownerUsername?: string, ownerEmail?: string): ApiLayout {
-  return {
-    id: row.id,
-    userId: row.userId,
-    name: row.name,
-    description: row.description,
-    gridX: row.gridX,
-    gridY: row.gridY,
-    widthMm: row.widthMm,
-    depthMm: row.depthMm,
-    spacerHorizontal: row.spacerHorizontal,
-    spacerVertical: row.spacerVertical,
-    isPublic: row.isPublic,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-    ...(ownerUsername !== undefined ? { ownerUsername } : {}),
-    ...(ownerEmail !== undefined ? { ownerEmail } : {}),
-  };
-}
-
-function parseCustomization(json: string | null): BinCustomization | undefined {
-  if (!json) return undefined;
-  try {
-    return JSON.parse(json) as BinCustomization;
-  } catch {
-    return undefined;
-  }
-}
-
-function formatPlacedItem(row: typeof placedItems.$inferSelect): ApiPlacedItem {
-  return {
-    id: row.id,
-    layoutId: row.layoutId,
-    libraryId: row.libraryId,
-    itemId: row.itemId,
-    x: row.x,
-    y: row.y,
-    width: row.width,
-    height: row.height,
-    rotation: row.rotation,
-    sortOrder: row.sortOrder,
-    ...(row.customization ? { customization: parseCustomization(row.customization) } : {}),
-  };
 }
 
 function unprefixItemId(prefixedId: string): { libraryId: string; itemId: string } {
@@ -235,25 +192,6 @@ interface CreateLayoutData {
     isLocked: boolean;
     rotation: number;
   }>;
-}
-
-async function ensureStorageRow(userId: number): Promise<typeof userStorage.$inferSelect> {
-  const existing = await db
-    .select()
-    .from(userStorage)
-    .where(eq(userStorage.userId, userId))
-    .limit(1);
-
-  if (existing.length > 0) {
-    return existing[0];
-  }
-
-  const inserted = await db
-    .insert(userStorage)
-    .values({ userId, layoutCount: 0, imageBytes: 0 })
-    .returning();
-
-  return inserted[0];
 }
 
 export async function createLayout(

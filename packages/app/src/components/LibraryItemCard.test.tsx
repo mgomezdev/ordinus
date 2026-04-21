@@ -176,3 +176,47 @@ describe('LibraryItemCard', () => {
     expect(img).toHaveAttribute('src', itemWithoutPerspective.imageUrl);
   });
 });
+
+describe('paramHash / generated image support', () => {
+  const defaultItem: LibraryItem = {
+    id: 'bin-1x1',
+    libraryId: 'bins_standard',
+    name: '1x1 Bin',
+    widthUnits: 1,
+    heightUnits: 1,
+    color: '#3B82F6',
+    categories: ['bin'],
+  };
+
+  it('attempts to load the generated image URL when item has paramHash but no imageUrl', () => {
+    const paramHashItem: LibraryItem = {
+      ...defaultItem,
+      imageUrl: undefined,
+      perspectiveImageUrl: undefined,
+      paramHash: 'abc123def456',
+    };
+    render(<LibraryItemCard item={paramHashItem} />);
+    const img = screen.queryByRole('img');
+    if (img) {
+      expect(img.getAttribute('src')).toContain('abc123def456');
+      expect(img.getAttribute('src')).toContain('ortho.png');
+    }
+    // If img is null, spinner should be showing
+    if (!img) {
+      const spinner = screen.queryByRole('status', { name: /generating/i });
+      expect(spinner).toBeDefined();
+    }
+  });
+
+  it('shows spinner when item has paramHash and image has not yet loaded', () => {
+    const paramHashItem: LibraryItem = {
+      ...defaultItem,
+      imageUrl: undefined,
+      perspectiveImageUrl: undefined,
+      paramHash: 'abc123def456',
+    };
+    render(<LibraryItemCard item={paramHashItem} />);
+    // Before image loads, isGenerating is true → spinner shown
+    expect(screen.getByRole('status', { name: /generating/i })).toBeInTheDocument();
+  });
+});

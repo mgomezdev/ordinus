@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
-import type { PlacedItem, PlacedItemWithValidity, DragData, LibraryItem, Rotation, BinCustomization } from '../types/gridfinity';
+import type { PlacedItem, PlacedItemWithValidity, DragData, LibraryItem, Rotation, BinCustomization, CustomizableFieldDef } from '../types/gridfinity';
 import { DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
 import { ROTATION_CW, ROTATION_CCW } from '../utils/constants';
 import { mergeGeneratorParams, generatorParamsToBinCustomization } from '../utils/generatorParams';
@@ -202,8 +202,9 @@ export function useGridItems(
     if (!libraryItem) return;
 
     const allFields = ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'] as const;
-    const prefilledDefaults = libraryItem.gridfinityExtendedParams
-      ? generatorParamsToBinCustomization(libraryItem.gridfinityExtendedParams, [...allFields])
+    const allFieldDefs = allFields.map(f => ({ field: f })) as CustomizableFieldDef[];
+    const prefilledDefaults = libraryItem.parameters
+      ? generatorParamsToBinCustomization(libraryItem.parameters, allFieldDefs)
       : {};
     const hasCustomDefaults = Object.keys(prefilledDefaults).length > 0;
 
@@ -218,8 +219,8 @@ export function useGridItems(
       customization: hasCustomDefaults
         ? { ...DEFAULT_BIN_CUSTOMIZATION, ...prefilledDefaults }
         : undefined,
-      gridfinityExtendedParams: libraryItem.gridfinityExtendedParams
-        ? mergeGeneratorParams(libraryItem.gridfinityExtendedParams)
+      parameters: libraryItem.parameters
+        ? mergeGeneratorParams(libraryItem.parameters)
         : undefined,
     };
 

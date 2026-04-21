@@ -45,6 +45,16 @@ if (typeof globalThis.PointerEvent === 'undefined') {
   (globalThis as unknown as Record<string, unknown>).PointerEvent = PointerEventPolyfill;
 }
 
+// Stub EventSource for jsdom (not implemented in jsdom)
+if (typeof globalThis.EventSource === 'undefined') {
+  class EventSourceStub {
+    onmessage: ((e: MessageEvent) => void) | null = null;
+    onerror: ((e: Event) => void) | null = null;
+    close() {}
+  }
+  (globalThis as unknown as Record<string, unknown>).EventSource = EventSourceStub;
+}
+
 // Stub setPointerCapture/releasePointerCapture/hasPointerCapture for jsdom
 if (!Element.prototype.setPointerCapture) {
   Element.prototype.setPointerCapture = function () {};

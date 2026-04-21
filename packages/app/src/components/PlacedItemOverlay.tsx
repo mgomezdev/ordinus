@@ -1,6 +1,7 @@
 import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import type { PlacedItemWithValidity, LibraryItem, ImageViewMode, BinCustomization, LibraryMeta } from '../types/gridfinity';
+import { useSearchParams } from 'react-router-dom';
+import type { PlacedItemWithValidity, LibraryItem, ImageViewMode, BinCustomization, LibraryMeta, CustomizableFieldDef } from '../types/gridfinity';
 import { isDefaultCustomization, DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
 import { generatorParamsToBinCustomization } from '../utils/generatorParams';
 import { usePointerDragSource } from '../hooks/usePointerDrag';
@@ -8,6 +9,8 @@ import { useImageLoadState } from '../hooks/useImageLoadState';
 import { BinCustomizationPanel } from './BinCustomizationPanel';
 import { getRotatedPerspectiveUrl } from '../utils/imageHelpers';
 import { BinContextMenu } from './BinContextMenu';
+import { useAuth } from '../contexts/AuthContext';
+import { generatedImageUrl } from '../api/generation.api';
 
 interface PlacedItemOverlayProps {
   item: PlacedItemWithValidity;
@@ -24,6 +27,9 @@ interface PlacedItemOverlayProps {
   onDuplicate?: () => void;
   imageViewMode?: ImageViewMode;
   getLibraryMeta?: (libraryId: string) => Promise<LibraryMeta>;
+  generationEntry?: { hash: string; status: 'pending' | 'complete' | 'failed' };
+  onCustomizationChangeWithGeneration?: (instanceId: string, customization: BinCustomization) => void;
+  onGenerationReset?: (instanceId: string) => void;
 }
 
 const DEFAULT_VALID_COLOR = '#3B82F6';
@@ -32,7 +38,7 @@ const INVALID_COLOR = '#EF4444';
 function getCustomizationBadges(customization: BinCustomization | undefined): string[] {
   if (!customization || isDefaultCustomization(customization)) return [];
   const badges: string[] = [];
-  if (customization.wallPattern !== 'none') badges.push(customization.wallPattern);
+  if (customization.wallPatternEnabled) badges.push(customization.wallPattern);
   if (customization.lipStyle !== 'normal') badges.push(`lip: ${customization.lipStyle}`);
   if (customization.fingerSlide !== 'none') badges.push(`slide: ${customization.fingerSlide}`);
   if (customization.wallCutout !== 'none') badges.push(`cutout: ${customization.wallCutout}`);
@@ -40,13 +46,17 @@ function getCustomizationBadges(customization: BinCustomization | undefined): st
   return badges;
 }
 
-export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, gridY, isSelected, onSelect, getItemById, onDelete, onRotateCw, onRotateCcw, onCustomizationChange, onCustomizationReset, onDuplicate, imageViewMode = 'ortho', getLibraryMeta }: PlacedItemOverlayProps) {
+export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, gridY, isSelected, onSelect, getItemById, onDelete, onRotateCw, onRotateCcw, onCustomizationChange, onCustomizationReset, onDuplicate, imageViewMode = 'ortho', getLibraryMeta, generationEntry, onCustomizationChangeWithGeneration, onGenerationReset }: PlacedItemOverlayProps) {
   const [showPopover, setShowPopover] = useState(false);
   interface PopoverPos { top: number; left: number; direction: 'above' | 'below' }
   const [popoverPos, setPopoverPos] = useState<PopoverPos | null>(null);
+  const [popoverDraft, setPopoverDraft] = useState<BinCustomization | undefined>(undefined);
   const gearButtonRef = useRef<HTMLButtonElement>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [libraryMeta, setLibraryMeta] = useState<LibraryMeta>({ customizableFields: [], gridfinityExtendedParams: {} });
+  const [libraryMeta, setLibraryMeta] = useState<LibraryMeta>({ customizableFields: [], parameters: {} });
+
+  const { isAuthenticated } = useAuth();
+  const [, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     if (!getLibraryMeta) return;
@@ -82,24 +92,62 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
     return () => window.removeEventListener('resize', handler);
   }, [showPopover, computePopoverPos]);
 
+  // Apply draft when item is deselected while popover is open (e.g. click outside)
+  useEffect(() => {
+    if (isSelected || !showPopover || popoverDraft === undefined) return;
+    const hasChanges = JSON.stringify(popoverDraft) !== JSON.stringify(item.customization ?? null);
+    if (hasChanges) {
+      onCustomizationChange?.(item.instanceId, popoverDraft);
+      onCustomizationChangeWithGeneration?.(item.instanceId, popoverDraft);
+    }
+    setPopoverDraft(undefined);
+    setShowPopover(false);
+    setPopoverPos(null);
+  }, [isSelected, showPopover, popoverDraft, item.customization, item.instanceId, onCustomizationChange, onCustomizationChangeWithGeneration]);
+
   const libraryItem = getItemById(item.itemId);
   const hasStaticStl = !!libraryItem?.stlFile;
   const color = item.isValid ? (libraryItem?.color || DEFAULT_VALID_COLOR) : INVALID_COLOR;
 
   const perspectiveUrl = libraryItem?.perspectiveImageUrl;
   const orthoUrl = libraryItem?.imageUrl;
-  const usingPerspective = imageViewMode === 'perspective' && !!perspectiveUrl;
+  const hasGeneratedImages = !!(libraryItem?.paramHash) || generationEntry?.status === 'complete';
+  const usingPerspective = imageViewMode === 'perspective' && (!!perspectiveUrl || hasGeneratedImages);
+
+  // Use explicit rotation-specific URLs when available, fall back to derived
+  const getPerspectiveUrlForRotation = (rotation: typeof item.rotation): string | undefined => {
+    if (!perspectiveUrl) return undefined;
+    if (rotation === 90) return libraryItem?.perspectiveImageUrl90 ?? getRotatedPerspectiveUrl(perspectiveUrl, 90);
+    if (rotation === 180) return libraryItem?.perspectiveImageUrl180 ?? getRotatedPerspectiveUrl(perspectiveUrl, 180);
+    if (rotation === 270) return libraryItem?.perspectiveImageUrl270 ?? getRotatedPerspectiveUrl(perspectiveUrl, 270);
+    return perspectiveUrl; // 0°
+  };
 
   const imageSrc = (() => {
     if (imageViewMode === 'perspective' && perspectiveUrl) {
-      if (item.rotation === 0) return perspectiveUrl;
-      return getRotatedPerspectiveUrl(perspectiveUrl, item.rotation);
+      return getPerspectiveUrlForRotation(item.rotation);
     }
     return imageViewMode === 'perspective' ? (perspectiveUrl || orthoUrl) : orthoUrl;
   })();
 
+  const isGenerating = generationEntry?.status === 'pending';
+  const generationFailed = generationEntry?.status === 'failed';
+
+  const effectiveImageSrc = (() => {
+    const hash = generationEntry?.status === 'complete'
+      ? generationEntry.hash
+      : libraryItem?.paramHash ?? null;
+    if (hash) {
+      const filename = imageViewMode === 'perspective'
+        ? `perspective_${item.rotation}.png`
+        : 'ortho.png';
+      return generatedImageUrl(hash, filename);
+    }
+    return imageSrc;
+  })();
+
   const { imageError, shouldShowImage, handleImageLoad, handleImageError } =
-    useImageLoadState(imageSrc);
+    useImageLoadState(effectiveImageSrc);
 
   // Calculate image dimensions for rotation
   // When rotated 90° or 270°, we need to swap dimensions to fill the container
@@ -155,23 +203,28 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
     onRotateCcw?.(item.instanceId);
   };
 
-  const handleCustomizeClick = (e: React.MouseEvent) => {
+  const handleGearClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setShowPopover(prev => {
-      if (!prev) computePopoverPos();
-      return !prev;
-    });
-  };
+    if (!isAuthenticated) {
+      setSearchParams({ authRequired: '1' }, { replace: true });
+      return;
+    }
+    setPopoverDraft(item.customization);
+    computePopoverPos();
+    setShowPopover(true);
+  }, [isAuthenticated, setSearchParams, item.customization, computePopoverPos]);
 
+  // Updates draft only — generation fires when popover is dismissed
   const handlePopoverChange = useCallback((customization: BinCustomization) => {
-    onCustomizationChange?.(item.instanceId, customization);
-  }, [onCustomizationChange, item.instanceId]);
+    setPopoverDraft(customization);
+  }, []);
 
   const handlePopoverReset = useCallback(() => {
     const allFields = ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'] as const;
-    const libraryDefaults = item.gridfinityExtendedParams
-      ? generatorParamsToBinCustomization(item.gridfinityExtendedParams, [...allFields])
+    const allFieldDefs = allFields.map(f => ({ field: f })) as CustomizableFieldDef[];
+    const libraryDefaults = item.parameters
+      ? generatorParamsToBinCustomization(item.parameters, allFieldDefs)
       : {};
     const hasLibraryDefaults = Object.keys(libraryDefaults).length > 0;
     if (hasLibraryDefaults) {
@@ -179,7 +232,12 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
     } else {
       onCustomizationReset?.(item.instanceId);
     }
-  }, [item, onCustomizationChange, onCustomizationReset]);
+    onGenerationReset?.(item.instanceId);
+    // Close without triggering generation — reset already reverts to library images
+    setPopoverDraft(undefined);
+    setShowPopover(false);
+    setPopoverPos(null);
+  }, [item, onCustomizationChange, onCustomizationReset, onGenerationReset]);
 
   const handleDuplicateClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -190,6 +248,14 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const handleClosePopover = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    if (popoverDraft !== undefined) {
+      const hasChanges = JSON.stringify(popoverDraft) !== JSON.stringify(item.customization ?? null);
+      if (hasChanges) {
+        onCustomizationChange?.(item.instanceId, popoverDraft);
+        onCustomizationChangeWithGeneration?.(item.instanceId, popoverDraft);
+      }
+    }
+    setPopoverDraft(undefined);
     setShowPopover(false);
     setPopoverPos(null);
   };
@@ -243,10 +309,18 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
         }
       }}
     >
-      {imageSrc && !imageError && (
+      {isGenerating && (
+        <div className="generation-spinner" aria-label="Generating preview" role="status">
+          <div className="spinner" />
+        </div>
+      )}
+      {generationFailed && (
+        <div className="generation-error" aria-label="Generation failed" role="status">&#10005;</div>
+      )}
+      {!isGenerating && !generationFailed && effectiveImageSrc && !imageError && (
         <div className="placed-item-image-container">
           <img
-            src={imageSrc}
+            src={effectiveImageSrc}
             alt={libraryItem?.name ?? 'Item'}
             className={`placed-item-image ${shouldShowImage ? 'visible' : 'hidden'}`}
             loading="lazy"
@@ -307,7 +381,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
             <button
               ref={gearButtonRef}
               className="placed-item-toolbar-btn"
-              onClick={handleCustomizeClick}
+              onClick={handleGearClick}
               draggable={false}
               aria-label="Customize"
               title="Customize bin options"
@@ -350,12 +424,12 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
             </button>
           </div>
           <BinCustomizationPanel
-            customization={item.customization}
+            customization={popoverDraft ?? item.customization}
             onChange={handlePopoverChange}
             onReset={handlePopoverReset}
             idPrefix="inline-"
             customizableFields={libraryMeta.customizableFields}
-            gridfinityExtendedParams={item.gridfinityExtendedParams}
+            parameters={item.parameters}
           />
         </div>,
         document.body

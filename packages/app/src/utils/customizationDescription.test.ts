@@ -12,7 +12,7 @@ describe('formatCustomizationDescription', () => {
   });
 
   it('formats non-default wall pattern', () => {
-    expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, wallPattern: 'hexgrid' }))
+    expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, wallPatternEnabled: true, wallPattern: 'hexgrid' }))
       .toBe('Hex Wall');
   });
 
@@ -38,6 +38,7 @@ describe('formatCustomizationDescription', () => {
 
   it('joins multiple non-default fields with ·', () => {
     expect(formatCustomizationDescription({
+      wallPatternEnabled: true,
       wallPattern: 'hexgrid',
       lipStyle: 'reduced',
       fingerSlide: 'rounded',
@@ -47,10 +48,10 @@ describe('formatCustomizationDescription', () => {
   });
 
   it('handles all wall pattern values', () => {
-    expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, wallPattern: 'grid' })).toBe('Grid Wall');
-    expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, wallPattern: 'voronoi' })).toBe('Voronoi Wall');
-    expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, wallPattern: 'voronoigrid' })).toBe('Voronoi Grid Wall');
-    expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, wallPattern: 'voronoihexgrid' })).toBe('Voronoi Hex Wall');
+    expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, wallPatternEnabled: true, wallPattern: 'grid' })).toBe('Grid Wall');
+    expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, wallPatternEnabled: true, wallPattern: 'voronoi' })).toBe('Voronoi Wall');
+    expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, wallPatternEnabled: true, wallPattern: 'voronoigrid' })).toBe('Voronoi Grid Wall');
+    expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, wallPatternEnabled: true, wallPattern: 'voronoihexgrid' })).toBe('Voronoi Hex Wall');
   });
 
   it('handles all lip style values', () => {

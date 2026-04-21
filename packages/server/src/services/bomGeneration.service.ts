@@ -8,9 +8,11 @@ import { db } from '../db/connection.js';
 import { bomGenerations, libraries, libraryItems } from '../db/schema.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { computeParamHash } from '../utils/generationParams.js';
 
 const DEFAULT_CUSTOMIZATION: BinCustomization = {
-  wallPattern: 'none',
+  wallPatternEnabled: false,
+  wallPattern: 'grid',
   lipStyle: 'normal',
   fingerSlide: 'none',
   wallCutout: 'none',
@@ -23,10 +25,11 @@ function customizationKey(item: BOMItem): string {
   const c = item.customization;
   if (!c) return 'default';
   const isDefault =
-    c.wallPattern === 'none' && c.lipStyle === 'normal' &&
+    !c.wallPatternEnabled && c.lipStyle === 'normal' &&
     c.fingerSlide === 'none' && c.wallCutout === 'none' && c.height === 4;
   if (isDefault) return 'default';
-  return `${c.wallPattern}|${c.lipStyle}|${c.fingerSlide}|${c.wallCutout}|${c.height}`;
+  const wallKey = c.wallPatternEnabled ? c.wallPattern : 'none';
+  return `${wallKey}|${c.lipStyle}|${c.fingerSlide}|${c.wallCutout}|${c.height}`;
 }
 
 export interface UniqueConfig {
@@ -35,7 +38,7 @@ export interface UniqueConfig {
   customization: BinCustomization;
   qty: number;
   filename: string;
-  gridfinityExtendedParams?: GeneratorParams;
+  parameters?: GeneratorParams;
   baseModelPath: string;
 }
 
@@ -60,7 +63,7 @@ function buildStlFilename(w: number, d: number, c: BinCustomization, defaultPara
   const parts = [`bin_${w}x${d}x${c.height}`];
   if (c.lipStyle !== 'normal') parts.push(c.lipStyle);
   if (c.fingerSlide !== 'none') parts.push('fingerslid');
-  if (c.wallPattern !== 'none') parts.push('patterned');
+  if (c.wallPatternEnabled) parts.push('patterned');
   if (c.wallCutout !== 'none') parts.push('cutout');
   if (defaultParams && Object.keys(defaultParams).length > 0) {
     parts.push(hashGeneratorParams(defaultParams));
@@ -110,7 +113,7 @@ export async function resolveItemSources(bomItems: BOMItem[]): Promise<{
       }
 
       const c = item.customization ?? DEFAULT_CUSTOMIZATION;
-      const defaultParams = item.gridfinityExtendedParams ?? {};
+      const defaultParams = item.parameters ?? {};
       const paramsHash = Object.keys(defaultParams).length > 0 ? hashGeneratorParams(defaultParams) : '';
       const key = `${item.widthUnits}x${item.heightUnits}::${customizationKey(item)}::${paramsHash}::${baseModelPath}`;
 
@@ -130,7 +133,7 @@ export async function resolveItemSources(bomItems: BOMItem[]): Promise<{
           customization: c,
           qty: item.quantity,
           filename,
-          gridfinityExtendedParams: Object.keys(defaultParams).length > 0 ? defaultParams : undefined,
+          parameters: Object.keys(defaultParams).length > 0 ? defaultParams : undefined,
           baseModelPath,
         });
       }
@@ -224,15 +227,33 @@ async function runGenerationPipeline(
       logger.info({ filename: cfg.filename }, 'Copied static STL');
     }
 
-    // Step 2: Generate parametric STLs
+    // Step 2: Generate or reuse parametric STLs
     for (const cfg of uniqueConfigs) {
       const stlPath = path.join(outDir, cfg.filename);
-      const paramsPath = path.join(outDir, `params_${cfg.filename.replace('.stl', '')}.json`);
 
+      // Check if already generated in library/ or custom/
       const params = buildGenerateParams(cfg);
-      await fs.writeFile(paramsPath, JSON.stringify(params));
-      await runPython([generateBinScript, paramsPath, '--output', stlPath, '--model', cfg.baseModelPath]);
-      logger.info({ stlPath }, 'Generated STL');
+      const hash = computeParamHash(params as Record<string, unknown>);
+
+      let cachedStl: string | null = null;
+      for (const subdir of ['library', 'custom'] as const) {
+        const candidate = path.join(config.GENERATED_STL_DIR, subdir, hash, 'bin.stl');
+        try {
+          await fs.access(candidate);
+          cachedStl = candidate;
+          break;
+        } catch { /* not cached */ }
+      }
+
+      if (cachedStl) {
+        await fs.copyFile(cachedStl, stlPath);
+        logger.info({ stlPath, hash }, 'Reused cached STL for 3MF');
+      } else {
+        const paramsPath = path.join(outDir, `params_${cfg.filename.replace('.stl', '')}.json`);
+        await fs.writeFile(paramsPath, JSON.stringify(params));
+        await runPython([generateBinScript, paramsPath, '--output', stlPath, '--model', cfg.baseModelPath]);
+        logger.info({ stlPath }, 'Generated STL for 3MF');
+      }
     }
 
     // Step 3: Build manifest + bundle 3MF
@@ -277,7 +298,7 @@ export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> 
   const c = cfg.customization;
   const params: Record<string, unknown> = {
     ...gridfinityExtendedDefaultParams,
-    ...(cfg.gridfinityExtendedParams ?? {}),
+    ...(cfg.parameters ?? {}),
     width: [cfg.widthUnits, 0],
     depth: [cfg.heightUnits, 0],
     height: [c.height, 0],
@@ -285,7 +306,7 @@ export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> 
     fingerslide: c.fingerSlide,
   };
 
-  if (c.wallPattern !== 'none') {
+  if (c.wallPatternEnabled) {
     params.wallpattern_enabled = true;
     params.wallpattern_style = c.wallPattern;
   } else {

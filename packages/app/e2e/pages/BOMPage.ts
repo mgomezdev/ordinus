@@ -19,7 +19,7 @@ export class BOMPage {
 
   /** Client-side navigate to Order Summary page (preserves React context). */
   async goToBOM(): Promise<void> {
-    await this.page.locator('.nav-tab', { hasText: 'Order Summary' }).click();
+    await this.page.locator('.nav-tab', { hasText: 'BOM' }).click();
     // Wait for either the table (has items) or empty state
     const table = this.page.locator('.order-bom-table');
     const empty = this.page.locator('.order-empty');

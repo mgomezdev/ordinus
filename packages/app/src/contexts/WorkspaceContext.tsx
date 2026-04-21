@@ -1,14 +1,14 @@
 import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type {
-  UnitSystem, ImperialFormat, GridSpacerConfig, BOMItem, LibraryItem,
+  UnitSystem, ImperialFormat, GridSpacerConfig, LibraryItem,
   LibraryMeta, DragData, BinCustomization, Category,
   GridResult, ReferenceImage, PlacedItem, PlacedItemWithValidity,
   ComputedSpacer, BOMExtras,
 } from '../types/gridfinity';
 import type { SelectModifiers } from '../hooks/useGridItems';
 import type { LoadedLayoutConfig } from '../types/layoutConfig';
-import type { ApiUser } from '@gridfinity/shared';
+import type { BOMItem, ApiUser } from '@gridfinity/shared';
 import type { RefImagePlacement, UseRefImagePlacementsReturn } from '../hooks/useRefImagePlacements';
 import type { LayoutMetaState } from '../reducers/layoutMetaReducer';
 import type { DialogState, DialogAction } from '../reducers/dialogReducer';
@@ -31,8 +31,14 @@ import {
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { useLayoutLoader } from '../hooks/useLayoutLoader';
 import { useLayoutActions } from '../hooks/useLayoutActions';
+import { useGenerationState } from '../hooks/useGenerationState';
+import type { GenerationEntry } from '../hooks/useGenerationState';
+import { requestGenerationApi, generatedImageUrl } from '../api/generation.api';
+import { API_BASE_URL } from '../api/apiClient';
 import { STORAGE_KEYS } from '../utils/storageKeys';
 import type { WalkthroughStep } from './WalkthroughContext';
+import { GridDimensionsContext } from './GridDimensionsContext';
+import { LibraryContext } from './LibraryContext';
 
 // Re-export for convenience
 export type { WalkthroughStep };
@@ -170,6 +176,14 @@ interface WorkspaceContextValue {
   // Export
   exportPdfError: string | null;
   setExportPdfError: (err: string | null) => void;
+
+  // Generation
+  getGenerationEntry: (hash: string) => GenerationEntry | undefined;
+  trackGeneration: (instanceId: string, libraryId: string, itemId: string, customization: BinCustomization | undefined) => Promise<void>;
+  generatedImageUrl: (hash: string, filename: string) => string;
+  instanceGenerationHash: Map<string, string>;
+  recordInstanceHash: (instanceId: string, hash: string) => void;
+  clearInstanceHash: (instanceId: string) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -199,7 +213,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const [exportPdfError, setExportPdfError] = useState<string | null>(null);
   const [selectedLibraryMeta, setSelectedLibraryMeta] = useState<LibraryMeta>({
     customizableFields: [],
-    gridfinityExtendedParams: {},
+    parameters: {},
   });
 
   // Hooks
@@ -359,6 +373,33 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     setSpacerConfig({ horizontal: 'none', vertical: 'none' });
   }, []);
 
+  // Generation state
+  const { getEntry: getGenerationEntry, trackHash } = useGenerationState(API_BASE_URL);
+
+  const [instanceGenerationHash, setInstanceGenerationHash] = useState<Map<string, string>>(new Map());
+  const recordInstanceHash = useCallback((instanceId: string, hash: string) => {
+    setInstanceGenerationHash(prev => { const m = new Map(prev); m.set(instanceId, hash); return m; });
+  }, []);
+
+  const clearInstanceHash = useCallback((instanceId: string) => {
+    setInstanceGenerationHash(prev => { const m = new Map(prev); m.delete(instanceId); return m; });
+  }, []);
+
+  const trackGeneration = useCallback(
+    async (instanceId: string, libraryId: string, itemId: string, customization: BinCustomization | undefined) => {
+      const token = getAccessToken();
+      if (!token) return;
+      try {
+        const { hash, status } = await requestGenerationApi(libraryId, itemId, customization, token);
+        trackHash(hash, status);
+        recordInstanceHash(instanceId, hash);
+      } catch {
+        // non-critical — UI will just not show spinner
+      }
+    },
+    [getAccessToken, trackHash, recordInstanceHash],
+  );
+
   // Rebind image select handler
   const handleRebindSelect = useCallback((refImageId: number, imageUrl: string, name: string) => {
     if (dialogs.rebindTargetId) {
@@ -482,11 +523,64 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     // Export
     exportPdfError,
     setExportPdfError,
+
+    // Generation
+    getGenerationEntry,
+    trackGeneration,
+    generatedImageUrl,
+    instanceGenerationHash,
+    recordInstanceHash,
+    clearInstanceHash,
   };
 
+  const gridDimensionsValue = useMemo(() => ({
+    width,
+    setWidth,
+    depth,
+    setDepth,
+    unitSystem,
+    setUnitSystem,
+    imperialFormat,
+    setImperialFormat,
+    spacerConfig,
+    setSpacerConfig,
+    handleUnitChange,
+    gridResult,
+    drawerWidth,
+    drawerDepth,
+    spacers,
+  }), [
+    width, setWidth, depth, setDepth,
+    unitSystem, setUnitSystem, imperialFormat, setImperialFormat,
+    spacerConfig, setSpacerConfig, handleUnitChange,
+    gridResult, drawerWidth, drawerDepth, spacers,
+  ]);
+
+  const libraryValue = useMemo(() => ({
+    libraryItems,
+    isLibraryLoading,
+    isLibrariesLoading,
+    libraryError,
+    librariesError,
+    categories,
+    getItemById,
+    getLibraryMeta,
+    refreshLibraries,
+    refreshLibrary,
+    selectedLibraryMeta,
+  }), [
+    libraryItems, isLibraryLoading, isLibrariesLoading,
+    libraryError, librariesError, categories,
+    getItemById, getLibraryMeta, refreshLibraries, refreshLibrary, selectedLibraryMeta,
+  ]);
+
   return (
-    <WorkspaceContext.Provider value={value}>
-      {children}
-    </WorkspaceContext.Provider>
+    <GridDimensionsContext.Provider value={gridDimensionsValue}>
+      <LibraryContext.Provider value={libraryValue}>
+        <WorkspaceContext.Provider value={value}>
+          {children}
+        </WorkspaceContext.Provider>
+      </LibraryContext.Provider>
+    </GridDimensionsContext.Provider>
   );
 }

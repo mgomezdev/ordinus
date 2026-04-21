@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import path from 'path';
 import { createApp } from './app.js';
 import { config } from './config.js';
 import { logger } from './logger.js';
@@ -7,6 +8,7 @@ import { runMigrations } from './db/migrate.js';
 import { reseedLibraryData } from './db/reseedLibraries.js';
 import { getPendingAndProcessingIds, getUploadById, resetToPending } from './services/userStls.service.js';
 import { processUpload, getImageOutputDir } from './services/stlProcessing.service.js';
+import { startCleanup } from './services/generationCleanup.service.js';
 
 async function main(): Promise<void> {
   // Run migrations
@@ -17,6 +19,8 @@ async function main(): Promise<void> {
   // Create data directories
   await fs.mkdir(config.USER_STL_DIR, { recursive: true });
   await fs.mkdir(config.USER_STL_IMAGE_DIR, { recursive: true });
+  await fs.mkdir(path.join(config.GENERATED_STL_DIR, 'library'), { recursive: true });
+  await fs.mkdir(path.join(config.GENERATED_STL_DIR, 'custom'), { recursive: true });
 
   // Startup recovery: reset stuck processing/pending rows and re-enqueue
   const stuckIds = await getPendingAndProcessingIds(client);
@@ -31,6 +35,8 @@ async function main(): Promise<void> {
 
   // Reseed library data from JSON files on every boot
   await reseedLibraryData(client, logger);
+  startCleanup();
+  logger.info('Generation cleanup service started');
 
   // Seed default users on first boot only (when users table is empty)
   const userCount = await client.execute('SELECT COUNT(*) as count FROM users');

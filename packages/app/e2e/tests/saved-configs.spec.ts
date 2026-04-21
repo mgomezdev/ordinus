@@ -16,7 +16,6 @@ function makeLayout(overrides: Partial<ApiLayout> = {}): ApiLayout {
     userId: 1,
     name: 'My Layout',
     description: null,
-    status: 'draft',
     isPublic: false,
     gridX: 4,
     gridY: 4,
@@ -240,60 +239,3 @@ test('duplicate button clones layout and shows new card', async ({ page }) => {
   await expect(configs.card('Copy of Original')).toBeVisible({ timeout: 5000 });
 });
 
-test('submit button changes status badge to submitted', async ({ page }) => {
-  await setupAuthMocks(page);
-  await seedAuth(page);
-  let submitted = false;
-  await page.route('**/api/v1/layouts', async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        data: [makeLayout({ id: 1, name: 'Draft Layout', status: submitted ? 'submitted' : 'draft' })],
-      }),
-    });
-  });
-
-  await page.route('**/api/v1/layouts/1/submit', async (route: Route) => {
-    submitted = true;
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ data: makeLayout({ id: 1, name: 'Draft Layout', status: 'submitted' }) }),
-    });
-  });
-
-  const configs = new SavedConfigsPage(page);
-  await gotoConfigsAuthenticated(page);
-  await configs.waitForLoaded();
-
-  await configs.submitButton('Draft Layout').click();
-
-  await expect(
-    configs.card('Draft Layout').locator('.layout-status-badge'),
-  ).toContainText('submitted', { timeout: 5000 });
-});
-
-test('failed mutation shows dismissible error banner', async ({ page }) => {
-  await setupAuthMocks(page);
-  await seedAuth(page);
-  await setupLayoutsMock(page, [makeLayout({ id: 1, name: 'My Layout', status: 'draft' })]);
-
-  // Submit fails with 500
-  await page.route('**/api/v1/layouts/1/submit', async (route: Route) => {
-    await route.fulfill({ status: 500, body: JSON.stringify({ error: 'Server error' }) });
-  });
-
-  const configs = new SavedConfigsPage(page);
-  await gotoConfigsAuthenticated(page);
-  await configs.waitForLoaded();
-
-  await configs.submitButton('My Layout').click();
-
-  await expect(configs.errorBanner).toBeVisible({ timeout: 5000 });
-  await expect(configs.errorBanner).toContainText('Failed to submit');
-
-  // Banner can be dismissed
-  await configs.errorBanner.getByRole('button', { name: 'Dismiss error' }).click();
-  await expect(configs.errorBanner).not.toBeVisible();
-});

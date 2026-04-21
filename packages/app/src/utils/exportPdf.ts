@@ -1,7 +1,8 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { BOMItem, GridResult, GridSpacerConfig, UnitSystem } from '../types/gridfinity';
+import type { BOMItem } from '@gridfinity/shared';
+import type { GridResult, GridSpacerConfig, UnitSystem } from '../types/gridfinity';
 
 export function generateFilename(layoutName?: string): string {
   if (layoutName && layoutName.trim()) {
@@ -23,7 +24,7 @@ export function getOrientation(gridX: number, gridY: number): 'l' | 'p' {
 function formatCustomizationText(item: BOMItem): string {
   if (!item.customization) return '';
   const parts: string[] = [];
-  if (item.customization.wallPattern !== 'none') parts.push(item.customization.wallPattern);
+  if (item.customization.wallPatternEnabled) parts.push(item.customization.wallPattern);
   if (item.customization.lipStyle !== 'normal') parts.push(`lip: ${item.customization.lipStyle}`);
   if (item.customization.fingerSlide !== 'none') parts.push(`slide: ${item.customization.fingerSlide}`);
   if (item.customization.wallCutout !== 'none') parts.push(`cutout: ${item.customization.wallCutout}`);

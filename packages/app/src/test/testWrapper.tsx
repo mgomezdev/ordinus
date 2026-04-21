@@ -13,7 +13,7 @@ export const defaultMockAdapter: DataSourceAdapter = {
     return [];
   },
   async getLibraryMeta(): Promise<LibraryMeta> {
-    return { customizableFields: [], customizationDefaults: {} };
+    return { customizableFields: [], parameters: {} };
   },
   resolveImageUrl(libraryId: string, imagePath: string) {
     if (imagePath.startsWith('/libraries/') || imagePath.startsWith('http')) {
@@ -55,10 +55,6 @@ export function createTestWrapper(overrides?: Partial<DataSourceAdapter>) {
   };
 }
 
-/**
- * Create a test wrapper with a specific adapter and optional QueryClient.
- * Useful when you need to control the adapter or QueryClient instance directly.
- */
 export function createTestWrapperWithAdapter(
   adapter: DataSourceAdapter,
   queryClient?: QueryClient
@@ -105,7 +101,7 @@ export function createLibraryMockAdapter(
       return items;
     },
     async getLibraryMeta(): Promise<LibraryMeta> {
-      return { customizableFields: [], customizationDefaults: {} };
+      return { customizableFields: [], parameters: {} };
     },
     resolveImageUrl(_libraryId: string, imagePath: string) {
       return imagePath;

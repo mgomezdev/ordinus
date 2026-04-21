@@ -6,6 +6,7 @@ import { ReferenceImageOverlay } from './ReferenceImageOverlay';
 import { usePointerDropTarget } from '../hooks/usePointerDrag';
 import type { SnapPreviewData } from '../hooks/usePointerDrag';
 import { SnapPreviewOverlay } from './SnapPreviewOverlay';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 
 const EMPTY_SPACERS: ComputedSpacer[] = [];
 const EMPTY_REF_IMAGES: ReferenceImage[] = [];
@@ -81,6 +82,8 @@ export function GridPreview({
   onSnapChange,
 }: GridPreviewProps) {
   const gridRef = useRef<HTMLDivElement>(null);
+
+  const { trackGeneration, instanceGenerationHash, getGenerationEntry, clearInstanceHash } = useWorkspace();
 
   usePointerDropTarget({
     gridRef,
@@ -180,25 +183,40 @@ export function GridPreview({
               gridY={gridY}
             />
           )}
-          {placedItems.map(item => (
-            <PlacedItemOverlay
-              key={item.instanceId}
-              item={item}
-              gridX={gridX}
-              gridY={gridY}
-              isSelected={selectedItemIds.has(item.instanceId)}
-              onSelect={(instanceId, modifiers) => onSelectItem(instanceId, modifiers)}
-              getItemById={getItemById}
-              onDelete={onDeleteItem}
-              onRotateCw={onRotateItemCw}
-              onRotateCcw={onRotateItemCcw}
-              onCustomizationChange={onItemCustomizationChange}
-              onCustomizationReset={onItemCustomizationReset}
-              onDuplicate={onDuplicateItem}
-              imageViewMode={imageViewMode}
-              getLibraryMeta={getLibraryMeta}
-            />
-          ))}
+          {placedItems.map(item => {
+            const genHash = instanceGenerationHash.get(item.instanceId);
+            const generationEntry = genHash ? getGenerationEntry(genHash) : undefined;
+            return (
+              <PlacedItemOverlay
+                key={item.instanceId}
+                item={item}
+                gridX={gridX}
+                gridY={gridY}
+                isSelected={selectedItemIds.has(item.instanceId)}
+                onSelect={(instanceId, modifiers) => onSelectItem(instanceId, modifiers)}
+                getItemById={getItemById}
+                onDelete={onDeleteItem}
+                onRotateCw={onRotateItemCw}
+                onRotateCcw={onRotateItemCcw}
+                onCustomizationChange={onItemCustomizationChange}
+                onCustomizationReset={onItemCustomizationReset}
+                onDuplicate={onDuplicateItem}
+                imageViewMode={imageViewMode}
+                getLibraryMeta={getLibraryMeta}
+                generationEntry={generationEntry}
+                onCustomizationChangeWithGeneration={(instanceId, customization) => {
+                  const libraryItem = getItemById(item.itemId);
+                  if (libraryItem) {
+                    const colonIdx = item.itemId.indexOf(':');
+                    const libraryId = colonIdx !== -1 ? item.itemId.slice(0, colonIdx) : item.itemId;
+                    const bareItemId = colonIdx !== -1 ? item.itemId.slice(colonIdx + 1) : item.itemId;
+                    void trackGeneration(instanceId, libraryId, bareItemId, customization);
+                  }
+                }}
+                onGenerationReset={clearInstanceHash}
+              />
+            );
+          })}
           {referenceImages.map(image => {
             const meta = refImageMetadata?.get(image.id);
             return (

@@ -16,10 +16,6 @@ export class SavedConfigsPage {
     return this.page.locator('.saved-configs-empty');
   }
 
-  get errorBanner(): Locator {
-    return this.page.locator('.saved-configs-error');
-  }
-
   card(name: string): Locator {
     return this.page.locator('.saved-config-card', { hasText: name });
   }
@@ -34,14 +30,6 @@ export class SavedConfigsPage {
 
   confirmDeleteButton(name: string): Locator {
     return this.card(name).getByRole('button', { name: 'Confirm' });
-  }
-
-  submitButton(name: string): Locator {
-    return this.card(name).getByRole('button', { name: 'Submit' });
-  }
-
-  withdrawButton(name: string): Locator {
-    return this.card(name).getByRole('button', { name: 'Withdraw' });
   }
 
   duplicateButton(name: string): Locator {

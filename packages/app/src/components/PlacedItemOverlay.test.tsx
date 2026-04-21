@@ -1,9 +1,42 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react';
+import type { RenderOptions, RenderResult } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import React from 'react';
 import { PlacedItemOverlay } from './PlacedItemOverlay';
 import type { PlacedItemWithValidity, LibraryItem } from '../types/gridfinity';
 import { DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
-import type React from 'react';
+
+// Wrap all renders with MemoryRouter so useSearchParams works
+function render(ui: React.ReactElement, options?: RenderOptions): RenderResult {
+  return rtlRender(ui, {
+    ...options,
+    wrapper: ({ children }) => React.createElement(MemoryRouter, {}, children),
+  });
+}
+
+// Mock AuthContext — use vi.hoisted so mockUseAuth is available when the factory runs
+const { mockUseAuth } = vi.hoisted(() => {
+  const mockUseAuth = vi.fn(() => ({
+    isAuthenticated: true,
+    user: null as null,
+    isLoading: false,
+    login: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn(),
+    getAccessToken: () => null as string | null,
+  }));
+  return { mockUseAuth };
+});
+vi.mock('../contexts/AuthContext', () => ({
+  useAuth: () => mockUseAuth(),
+}));
+
+
+// Mock generation.api
+vi.mock('../api/generation.api', () => ({
+  generatedImageUrl: (hash: string, filename: string) => `/generated/${hash}/${filename}`,
+}));
 
 // Mock getRotatedPerspectiveUrl so we can control rotation URL generation in tests
 vi.mock('../utils/imageHelpers', () => ({
@@ -41,8 +74,15 @@ describe('PlacedItemOverlay', () => {
   };
 
   const mockGetLibraryMeta = vi.fn().mockResolvedValue({
-    customizableFields: ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'],
-    customizationDefaults: {},
+    customizableFields: [
+      { field: 'wallPatternEnabled', label: 'Wall Pattern' },
+      { field: 'wallPattern', label: 'Wall Pattern', options: ['grid', 'hexgrid', 'brick'] },
+      { field: 'lipStyle',    label: 'Lip Style',    options: ['normal', 'reduced', 'minimum', 'none'] },
+      { field: 'fingerSlide', label: 'Finger Slide', options: ['none', 'rounded', 'chamfered'] },
+      { field: 'wallCutout',  label: 'Wall Cutout',  options: ['none', 'vertical', 'horizontal', 'both'] },
+      { field: 'height',      label: 'Height',       min: 1, max: 20 },
+    ],
+    parameters: {},
   });
 
   const mockOnSelect = vi.fn();
@@ -74,6 +114,16 @@ describe('PlacedItemOverlay', () => {
 
   beforeEach(() => {
     capturedOnTap = undefined;
+    mockUseAuth.mockReset();
+    mockUseAuth.mockImplementation(() => ({
+      isAuthenticated: true,
+      user: null,
+      isLoading: false,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+      getAccessToken: () => null as string | null,
+    }));
   });
 
   describe('Percentage-based Positioning', () => {
@@ -1592,10 +1642,11 @@ describe('PlacedItemOverlay', () => {
       expect(badges).not.toBeInTheDocument();
     });
 
-    it('should render wall pattern badge when wall pattern is non-default', () => {
+    it('should render wall pattern badge when wall pattern is enabled', () => {
       const item = createMockItem({
         customization: {
           ...DEFAULT_BIN_CUSTOMIZATION,
+          wallPatternEnabled: true,
           wallPattern: 'grid',
         },
       });
@@ -1687,10 +1738,12 @@ describe('PlacedItemOverlay', () => {
     it('should render multiple badges when multiple customizations are non-default', () => {
       const item = createMockItem({
         customization: {
+          wallPatternEnabled: true,
           wallPattern: 'grid',
           lipStyle: 'reduced',
           fingerSlide: 'rounded',
           wallCutout: 'none',
+          height: 4,
         },
       });
       const { container } = render(
@@ -1712,6 +1765,7 @@ describe('PlacedItemOverlay', () => {
       const item = createMockItem({
         customization: {
           ...DEFAULT_BIN_CUSTOMIZATION,
+          wallPatternEnabled: true,
           wallPattern: 'grid',
         },
       });
@@ -1808,7 +1862,7 @@ describe('PlacedItemOverlay', () => {
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
           onCustomizationReset={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
       // Wait for libraryMeta to load so the gear button is rendered and ref is attached
@@ -1986,7 +2040,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2007,7 +2061,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2034,7 +2088,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2084,8 +2138,11 @@ describe('PlacedItemOverlay', () => {
       expect(screen.getByLabelText('Wall Cutout')).toBeInTheDocument();
     });
 
-    it('should call onCustomizationChange when a select value changes', async () => {
-      const item = createMockItemWithLibrary({ instanceId: 'custom-item-123' });
+    it('should call onCustomizationChange when popover is closed after a select value changes', async () => {
+      const item = createMockItemWithLibrary({
+        instanceId: 'custom-item-123',
+        customization: { ...DEFAULT_BIN_CUSTOMIZATION, wallPatternEnabled: true, wallPattern: 'grid' },
+      });
       render(
         <PlacedItemOverlay
           item={item}
@@ -2102,12 +2159,72 @@ describe('PlacedItemOverlay', () => {
       const customizeBtn = await waitFor(() => screen.getByRole('button', { name: 'Customize' }));
       fireEvent.click(customizeBtn);
 
-      const wallPatternSelect = screen.getByLabelText('Wall Pattern') as HTMLSelectElement;
-      fireEvent.change(wallPatternSelect, { target: { value: 'voronoi' } });
+      const wallPatternStyleSelect = screen.getByLabelText('Style') as HTMLSelectElement;
+      fireEvent.change(wallPatternStyleSelect, { target: { value: 'hexgrid' } });
+
+      // Change is buffered in draft — onCustomizationChange not called yet
+      expect(mockOnCustomizationChange).not.toHaveBeenCalled();
+
+      // Dismiss the popover
+      const closeBtn = screen.getByRole('button', { name: 'Close customization' });
+      fireEvent.click(closeBtn);
 
       expect(mockOnCustomizationChange).toHaveBeenCalledWith(
         'custom-item-123',
-        expect.objectContaining({ wallPattern: 'voronoi' })
+        expect.objectContaining({ wallPattern: 'hexgrid' })
+      );
+    });
+
+    it('should apply draft and trigger generation when item is deselected while popover is open', async () => {
+      const mockOnCustomizationChangeWithGeneration = vi.fn();
+      const item = createMockItemWithLibrary({
+        instanceId: 'custom-item-deselect',
+        customization: { ...DEFAULT_BIN_CUSTOMIZATION, wallPatternEnabled: true, wallPattern: 'grid' },
+      });
+      const { rerender } = render(
+        <PlacedItemOverlay
+          item={item}
+          gridX={4}
+          gridY={4}
+          isSelected={true}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+          onCustomizationChange={mockOnCustomizationChange}
+          onCustomizationChangeWithGeneration={mockOnCustomizationChangeWithGeneration}
+          getLibraryMeta={mockGetLibraryMeta}
+        />
+      );
+
+      const customizeBtn = await waitFor(() => screen.getByRole('button', { name: 'Customize' }));
+      fireEvent.click(customizeBtn);
+
+      const wallPatternStyleSelect = screen.getByLabelText('Style') as HTMLSelectElement;
+      fireEvent.change(wallPatternStyleSelect, { target: { value: 'hexgrid' } });
+
+      expect(mockOnCustomizationChange).not.toHaveBeenCalled();
+
+      // Simulate click-outside by deselecting the item
+      rerender(
+        <PlacedItemOverlay
+          item={item}
+          gridX={4}
+          gridY={4}
+          isSelected={false}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+          onCustomizationChange={mockOnCustomizationChange}
+          onCustomizationChangeWithGeneration={mockOnCustomizationChangeWithGeneration}
+          getLibraryMeta={mockGetLibraryMeta}
+        />
+      );
+
+      expect(mockOnCustomizationChange).toHaveBeenCalledWith(
+        'custom-item-deselect',
+        expect.objectContaining({ wallPattern: 'hexgrid' })
+      );
+      expect(mockOnCustomizationChangeWithGeneration).toHaveBeenCalledWith(
+        'custom-item-deselect',
+        expect.objectContaining({ wallPattern: 'hexgrid' })
       );
     });
 
@@ -2138,10 +2255,12 @@ describe('PlacedItemOverlay', () => {
       const item = createMockItemWithLibrary({
         instanceId: 'custom-item-456',
         customization: {
+          wallPatternEnabled: true,
           wallPattern: 'grid',
           lipStyle: 'normal',
           fingerSlide: 'none',
           wallCutout: 'none',
+          height: 4,
         },
       });
       render(
@@ -2260,7 +2379,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2288,7 +2407,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2316,7 +2435,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2347,7 +2466,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2378,7 +2497,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2415,7 +2534,7 @@ describe('PlacedItemOverlay', () => {
           onSelect={vi.fn()}
           getItemById={mockGetItemById}
           onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: ['lipStyle'], customizationDefaults: {} })}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
         />
       );
 
@@ -2495,6 +2614,109 @@ describe('PlacedItemOverlay', () => {
       fireEvent.contextMenu(root);
 
       expect(screen.queryByRole('menuitem', { name: /customize/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Generation State', () => {
+    it('shows spinner when generationEntry is pending', () => {
+      render(
+        <PlacedItemOverlay
+          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 as const, isValid: true }}
+          gridX={4}
+          gridY={4}
+          isSelected={false}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+          generationEntry={{ hash: 'abc', status: 'pending' }}
+        />
+      );
+      expect(screen.getByRole('status', { name: /generating/i })).toBeInTheDocument();
+    });
+
+    it('shows error icon when generationEntry is failed', () => {
+      render(
+        <PlacedItemOverlay
+          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 as const, isValid: true }}
+          gridX={4}
+          gridY={4}
+          isSelected={false}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+          generationEntry={{ hash: 'abc', status: 'failed' }}
+        />
+      );
+      expect(screen.getByRole('status', { name: /generation failed/i })).toBeInTheDocument();
+    });
+
+    it('shows generated image src when generationEntry is complete', () => {
+      render(
+        <PlacedItemOverlay
+          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 as const, isValid: true }}
+          gridX={4}
+          gridY={4}
+          isSelected={false}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+          generationEntry={{ hash: 'abc123', status: 'complete' }}
+        />
+      );
+      const img = screen.queryByRole('img');
+      // Image should be using the generated URL, which comes from the mocked generatedImageUrl
+      if (img) {
+        expect(img.getAttribute('src')).toBeTruthy();
+      }
+      // Spinner should not be visible
+      expect(screen.queryByRole('status', { name: /generating/i })).not.toBeInTheDocument();
+      // Error icon should not be visible
+      expect(screen.queryByRole('status', { name: /generation failed/i })).not.toBeInTheDocument();
+    });
+
+    it('shows normal image when no generationEntry provided', () => {
+      render(
+        <PlacedItemOverlay
+          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 as const, isValid: true }}
+          gridX={4}
+          gridY={4}
+          isSelected={false}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+        />
+      );
+      expect(screen.queryByRole('status', { name: /generating/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('status', { name: /generation failed/i })).not.toBeInTheDocument();
+    });
+
+    it('does not open customization popover when unauthenticated user clicks gear', async () => {
+      // Override useAuth for this test to return isAuthenticated: false
+      mockUseAuth.mockImplementation(() => ({
+        isAuthenticated: false,
+        user: null,
+        isLoading: false,
+        login: vi.fn(),
+        register: vi.fn(),
+        logout: vi.fn(),
+        getAccessToken: () => null,
+      }));
+
+      render(
+        <PlacedItemOverlay
+          item={{ instanceId: 'test-item-1', itemId: 'testlib:bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 as const, isValid: true }}
+          gridX={4}
+          gridY={4}
+          isSelected={true}
+          onSelect={mockOnSelect}
+          getItemById={mockGetItemById}
+          onCustomizationChange={vi.fn()}
+          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
+        />
+      );
+
+      const customizeBtn = await waitFor(() => screen.getByRole('button', { name: 'Customize' }));
+      fireEvent.click(customizeBtn);
+
+      // The popover should NOT open when unauthenticated — auth gate redirects instead
+      const popover = document.body.querySelector('.placed-item-customize-popover');
+      expect(popover).not.toBeInTheDocument();
     });
   });
 

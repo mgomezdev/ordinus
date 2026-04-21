@@ -5,23 +5,27 @@ import {
 import type {
   BinCustomization,
   CustomizableField,
+  CustomizableFieldDef,
   FingerSlide,
   GeneratorParams,
   LipStyle,
   WallCutout,
   WallPattern,
 } from '../types/gridfinity';
+
 import { generatorParamsToBinCustomization } from '../utils/generatorParams';
 
 const MM_PER_HEIGHT_UNIT = 7;
 
 interface HeightFieldProps {
   height: number;
+  min: number;
+  max: number;
   idPrefix: string;
   onChange: (height: number) => void;
 }
 
-function HeightField({ height, idPrefix, onChange }: HeightFieldProps) {
+function HeightField({ height, min, max, idPrefix, onChange }: HeightFieldProps) {
   const [mmEditValue, setMmEditValue] = useState<string | null>(null);
   const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -36,7 +40,7 @@ function HeightField({ height, idPrefix, onChange }: HeightFieldProps) {
 
   const handleUnitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = parseInt(e.target.value, 10);
-    if (!isNaN(v) && v >= 1 && v <= 20) {
+    if (!isNaN(v) && v >= min && v <= max) {
       onChange(v);
     }
   };
@@ -56,7 +60,7 @@ function HeightField({ height, idPrefix, onChange }: HeightFieldProps) {
       setCorrectionMsg(`Rounded to ${units}u (${snapped}mm)`);
       timerRef.current = setTimeout(() => setCorrectionMsg(null), 2000);
     }
-    if (units >= 1 && units <= 20) {
+    if (units >= min && units <= max) {
       onChange(units);
     }
   };
@@ -69,8 +73,8 @@ function HeightField({ height, idPrefix, onChange }: HeightFieldProps) {
           id={`${idPrefix}height-units-input`}
           aria-label="Height in units"
           type="number"
-          min={1}
-          max={20}
+          min={min}
+          max={max}
           value={height}
           onChange={handleUnitChange}
         />
@@ -97,53 +101,66 @@ interface BinCustomizationPanelProps {
   customization: BinCustomization | undefined;
   onChange: (customization: BinCustomization) => void;
   onReset: () => void;
-  customizableFields: CustomizableField[];
-  gridfinityExtendedParams?: GeneratorParams;
+  customizableFields: CustomizableFieldDef[];
+  parameters?: GeneratorParams;
   idPrefix?: string;
 }
-
-const WALL_PATTERN_OPTIONS: WallPattern[] = [
-  'none', 'grid', 'hexgrid', 'voronoi', 'voronoigrid', 'voronoihexgrid',
-];
-const LIP_STYLE_OPTIONS: LipStyle[] = ['normal', 'reduced', 'minimum', 'none'];
-const FINGER_SLIDE_OPTIONS: FingerSlide[] = ['none', 'rounded', 'chamfered'];
-const WALL_CUTOUT_OPTIONS: WallCutout[] = ['none', 'vertical', 'horizontal', 'both'];
 
 export function BinCustomizationPanel({
   customization,
   onChange,
   onReset,
   customizableFields,
-  gridfinityExtendedParams,
+  parameters,
   idPrefix = '',
 }: BinCustomizationPanelProps) {
   if (customizableFields.length === 0) return null;
 
-  const libraryDefaults = gridfinityExtendedParams
-    ? generatorParamsToBinCustomization(gridfinityExtendedParams, customizableFields)
+  const libraryDefaults = parameters
+    ? generatorParamsToBinCustomization(parameters, customizableFields)
     : {};
   const effectiveDefaults = { ...DEFAULT_BIN_CUSTOMIZATION, ...libraryDefaults };
   const current: BinCustomization = customization ?? effectiveDefaults;
   const isDefault =
-    current.wallPattern === effectiveDefaults.wallPattern &&
+    !current.wallPatternEnabled &&
     current.lipStyle === effectiveDefaults.lipStyle &&
     current.fingerSlide === effectiveDefaults.fingerSlide &&
     current.wallCutout === effectiveDefaults.wallCutout &&
     current.height === effectiveDefaults.height;
 
-  const has = (f: CustomizableField) => customizableFields.includes(f);
+  const fieldDef = (name: CustomizableField) => customizableFields.find(d => d.field === name);
+  const has = (name: CustomizableField) => fieldDef(name) !== undefined;
+  const optionsFor = (name: CustomizableField): string[] => {
+    const def = fieldDef(name);
+    return def && 'options' in def ? def.options : [];
+  };
+
+  const heightDef = fieldDef('height');
+  const heightMin = heightDef && 'min' in heightDef ? heightDef.min : 1;
+  const heightMax = heightDef && 'max' in heightDef ? heightDef.max : 20;
 
   return (
     <div className="bin-customization-panel">
-      {has('wallPattern') && (
+      {has('wallPatternEnabled') && (
         <div className="bin-customization-field">
-          <label htmlFor={`${idPrefix}wall-pattern-select`}>Wall Pattern</label>
+          <label htmlFor={`${idPrefix}wall-pattern-enabled`}>Wall Pattern</label>
+          <input
+            id={`${idPrefix}wall-pattern-enabled`}
+            type="checkbox"
+            checked={current.wallPatternEnabled}
+            onChange={(e) => onChange({ ...current, wallPatternEnabled: e.target.checked })}
+          />
+        </div>
+      )}
+      {has('wallPattern') && current.wallPatternEnabled && (
+        <div className="bin-customization-field">
+          <label htmlFor={`${idPrefix}wall-pattern-select`}>Style</label>
           <select
             id={`${idPrefix}wall-pattern-select`}
             value={current.wallPattern}
             onChange={(e) => onChange({ ...current, wallPattern: e.target.value as WallPattern })}
           >
-            {WALL_PATTERN_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+            {optionsFor('wallPattern').map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
         </div>
       )}
@@ -156,7 +173,7 @@ export function BinCustomizationPanel({
             value={current.lipStyle}
             onChange={(e) => onChange({ ...current, lipStyle: e.target.value as LipStyle })}
           >
-            {LIP_STYLE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+            {optionsFor('lipStyle').map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
         </div>
       )}
@@ -169,7 +186,7 @@ export function BinCustomizationPanel({
             value={current.fingerSlide}
             onChange={(e) => onChange({ ...current, fingerSlide: e.target.value as FingerSlide })}
           >
-            {FINGER_SLIDE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+            {optionsFor('fingerSlide').map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
         </div>
       )}
@@ -182,7 +199,7 @@ export function BinCustomizationPanel({
             value={current.wallCutout}
             onChange={(e) => onChange({ ...current, wallCutout: e.target.value as WallCutout })}
           >
-            {WALL_CUTOUT_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+            {optionsFor('wallCutout').map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
         </div>
       )}
@@ -190,6 +207,8 @@ export function BinCustomizationPanel({
       {has('height') && (
         <HeightField
           height={current.height}
+          min={heightMin}
+          max={heightMax}
           idPrefix={idPrefix}
           onChange={(h) => onChange({ ...current, height: h })}
         />

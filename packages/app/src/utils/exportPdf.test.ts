@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { generateFilename, getOrientation, formatBomRows, exportToPdf } from './exportPdf';
 import type { ExportPdfConfig } from './exportPdf';
-import type { BOMItem, GridResult, GridSpacerConfig } from '../types/gridfinity';
+import type { BOMItem } from '@gridfinity/shared';
+import type { GridResult, GridSpacerConfig } from '../types/gridfinity';
 
 // Mock html2canvas and jspdf at module level
 vi.mock('html2canvas', () => ({
@@ -103,7 +104,7 @@ describe('formatBomRows', () => {
   it('formats wall pattern customization', () => {
     const item: BOMItem = {
       ...baseItem,
-      customization: { wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none' },
+      customization: { wallPatternEnabled: true, wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 4 },
     };
     expect(formatBomRows([item])).toEqual([['2x3 Bin', '2×3', '4', 'grid']]);
   });
@@ -111,7 +112,7 @@ describe('formatBomRows', () => {
   it('formats multiple customization fields', () => {
     const item: BOMItem = {
       ...baseItem,
-      customization: { wallPattern: 'none', lipStyle: 'reduced', fingerSlide: 'chamfered', wallCutout: 'none' },
+      customization: { wallPatternEnabled: false, wallPattern: 'grid', lipStyle: 'reduced', fingerSlide: 'chamfered', wallCutout: 'none', height: 4 },
     };
     expect(formatBomRows([item])).toEqual([['2x3 Bin', '2×3', '4', 'lip: reduced, slide: chamfered']]);
   });

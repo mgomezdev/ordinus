@@ -56,8 +56,12 @@ export interface LibraryItem {
   stlFile?: string;
   imageUrl?: string;
   perspectiveImageUrl?: string;
+  perspectiveImageUrl90?: string;
+  perspectiveImageUrl180?: string;
+  perspectiveImageUrl270?: string;
   price?: number;
-  gridfinityExtendedParams?: GeneratorParams;
+  parameters?: GeneratorParams;
+  paramHash?: string;
 }
 
 export interface PlacedItem {
@@ -70,7 +74,7 @@ export interface PlacedItem {
   rotation: Rotation;
   customization?: BinCustomization;
   shadowBoxId?: string | null;
-  gridfinityExtendedParams?: GeneratorParams;
+  parameters?: GeneratorParams;
 }
 
 export interface PlacedItemWithValidity extends PlacedItem {
@@ -86,20 +90,6 @@ export interface DragData {
   refImageName?: string;
 }
 
-export interface BOMItem {
-  libraryId: string;
-  itemId: string;
-  name: string;
-  widthUnits: number;
-  heightUnits: number;
-  color: string;
-  categories: string[];
-  quantity: number;
-  customization?: BinCustomization;
-  shadowboxId?: string;
-  price?: number;
-  gridfinityExtendedParams?: GeneratorParams;
-}
 
 export interface ReferenceImage {
   id: string;
@@ -115,14 +105,35 @@ export interface ReferenceImage {
   rotation: Rotation;
 }
 
-export type WallPattern = 'none' | 'grid' | 'hexgrid' | 'voronoi' | 'voronoigrid' | 'voronoihexgrid';
+export type WallPattern = 'grid' | 'hexgrid' | 'brick' | 'voronoi' | 'voronoigrid' | 'voronoihexgrid';
 export type LipStyle = 'normal' | 'reduced' | 'minimum' | 'none';
 export type FingerSlide = 'none' | 'rounded' | 'chamfered';
 export type WallCutout = 'none' | 'vertical' | 'horizontal' | 'both';
 
-export type CustomizableField = 'wallPattern' | 'lipStyle' | 'fingerSlide' | 'wallCutout' | 'height';
+export type CustomizableField = 'wallPatternEnabled' | 'wallPattern' | 'lipStyle' | 'fingerSlide' | 'wallCutout' | 'height';
+
+export interface CustomizableBooleanFieldDef {
+  field: 'wallPatternEnabled';
+  label: string;
+}
+
+export interface CustomizableSelectFieldDef {
+  field: Exclude<CustomizableField, 'height' | 'wallPatternEnabled'>;
+  label: string;
+  options: string[];
+}
+
+export interface CustomizableNumericFieldDef {
+  field: 'height';
+  label: string;
+  min: number;
+  max: number;
+}
+
+export type CustomizableFieldDef = CustomizableBooleanFieldDef | CustomizableSelectFieldDef | CustomizableNumericFieldDef;
 
 export interface BinCustomization {
+  wallPatternEnabled: boolean;
   wallPattern: WallPattern;
   lipStyle: LipStyle;
   fingerSlide: FingerSlide;
@@ -131,7 +142,8 @@ export interface BinCustomization {
 }
 
 export const DEFAULT_BIN_CUSTOMIZATION: BinCustomization = {
-  wallPattern: 'none',
+  wallPatternEnabled: false,
+  wallPattern: 'grid',
   lipStyle: 'normal',
   fingerSlide: 'none',
   wallCutout: 'none',
@@ -140,12 +152,12 @@ export const DEFAULT_BIN_CUSTOMIZATION: BinCustomization = {
 
 export function serializeCustomization(c: BinCustomization | undefined): string {
   if (!c) return '';
-  return `${c.wallPattern}|${c.lipStyle}|${c.fingerSlide}|${c.wallCutout}|${c.height}`;
+  return `${c.wallPatternEnabled ? c.wallPattern : 'none'}|${c.lipStyle}|${c.fingerSlide}|${c.wallCutout}|${c.height}`;
 }
 
 export function isDefaultCustomization(c: BinCustomization | undefined): boolean {
   if (!c) return true;
-  return c.wallPattern === 'none'
+  return !c.wallPatternEnabled
     && c.lipStyle === 'normal'
     && c.fingerSlide === 'none'
     && c.wallCutout === 'none'
@@ -161,8 +173,8 @@ export function getBOMKey(itemId: string, customization?: BinCustomization): str
 export type BOMExtras = Record<string, number>;
 
 export interface LibraryMeta {
-  customizableFields: CustomizableField[];
-  gridfinityExtendedParams: GeneratorParams;
+  customizableFields: CustomizableFieldDef[];
+  parameters: GeneratorParams;
 }
 
 export type ImageViewMode = 'ortho' | 'perspective';
@@ -190,7 +202,7 @@ export interface LibraryManifest {
 export interface LibraryIndex {
   version: string;
   items: LibraryItem[];
-  customizableFields?: CustomizableField[];
-  gridfinityExtendedParams?: GeneratorParams;
+  customizableFields?: CustomizableFieldDef[];
+  parameters?: GeneratorParams;
   baseModel?: string;
 }

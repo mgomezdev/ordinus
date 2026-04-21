@@ -54,7 +54,7 @@ describe('POST /api/v1/layouts — customization field', () => {
         itemId: 'bins_standard:bin-2x3',
         x: 0, y: 0, width: 2, height: 3, rotation: 0,
         customization: {
-          wallPattern: 'hexgrid', lipStyle: 'normal',
+          wallPatternEnabled: true, wallPattern: 'hexgrid', lipStyle: 'normal',
           fingerSlide: 'none', wallCutout: 'none', height: 10,
         },
       }],
@@ -74,7 +74,7 @@ describe('POST /api/v1/layouts — customization field', () => {
         itemId: 'bins_standard:bin-1x1',
         x: 0, y: 0, width: 1, height: 1, rotation: 0,
         customization: {
-          wallPattern: 'none', lipStyle: 'normal',
+          wallPatternEnabled: false, wallPattern: 'grid', lipStyle: 'normal',
           fingerSlide: 'none', wallCutout: 'none', height: 8,
           unknownField: 'should be stripped',
         },

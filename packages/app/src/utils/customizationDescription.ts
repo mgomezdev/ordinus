@@ -28,7 +28,7 @@ const WALL_CUTOUT_LABELS: Record<string, string> = {
 
 export function formatCustomizationDescription(c: BinCustomization): string {
   const parts: string[] = [];
-  if (c.wallPattern !== DEFAULT_BIN_CUSTOMIZATION.wallPattern) {
+  if (c.wallPatternEnabled) {
     parts.push(WALL_PATTERN_LABELS[c.wallPattern] ?? c.wallPattern);
   }
   if (c.lipStyle !== DEFAULT_BIN_CUSTOMIZATION.lipStyle) {

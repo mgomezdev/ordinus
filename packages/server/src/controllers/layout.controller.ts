@@ -4,13 +4,28 @@ import type { ApiResponse, ApiListResponse, ApiLayout, ApiLayoutDetail } from '@
 import type { Request, Response, NextFunction } from 'express';
 import * as layoutService from '../services/layout.service.js';
 
-const binCustomizationSchema = z.object({
-  wallPattern: z.enum(['none', 'grid', 'hexgrid', 'voronoi', 'voronoigrid', 'voronoihexgrid']),
-  lipStyle: z.enum(['normal', 'reduced', 'minimum', 'none']),
-  fingerSlide: z.enum(['none', 'rounded', 'chamfered']),
-  wallCutout: z.enum(['none', 'vertical', 'horizontal', 'both']),
-  height: z.number().int().min(1).max(20),
-});
+const binCustomizationSchema = z.preprocess(
+  (raw) => {
+    if (typeof raw !== 'object' || raw === null) return raw;
+    const d = raw as Record<string, unknown>;
+    // backward compat: wallPattern 'none' means wall pattern disabled
+    if (d['wallPattern'] === 'none') {
+      return { ...d, wallPatternEnabled: false, wallPattern: 'grid' };
+    }
+    if (d['wallPatternEnabled'] === undefined) {
+      return { ...d, wallPatternEnabled: false };
+    }
+    return raw;
+  },
+  z.object({
+    wallPatternEnabled: z.boolean().default(false),
+    wallPattern: z.enum(['grid', 'hexgrid', 'brick', 'voronoi', 'voronoigrid', 'voronoihexgrid']),
+    lipStyle: z.enum(['normal', 'reduced', 'minimum', 'none']),
+    fingerSlide: z.enum(['none', 'rounded', 'chamfered']),
+    wallCutout: z.enum(['none', 'vertical', 'horizontal', 'both']),
+    height: z.number().int().min(1).max(20),
+  })
+);
 
 const placedItemSchema = z.object({
   itemId: z.string().min(1),

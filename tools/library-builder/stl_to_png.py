@@ -225,24 +225,29 @@ def render_stl_to_png_perspective(stl_path, output_path, max_dimension=800, came
             270: (0.0, -1.0),
         }
 
+        def _apply_z_rotation(cos_a, sin_a):
+            # CW convention: rotation=90 appears CW from the viewer at -Y.
+            # Negate sin relative to standard math (CCW) convention.
+            v = stl_mesh.vectors
+            x_all = v[:, :, 0].copy()
+            y_all = v[:, :, 1].copy()
+            v[:, :, 0] = cos_a * x_all + sin_a * y_all
+            v[:, :, 1] = -sin_a * x_all + cos_a * y_all
+            n = stl_mesh.normals
+            nx = n[:, 0].copy()
+            ny = n[:, 1].copy()
+            n[:, 0] = cos_a * nx + sin_a * ny
+            n[:, 1] = -sin_a * nx + cos_a * ny
+            for attr in ('_min', '_max'):
+                if hasattr(stl_mesh, attr):
+                    delattr(stl_mesh, attr)
+
         if rotation != 0:
             key = rotation % 360
             cos_a, sin_a = EXACT_ROTATIONS.get(
                 key, (np.cos(np.radians(rotation)), np.sin(np.radians(rotation)))
             )
-            v = stl_mesh.vectors
-            x_all = v[:, :, 0].copy()
-            y_all = v[:, :, 1].copy()
-            v[:, :, 0] = cos_a * x_all - sin_a * y_all
-            v[:, :, 1] = sin_a * x_all + cos_a * y_all
-            n = stl_mesh.normals
-            nx = n[:, 0].copy()
-            ny = n[:, 1].copy()
-            n[:, 0] = cos_a * nx - sin_a * ny
-            n[:, 1] = sin_a * nx + cos_a * ny
-            for attr in ('_min', '_max'):
-                if hasattr(stl_mesh, attr):
-                    delattr(stl_mesh, attr)
+            _apply_z_rotation(cos_a, sin_a)
 
         min_b = stl_mesh.min_
         max_b = stl_mesh.max_

@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { exportOrderSummaryPdf, calculateOrderTotal } from '../utils/exportOrderSummaryPdf';
 import { formatCustomizationDescription } from '../utils/customizationDescription';
+import type { BOMItem } from '@gridfinity/shared';
 import { getBOMKey } from '../types/gridfinity';
-import type { BOMItem } from '../types/gridfinity';
 import { BomGenerationPanel } from '../components/BomGenerationPanel';
 import './OrderSummaryPage.css';
 

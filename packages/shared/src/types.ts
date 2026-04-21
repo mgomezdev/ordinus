@@ -58,7 +58,7 @@ export interface LibraryItem {
   perspectiveImageUrl?: string;
 }
 
-export type WallPattern = 'none' | 'grid' | 'hexgrid' | 'voronoi' | 'voronoigrid' | 'voronoihexgrid';
+export type WallPattern = 'grid' | 'hexgrid' | 'brick' | 'voronoi' | 'voronoigrid' | 'voronoihexgrid';
 export type LipStyle = 'normal' | 'reduced' | 'minimum' | 'none';
 export type FingerSlide = 'none' | 'rounded' | 'chamfered';
 export type WallCutout = 'none' | 'vertical' | 'horizontal' | 'both';
@@ -69,6 +69,7 @@ import gridfinityExtendedDefaultParamsJson from './gridfinity-extended-default-p
 export const gridfinityExtendedDefaultParams: GeneratorParams = gridfinityExtendedDefaultParamsJson;
 
 export interface BinCustomization {
+  wallPatternEnabled: boolean;
   wallPattern: WallPattern;
   lipStyle: LipStyle;
   fingerSlide: FingerSlide;
@@ -110,7 +111,8 @@ export interface BOMItem {
   categories: string[];
   quantity: number;
   customization?: BinCustomization;
-  gridfinityExtendedParams?: GeneratorParams;
+  price?: number;
+  parameters?: GeneratorParams;
 }
 
 export interface ReferenceImage {
@@ -189,6 +191,7 @@ export interface ApiLibraryItem {
   sortOrder: number;
   categories: string[];
   stlFile: string | null;
+  paramHash?: string | null;
 }
 
 export interface ApiCategory {

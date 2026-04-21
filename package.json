@@ -1,7 +1,7 @@
 {
   "name": "gridfinity-customizer",
   "private": true,
-  "version": "2.1.0",
+  "version": "3.0.0",
   "description": "Web-based visual design tool for creating custom Gridfinity modular storage layouts with drag-and-drop, reference images, and bill of materials generation",
   "repository": {
     "type": "git",

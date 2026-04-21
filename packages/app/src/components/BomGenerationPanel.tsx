@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ApiBomGeneration, BOMItem } from '@gridfinity/shared';
 import { triggerBomGeneration, getBomGeneration, getFileDownloadUrl } from '../api/bomGeneration.api';
 
@@ -14,12 +14,12 @@ export function BomGenerationPanel({ layoutId, bomItems, accessToken }: BomGener
   const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const stopPolling = () => {
+  const stopPolling = useCallback(() => {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = null;
-  };
+  }, []);
 
-  const fetchGeneration = async () => {
+  const fetchGeneration = useCallback(async () => {
     if (!layoutId || !accessToken) return;
     try {
       const gen = await getBomGeneration(layoutId, accessToken);
@@ -28,12 +28,12 @@ export function BomGenerationPanel({ layoutId, bomItems, accessToken }: BomGener
     } catch {
       stopPolling();
     }
-  };
+  }, [layoutId, accessToken, stopPolling]);
 
   useEffect(() => {
     void fetchGeneration();
     return stopPolling;
-  }, [layoutId, accessToken]);
+  }, [fetchGeneration, stopPolling]);
 
   useEffect(() => {
     if (generation?.status === 'generating') {
@@ -42,7 +42,7 @@ export function BomGenerationPanel({ layoutId, bomItems, accessToken }: BomGener
       stopPolling();
     }
     return stopPolling;
-  }, [generation?.status]);
+  }, [generation?.status, fetchGeneration, stopPolling]);
 
   const handleGenerate = async () => {
     if (!layoutId || !accessToken) return;

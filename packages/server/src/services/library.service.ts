@@ -112,6 +112,7 @@ export async function getLibraryItems(
         isActive: libraryItems.isActive,
         sortOrder: libraryItems.sortOrder,
         stlFile: libraryItems.stlFile,
+        paramHash: libraryItems.paramHash,
       })
       .from(libraryItems)
       .innerJoin(
@@ -137,6 +138,7 @@ export async function getLibraryItems(
         isActive: libraryItems.isActive,
         sortOrder: libraryItems.sortOrder,
         stlFile: libraryItems.stlFile,
+        paramHash: libraryItems.paramHash,
       })
       .from(libraryItems)
       .where(and(...conditions))
@@ -179,6 +181,7 @@ export async function getLibraryItems(
     isActive: item.isActive,
     sortOrder: item.sortOrder,
     stlFile: item.stlFile ? path.basename(item.stlFile) : null,
+    paramHash: item.paramHash ?? null,
     categories: catMap.get(`${item.libraryId}:${item.id}`) ?? [],
   }));
 }
@@ -200,6 +203,7 @@ export async function getLibraryItemById(
       isActive: libraryItems.isActive,
       sortOrder: libraryItems.sortOrder,
       stlFile: libraryItems.stlFile,
+      paramHash: libraryItems.paramHash,
     })
     .from(libraryItems)
     .where(and(eq(libraryItems.libraryId, libraryId), eq(libraryItems.id, itemId)))
@@ -237,6 +241,7 @@ export async function getLibraryItemById(
     isActive: item.isActive,
     sortOrder: item.sortOrder,
     stlFile: item.stlFile ? path.basename(item.stlFile) : null,
+    paramHash: item.paramHash ?? null,
     categories: catRows.map((r) => r.categoryId),
   };
 }

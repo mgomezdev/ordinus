@@ -4,6 +4,7 @@ import type { ApiRefImage } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
 import { refImages, userStorage } from '../db/schema.js';
 import * as imageService from './image.service.js';
+import { ensureStorageRow } from './storage.helpers.js';
 
 function formatRefImage(row: typeof refImages.$inferSelect): ApiRefImage {
   return {
@@ -15,25 +16,6 @@ function formatRefImage(row: typeof refImages.$inferSelect): ApiRefImage {
     fileSize: row.fileSize,
     createdAt: row.createdAt,
   };
-}
-
-async function ensureStorageRow(userId: number): Promise<typeof userStorage.$inferSelect> {
-  const existing = await db
-    .select()
-    .from(userStorage)
-    .where(eq(userStorage.userId, userId))
-    .limit(1);
-
-  if (existing.length > 0) {
-    return existing[0];
-  }
-
-  const inserted = await db
-    .insert(userStorage)
-    .values({ userId, layoutCount: 0, imageBytes: 0 })
-    .returning();
-
-  return inserted[0];
 }
 
 export async function listRefImages(userId: number): Promise<ApiRefImage[]> {

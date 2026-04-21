@@ -3,6 +3,7 @@ import type { LibraryItem } from '../types/gridfinity';
 import { usePointerDragSource } from '../hooks/usePointerDrag';
 import { useImageLoadState } from '../hooks/useImageLoadState';
 import { ItemPreviewPopover } from './ItemPreviewPopover';
+import { generatedImageUrl } from '../api/generation.api';
 
 interface LibraryItemCardProps {
   item: LibraryItem;
@@ -11,14 +12,21 @@ interface LibraryItemCardProps {
 const HOVER_DELAY = 200;
 
 export function LibraryItemCard({ item }: LibraryItemCardProps) {
+  const effectiveImageUrl = (() => {
+    // Prefer generated image when paramHash is available — it's the authoritative render
+    if (item.paramHash) return generatedImageUrl(item.paramHash, 'ortho.png');
+    if (item.imageUrl) return item.imageUrl;
+    return undefined;
+  })();
+
   const { imageError, shouldShowImage, handleImageLoad, handleImageError } =
-    useImageLoadState(item.imageUrl);
+    useImageLoadState(effectiveImageUrl);
 
   const [previewAnchorRect, setPreviewAnchorRect] = useState<DOMRect | null>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const hasAnyImage = !!(item.perspectiveImageUrl || item.imageUrl);
+  const hasAnyImage = !!(item.perspectiveImageUrl || item.imageUrl || item.paramHash);
 
   const hidePopover = useCallback(() => {
     if (hoverTimerRef.current) {
@@ -70,6 +78,8 @@ export function LibraryItemCard({ item }: LibraryItemCardProps) {
     [hidePopover, onPointerDown],
   );
 
+  const isGenerating = !!(item.paramHash && !shouldShowImage && !imageError);
+
   // Generate mini grid preview
   const previewCells = [];
   const maxPreviewSize = 3;
@@ -105,9 +115,14 @@ export function LibraryItemCard({ item }: LibraryItemCardProps) {
         }}
       >
         <div className="library-item-preview-container">
-          {item.imageUrl && !imageError && (
+          {isGenerating && (
+            <div className="generation-spinner" aria-label="Generating" role="status">
+              <div className="spinner" />
+            </div>
+          )}
+          {effectiveImageUrl && !imageError && (
             <img
-              src={item.imageUrl}
+              src={effectiveImageUrl}
               alt={item.name}
               className={`library-item-image ${shouldShowImage ? 'visible' : 'hidden'}`}
               loading="lazy"

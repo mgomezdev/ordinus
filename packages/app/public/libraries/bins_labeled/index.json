@@ -2,24 +2,12 @@
   "version": "1.0.0",
   "baseModel": "gridfinity_basic_cup.scad",
   "customizableFields": [
-    "lipStyle",
-    "wallPattern",
-    "fingerSlide",
-    "wallCutout"
+    { "field": "wallPatternEnabled", "label": "Wall Pattern" },
+    { "field": "wallPattern", "label": "Wall Pattern", "options": ["grid", "hexgrid", "brick"] },
+    { "field": "lipStyle",    "label": "Lip Style",    "options": ["normal", "reduced", "minimum", "none"] },
+    { "field": "fingerSlide", "label": "Finger Slide", "options": ["none", "rounded", "chamfered"] },
+    { "field": "wallCutout",  "label": "Wall Cutout",  "options": ["none", "vertical", "horizontal", "both"] }
   ],
-  "gridfinityExtendedParams": {
-    "label_style": "normal",
-    "label_walls": [
-      0,
-      1,
-      0,
-      0
-    ],
-    "height": [
-      4,
-      0
-    ]
-  },
   "items": [
     {
       "id": "bin-1x1-labeled",
@@ -30,9 +18,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_1x1_labeled.png",
-      "perspectiveImageUrl": "bin_1x1_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           1,
           0
@@ -52,9 +38,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_1x2_labeled.png",
-      "perspectiveImageUrl": "bin_1x2_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           1,
           0
@@ -74,9 +58,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_1x3_labeled.png",
-      "perspectiveImageUrl": "bin_1x3_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           1,
           0
@@ -96,9 +78,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_1x4_labeled.png",
-      "perspectiveImageUrl": "bin_1x4_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           1,
           0
@@ -118,9 +98,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_1x5_labeled.png",
-      "perspectiveImageUrl": "bin_1x5_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           1,
           0
@@ -140,9 +118,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_2x1_labeled.png",
-      "perspectiveImageUrl": "bin_2x1_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           2,
           0
@@ -162,9 +138,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_2x2_labeled.png",
-      "perspectiveImageUrl": "bin_2x2_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           2,
           0
@@ -184,9 +158,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_2x3_labeled.png",
-      "perspectiveImageUrl": "bin_2x3_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           2,
           0
@@ -206,9 +178,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_2x4_labeled.png",
-      "perspectiveImageUrl": "bin_2x4_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           2,
           0
@@ -228,9 +198,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_2x5_labeled.png",
-      "perspectiveImageUrl": "bin_2x5_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           2,
           0
@@ -250,9 +218,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_3x1_labeled.png",
-      "perspectiveImageUrl": "bin_3x1_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           3,
           0
@@ -272,9 +238,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_3x2_labeled.png",
-      "perspectiveImageUrl": "bin_3x2_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           3,
           0
@@ -294,9 +258,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_3x3_labeled.png",
-      "perspectiveImageUrl": "bin_3x3_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           3,
           0
@@ -316,9 +278,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_3x4_labeled.png",
-      "perspectiveImageUrl": "bin_3x4_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           3,
           0
@@ -338,9 +298,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_3x5_labeled.png",
-      "perspectiveImageUrl": "bin_3x5_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           3,
           0
@@ -360,9 +318,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_4x1_labeled.png",
-      "perspectiveImageUrl": "bin_4x1_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           4,
           0
@@ -382,9 +338,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_4x2_labeled.png",
-      "perspectiveImageUrl": "bin_4x2_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           4,
           0
@@ -404,9 +358,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_4x3_labeled.png",
-      "perspectiveImageUrl": "bin_4x3_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           4,
           0
@@ -426,9 +378,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_4x4_labeled.png",
-      "perspectiveImageUrl": "bin_4x4_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           4,
           0
@@ -448,9 +398,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_4x5_labeled.png",
-      "perspectiveImageUrl": "bin_4x5_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           4,
           0
@@ -470,9 +418,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_5x1_labeled.png",
-      "perspectiveImageUrl": "bin_5x1_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           5,
           0
@@ -492,9 +438,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_5x2_labeled.png",
-      "perspectiveImageUrl": "bin_5x2_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           5,
           0
@@ -514,9 +458,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_5x3_labeled.png",
-      "perspectiveImageUrl": "bin_5x3_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           5,
           0
@@ -536,9 +478,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_5x4_labeled.png",
-      "perspectiveImageUrl": "bin_5x4_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           5,
           0
@@ -558,9 +498,7 @@
       "categories": [
         "labeled"
       ],
-      "imageUrl": "bin_5x5_labeled.png",
-      "perspectiveImageUrl": "bin_5x5_labeled-perspective.png",
-      "gridfinityExtendedParams": {
+      "parameters": {
         "width": [
           5,
           0
@@ -571,5 +509,18 @@
         ]
       }
     }
-  ]
+  ],
+  "parameters": {
+    "label_style": "normal",
+    "label_walls": [
+      0,
+      1,
+      0,
+      0
+    ],
+    "height": [
+      4,
+      0
+    ]
+  }
 }
