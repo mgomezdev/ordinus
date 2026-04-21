@@ -82,12 +82,13 @@ export interface PlacedItemWithValidity extends PlacedItem {
 }
 
 export interface DragData {
-  type: 'library' | 'placed' | 'ref-image';
+  type: 'library' | 'placed' | 'ref-image' | 'favorite';
   itemId: string;
   instanceId?: string;
   refImageId?: number;
   refImageUrl?: string;
   refImageName?: string;
+  favoriteCustomization?: BinCustomization;
 }
 
 
@@ -149,6 +150,25 @@ export const DEFAULT_BIN_CUSTOMIZATION: BinCustomization = {
   wallCutout: 'none',
   height: 4,
 };
+
+export interface FavoriteItem {
+  id: string;
+  name: string;
+  createdAt: number;
+  libraryId: string;
+  libraryItemId: string;
+  libraryItemName: string;
+  widthUnits: number;
+  heightUnits: number;
+  color: string;
+  paramHash: string | null;
+  imageUrl: string;
+  perspectiveImageUrl: string | null;
+  perspectiveImageUrl90: string | null;
+  perspectiveImageUrl180: string | null;
+  perspectiveImageUrl270: string | null;
+  customization: BinCustomization;
+}
 
 export function serializeCustomization(c: BinCustomization | undefined): string {
   if (!c) return '';
