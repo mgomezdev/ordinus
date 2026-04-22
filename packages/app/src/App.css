@@ -2678,6 +2678,67 @@
   cursor: not-allowed;
 }
 
+.height-stepper {
+  display: flex;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  height: 22px;
+}
+
+.height-stepper-btn {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.height-stepper-btn:not(:disabled):hover {
+  background: var(--blue-50);
+  color: var(--blue-500);
+}
+
+.height-stepper-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.height-stepper-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-left: 1px solid var(--border-secondary);
+  border-right: 1px solid var(--border-secondary);
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  padding: 0;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.height-stepper-input::-webkit-inner-spin-button,
+.height-stepper-input::-webkit-outer-spin-button {
+  display: none;
+}
+
+.height-stepper-mm {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-align: right;
+  margin-top: 1px;
+}
+
 /* ─── Mobile toggle strips (hidden on desktop) ──────────────────────────── */
 .mobile-panel-strip {
   display: none;

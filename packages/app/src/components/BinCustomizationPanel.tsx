@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DEFAULT_BIN_CUSTOMIZATION,
 } from '../types/gridfinity';
@@ -25,73 +25,49 @@ interface HeightFieldProps {
 }
 
 function HeightField({ height, min, max, idPrefix, onChange }: HeightFieldProps) {
-  const [mmEditValue, setMmEditValue] = useState<string | null>(null);
-  const [correctionMsg, setCorrectionMsg] = useState<string | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [inputValue, setInputValue] = useState(String(height));
 
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+    setInputValue(String(height));
+  }, [height]);
 
-  const displayedMm = mmEditValue ?? String(height * MM_PER_HEIGHT_UNIT);
-
-  const handleUnitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = parseInt(e.target.value, 10);
-    if (!isNaN(v) && v >= min && v <= max) {
-      onChange(v);
-    }
-  };
-
-  const handleMmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setMmEditValue(e.target.value);
-  };
-
-  const handleMmBlur = () => {
-    const raw = parseInt(mmEditValue ?? '', 10);
-    setMmEditValue(null);
-    if (isNaN(raw) || raw < MM_PER_HEIGHT_UNIT) return;
-    const units = Math.floor(raw / MM_PER_HEIGHT_UNIT);
-    const snapped = units * MM_PER_HEIGHT_UNIT;
-    if (snapped !== raw) {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      setCorrectionMsg(`Rounded to ${units}u (${snapped}mm)`);
-      timerRef.current = setTimeout(() => setCorrectionMsg(null), 2000);
-    }
-    if (units >= min && units <= max) {
-      onChange(units);
-    }
+  const commit = (raw: string) => {
+    const parsed = parseInt(raw, 10);
+    const clamped = isNaN(parsed) ? height : Math.max(min, Math.min(max, parsed));
+    onChange(clamped);
+    setInputValue(String(clamped));
   };
 
   return (
     <div className="bin-customization-field">
-      <label htmlFor={`${idPrefix}height-units-input`}>Height</label>
-      <div className="height-inputs">
+      <label htmlFor={`${idPrefix}height-stepper-input`}>Height</label>
+      <div className="height-stepper">
+        <button
+          type="button"
+          className="height-stepper-btn"
+          onClick={() => onChange(Math.max(min, height - 1))}
+          disabled={height <= min}
+          aria-label="Decrease height"
+        >−</button>
         <input
-          id={`${idPrefix}height-units-input`}
+          id={`${idPrefix}height-stepper-input`}
+          className="height-stepper-input"
+          type="number"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onBlur={(e) => commit(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
           aria-label="Height in units"
-          type="number"
-          min={min}
-          max={max}
-          value={height}
-          onChange={handleUnitChange}
         />
-        <span>u</span>
-        <input
-          id={`${idPrefix}height-mm-input`}
-          aria-label="Height in millimeters"
-          type="number"
-          min={MM_PER_HEIGHT_UNIT}
-          value={displayedMm}
-          onChange={handleMmChange}
-          onBlur={handleMmBlur}
-        />
-        <span>mm</span>
+        <button
+          type="button"
+          className="height-stepper-btn"
+          onClick={() => onChange(Math.min(max, height + 1))}
+          disabled={height >= max}
+          aria-label="Increase height"
+        >+</button>
       </div>
-      {correctionMsg && (
-        <div className="height-correction" role="status">{correctionMsg}</div>
-      )}
+      <div className="height-stepper-mm">{height * MM_PER_HEIGHT_UNIT} mm</div>
     </div>
   );
 }
