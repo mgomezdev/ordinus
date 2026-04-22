@@ -40,7 +40,7 @@ const validCustomization = {
   wallPattern: 'grid',
   lipStyle: 'normal',
   fingerSlide: 'none',
-  wallCutout: 'none',
+  wallCutout: { front: false, back: false, left: false, right: false },
   height: 4,
 };
 
