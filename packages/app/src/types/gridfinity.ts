@@ -159,7 +159,7 @@ export function serializeCustomization(c: BinCustomization | undefined): string 
   if (!c) return '';
   const wc = c.wallCutout;
   const wcKey =
-    `${wc.front ? 'F' : ''}${wc.back ? 'B' : ''}${wc.left ? 'L' : ''}${wc.right ? 'R' : ''}` || 'none';
+    `${wc.front ? 'F' : '-'}${wc.back ? 'B' : '-'}${wc.left ? 'L' : '-'}${wc.right ? 'R' : '-'}`;
   return `${c.wallPatternEnabled ? c.wallPattern : 'none'}|${c.lipStyle}|${c.fingerSlide}|${wcKey}|${c.height}`;
 }
 
