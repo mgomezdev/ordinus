@@ -108,7 +108,12 @@ export interface ReferenceImage {
 export type WallPattern = 'grid' | 'hexgrid' | 'brick' | 'voronoi' | 'voronoigrid' | 'voronoihexgrid';
 export type LipStyle = 'normal' | 'reduced' | 'minimum' | 'none';
 export type FingerSlide = 'none' | 'rounded' | 'chamfered';
-export type WallCutout = 'none' | 'vertical' | 'horizontal' | 'both';
+export interface WallCutoutConfig {
+  front: boolean;
+  back: boolean;
+  left: boolean;
+  right: boolean;
+}
 
 export type CustomizableField = 'wallPatternEnabled' | 'wallPattern' | 'lipStyle' | 'fingerSlide' | 'wallCutout' | 'height';
 
@@ -137,7 +142,7 @@ export interface BinCustomization {
   wallPattern: WallPattern;
   lipStyle: LipStyle;
   fingerSlide: FingerSlide;
-  wallCutout: WallCutout;
+  wallCutout: WallCutoutConfig;
   height: number;  // gridfinity units (1-20), default 4
 }
 
@@ -146,13 +151,16 @@ export const DEFAULT_BIN_CUSTOMIZATION: BinCustomization = {
   wallPattern: 'grid',
   lipStyle: 'normal',
   fingerSlide: 'none',
-  wallCutout: 'none',
+  wallCutout: { front: false, back: false, left: false, right: false },
   height: 4,
 };
 
 export function serializeCustomization(c: BinCustomization | undefined): string {
   if (!c) return '';
-  return `${c.wallPatternEnabled ? c.wallPattern : 'none'}|${c.lipStyle}|${c.fingerSlide}|${c.wallCutout}|${c.height}`;
+  const wc = c.wallCutout;
+  const wcKey =
+    `${wc.front ? 'F' : ''}${wc.back ? 'B' : ''}${wc.left ? 'L' : ''}${wc.right ? 'R' : ''}` || 'none';
+  return `${c.wallPatternEnabled ? c.wallPattern : 'none'}|${c.lipStyle}|${c.fingerSlide}|${wcKey}|${c.height}`;
 }
 
 export function isDefaultCustomization(c: BinCustomization | undefined): boolean {
@@ -160,7 +168,7 @@ export function isDefaultCustomization(c: BinCustomization | undefined): boolean
   return !c.wallPatternEnabled
     && c.lipStyle === 'normal'
     && c.fingerSlide === 'none'
-    && c.wallCutout === 'none'
+    && !c.wallCutout.front && !c.wallCutout.back && !c.wallCutout.left && !c.wallCutout.right
     && c.height === 4;
 }
 
