@@ -376,14 +376,14 @@ describe('useBillOfMaterials', () => {
       wallPattern: 'grid',
       lipStyle: 'normal',
       fingerSlide: 'none',
-      wallCutout: 'none',
+      wallCutout: { front: false, back: false, left: false, right: false },
     };
 
     const hexCustomization: BinCustomization = {
       wallPattern: 'hexgrid',
       lipStyle: 'reduced',
       fingerSlide: 'rounded',
-      wallCutout: 'vertical',
+      wallCutout: { front: true, back: true, left: false, right: false },
     };
 
     it('should treat items with same itemId but different customizations as separate BOM lines', () => {
@@ -512,7 +512,7 @@ describe('useBillOfMaterials', () => {
         wallPattern: 'voronoi',
         lipStyle: 'none',
         fingerSlide: 'chamfered',
-        wallCutout: 'both',
+        wallCutout: { front: true, back: true, left: true, right: true },
       };
 
       const placedItems: PlacedItem[] = [

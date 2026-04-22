@@ -105,7 +105,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
       onCustomizationChange?.(item.instanceId, popoverDraft);
       onCustomizationChangeWithGeneration?.(item.instanceId, popoverDraft);
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncing popover state to external isSelected prop change
     setPopoverDraft(undefined);
     setShowPopover(false);
     setPopoverPos(null);
