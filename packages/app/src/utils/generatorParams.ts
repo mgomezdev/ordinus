@@ -32,22 +32,16 @@ export function generatorParamsToBinCustomization(
     }
   }
 
-  if (hasField(customizableFields, 'wallCutout')) {
-    if (params.wallcutout_enabled === false) {
-      result.wallCutout = 'none';
-    } else if (params.wallcutout_enabled === true) {
-      const walls = params.wallcutout_walls as number[] | undefined;
-      if (!walls || walls.length < 2) {
-        result.wallCutout = 'none';
-      } else {
-        const hasVertical = walls[0] === 1;
-        const hasHorizontal = walls[1] === 1;
-        if (hasVertical && hasHorizontal) result.wallCutout = 'both';
-        else if (hasVertical) result.wallCutout = 'vertical';
-        else if (hasHorizontal) result.wallCutout = 'horizontal';
-        else result.wallCutout = 'none';
-      }
-    }
+  if (hasField(customizableFields, 'wallCutout') &&
+      (params.wallcutout_vertical !== undefined || params.wallcutout_horizontal !== undefined)) {
+    const v = (params.wallcutout_vertical as string | undefined) ?? 'disabled';
+    const h = (params.wallcutout_horizontal as string | undefined) ?? 'disabled';
+    result.wallCutout = {
+      front: v === 'frontonly' || v === 'enabled',
+      back:  v === 'backonly'  || v === 'enabled',
+      left:  h === 'leftonly'  || h === 'enabled',
+      right: h === 'rightonly' || h === 'enabled',
+    };
   }
 
   if (hasField(customizableFields, 'height') && params.height !== undefined) {

@@ -95,38 +95,73 @@ describe('generatorParamsToBinCustomization', () => {
     expect(result.height).toBe(6);
   });
 
-  it('maps wallcutout_enabled: true + [1,0,1,0] to vertical', () => {
+  it('maps wallcutout_vertical: disabled + wallcutout_horizontal: disabled → all false', () => {
     const result = generatorParamsToBinCustomization(
-      { wallcutout_enabled: true, wallcutout_walls: [1, 0, 1, 0] },
+      { wallcutout_vertical: 'disabled', wallcutout_horizontal: 'disabled' },
       defs('wallCutout')
     );
-    expect(result.wallCutout).toBe('vertical');
+    expect(result.wallCutout).toEqual({ front: false, back: false, left: false, right: false });
   });
 
-  it('maps wallcutout_enabled: true + [0,1,0,1] to horizontal', () => {
+  it('maps wallcutout_vertical: frontonly → front true only', () => {
     const result = generatorParamsToBinCustomization(
-      { wallcutout_enabled: true, wallcutout_walls: [0, 1, 0, 1] },
+      { wallcutout_vertical: 'frontonly', wallcutout_horizontal: 'disabled' },
       defs('wallCutout')
     );
-    expect(result.wallCutout).toBe('horizontal');
+    expect(result.wallCutout).toEqual({ front: true, back: false, left: false, right: false });
   });
 
-  it('maps wallcutout_enabled: true + [1,1,1,1] to both', () => {
+  it('maps wallcutout_vertical: backonly → back true only', () => {
     const result = generatorParamsToBinCustomization(
-      { wallcutout_enabled: true, wallcutout_walls: [1, 1, 1, 1] },
+      { wallcutout_vertical: 'backonly', wallcutout_horizontal: 'disabled' },
       defs('wallCutout')
     );
-    expect(result.wallCutout).toBe('both');
+    expect(result.wallCutout).toEqual({ front: false, back: true, left: false, right: false });
   });
 
-  it('maps wallcutout_enabled: false to none', () => {
-    const result = generatorParamsToBinCustomization({ wallcutout_enabled: false }, defs('wallCutout'));
-    expect(result.wallCutout).toBe('none');
+  it('maps wallcutout_vertical: enabled → front + back true', () => {
+    const result = generatorParamsToBinCustomization(
+      { wallcutout_vertical: 'enabled', wallcutout_horizontal: 'disabled' },
+      defs('wallCutout')
+    );
+    expect(result.wallCutout).toEqual({ front: true, back: true, left: false, right: false });
+  });
+
+  it('maps wallcutout_horizontal: leftonly → left true only', () => {
+    const result = generatorParamsToBinCustomization(
+      { wallcutout_vertical: 'disabled', wallcutout_horizontal: 'leftonly' },
+      defs('wallCutout')
+    );
+    expect(result.wallCutout).toEqual({ front: false, back: false, left: true, right: false });
+  });
+
+  it('maps wallcutout_horizontal: rightonly → right true only', () => {
+    const result = generatorParamsToBinCustomization(
+      { wallcutout_vertical: 'disabled', wallcutout_horizontal: 'rightonly' },
+      defs('wallCutout')
+    );
+    expect(result.wallCutout).toEqual({ front: false, back: false, left: false, right: true });
+  });
+
+  it('maps wallcutout_horizontal: enabled → left + right true', () => {
+    const result = generatorParamsToBinCustomization(
+      { wallcutout_vertical: 'disabled', wallcutout_horizontal: 'enabled' },
+      defs('wallCutout')
+    );
+    expect(result.wallCutout).toEqual({ front: false, back: false, left: true, right: true });
+  });
+
+  it('maps both enabled → all true', () => {
+    const result = generatorParamsToBinCustomization(
+      { wallcutout_vertical: 'enabled', wallcutout_horizontal: 'enabled' },
+      defs('wallCutout')
+    );
+    expect(result.wallCutout).toEqual({ front: true, back: true, left: true, right: true });
   });
 
   it('ignores wallCutout params when wallCutout not in customizableFields', () => {
     const result = generatorParamsToBinCustomization(
-      { wallcutout_enabled: true, wallcutout_walls: [1, 1, 1, 1] },
+      { wallcutout_vertical: 'enabled', wallcutout_horizontal: 'enabled' },
       defs('lipStyle')
     );
     expect(result.wallCutout).toBeUndefined();
