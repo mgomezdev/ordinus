@@ -4,7 +4,18 @@ import { layouts, placedItems } from '../db/schema.js';
 export function parseCustomization(json: string | null): BinCustomization | undefined {
   if (!json) return undefined;
   try {
-    return JSON.parse(json) as BinCustomization;
+    const parsed = JSON.parse(json) as BinCustomization;
+    // Migrate old string wallCutout format
+    if (typeof parsed.wallCutout === 'string') {
+      const old = parsed.wallCutout as unknown as string;
+      parsed.wallCutout = {
+        front: old === 'vertical' || old === 'both',
+        back: old === 'vertical' || old === 'both',
+        left: old === 'horizontal' || old === 'both',
+        right: old === 'horizontal' || old === 'both',
+      };
+    }
+    return parsed;
   } catch {
     return undefined;
   }
