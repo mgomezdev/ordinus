@@ -70,6 +70,29 @@ export function BomGenerationPanel({ layoutId, bomItems, accessToken }: BomGener
     ? getFileDownloadUrl(layoutId, threeMfFilename)
     : null;
 
+  const handleDownload = async () => {
+    if (!downloadUrl || !accessToken) return;
+    try {
+      const response = await fetch(downloadUrl, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({})) as { error?: { message?: string } };
+        setError(data?.error?.message ?? 'Download failed');
+        return;
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = threeMfFilename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError('Download failed');
+    }
+  };
+
   return (
     <div className="bom-generation-panel">
       {generation?.errorMessage && (
@@ -89,7 +112,7 @@ export function BomGenerationPanel({ layoutId, bomItems, accessToken }: BomGener
           type="button"
           className="bom-gen-btn"
           disabled={!isReady || !downloadUrl}
-          onClick={() => { if (downloadUrl) window.location.href = downloadUrl; }}
+          onClick={() => { void handleDownload(); }}
         >
           Download 3MF
         </button>
