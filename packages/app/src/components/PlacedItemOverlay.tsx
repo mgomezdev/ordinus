@@ -422,7 +422,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
               aria-label="Remove item"
               title="Remove item (Del)"
             >
-              &times;
+              🗑
             </button>
           )}
         </div>
