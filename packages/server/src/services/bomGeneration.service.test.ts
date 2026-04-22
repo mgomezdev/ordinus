@@ -131,22 +131,33 @@ describe('formatBomGeneration', () => {
 
 // ── buildGenerateParams ──────────────────────────────────────────────────────
 
-const baseConfig = (overrides: Partial<UniqueConfig['customization']> = {}): UniqueConfig => ({
+const cfg = {
   widthUnits: 2,
   heightUnits: 3,
   qty: 1,
   filename: 'bin_2x3x8.stl',
   baseModelPath: '/data/models/gen-lib/base.scad',
-  customization: {
-    wallPatternEnabled: false,
-    wallPattern: 'grid',
-    lipStyle: 'normal',
-    fingerSlide: 'none',
-    wallCutout: 'none',
-    height: 8,
-    ...overrides,
-  },
-});
+};
+
+const DEFAULT_WC = { front: false, back: false, left: false, right: false };
+
+function makeCustomization(overrides: Partial<UniqueConfig['customization']> = {}): UniqueConfig {
+  return {
+    ...cfg,
+    customization: {
+      wallPatternEnabled: false,
+      wallPattern: 'grid',
+      lipStyle: 'normal',
+      fingerSlide: 'none',
+      wallCutout: DEFAULT_WC,
+      height: 8,
+      ...overrides,
+    },
+  };
+}
+
+// Keep baseConfig as alias for backward compat with existing tests
+const baseConfig = makeCustomization;
 
 describe('buildGenerateParams', () => {
   it('maps dimensions to OpenSCAD array format', () => {
@@ -190,25 +201,56 @@ describe('buildGenerateParams', () => {
     expect(params.wallpattern_style).toBe('hexgrid');
   });
 
-  it('sets wallcutout_enabled to false when wallCutout is none', () => {
-    expect(buildGenerateParams(baseConfig({ wallCutout: 'none' })).wallcutout_enabled).toBe(false);
+});
+
+describe('buildGenerateParams — wall cutout', () => {
+  it('no walls → both disabled', () => {
+    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: false, back: false, left: false, right: false } }));
+    expect(params.wallcutout_vertical).toBe('disabled');
+    expect(params.wallcutout_horizontal).toBe('disabled');
+    expect(params).not.toHaveProperty('wallcutout_enabled');
+    expect(params).not.toHaveProperty('wallcutout_walls');
   });
 
-  it('sets wallcutout_enabled and vertical walls for vertical cutout', () => {
-    const params = buildGenerateParams(baseConfig({ wallCutout: 'vertical' }));
-    expect(params.wallcutout_enabled).toBe(true);
-    expect(params.wallcutout_walls).toEqual([1, 0, 1, 0]);
+  it('front only → frontonly vertical, disabled horizontal', () => {
+    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: true, back: false, left: false, right: false } }));
+    expect(params.wallcutout_vertical).toBe('frontonly');
+    expect(params.wallcutout_horizontal).toBe('disabled');
   });
 
-  it('sets horizontal walls for horizontal cutout', () => {
-    const params = buildGenerateParams(baseConfig({ wallCutout: 'horizontal' }));
-    expect(params.wallcutout_enabled).toBe(true);
-    expect(params.wallcutout_walls).toEqual([0, 1, 0, 1]);
+  it('back only → backonly vertical', () => {
+    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: false, back: true, left: false, right: false } }));
+    expect(params.wallcutout_vertical).toBe('backonly');
+    expect(params.wallcutout_horizontal).toBe('disabled');
   });
 
-  it('sets all walls for both cutout', () => {
-    const params = buildGenerateParams(baseConfig({ wallCutout: 'both' }));
-    expect(params.wallcutout_enabled).toBe(true);
-    expect(params.wallcutout_walls).toEqual([1, 1, 1, 1]);
+  it('front + back → enabled vertical', () => {
+    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: true, back: true, left: false, right: false } }));
+    expect(params.wallcutout_vertical).toBe('enabled');
+    expect(params.wallcutout_horizontal).toBe('disabled');
+  });
+
+  it('left only → leftonly horizontal', () => {
+    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: false, back: false, left: true, right: false } }));
+    expect(params.wallcutout_vertical).toBe('disabled');
+    expect(params.wallcutout_horizontal).toBe('leftonly');
+  });
+
+  it('right only → rightonly horizontal', () => {
+    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: false, back: false, left: false, right: true } }));
+    expect(params.wallcutout_vertical).toBe('disabled');
+    expect(params.wallcutout_horizontal).toBe('rightonly');
+  });
+
+  it('left + right → enabled horizontal', () => {
+    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: false, back: false, left: true, right: true } }));
+    expect(params.wallcutout_vertical).toBe('disabled');
+    expect(params.wallcutout_horizontal).toBe('enabled');
+  });
+
+  it('all walls → enabled vertical + enabled horizontal', () => {
+    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: true, back: true, left: true, right: true } }));
+    expect(params.wallcutout_vertical).toBe('enabled');
+    expect(params.wallcutout_horizontal).toBe('enabled');
   });
 });

@@ -15,7 +15,7 @@ const DEFAULT_CUSTOMIZATION: BinCustomization = {
   wallPattern: 'grid',
   lipStyle: 'normal',
   fingerSlide: 'none',
-  wallCutout: 'none',
+  wallCutout: { front: false, back: false, left: false, right: false },
   height: 4,
 };
 
@@ -24,12 +24,15 @@ const DEFAULT_CUSTOMIZATION: BinCustomization = {
 function customizationKey(item: BOMItem): string {
   const c = item.customization;
   if (!c) return 'default';
+  const wc = c.wallCutout;
+  const noWallCutout = !wc.front && !wc.back && !wc.left && !wc.right;
   const isDefault =
     !c.wallPatternEnabled && c.lipStyle === 'normal' &&
-    c.fingerSlide === 'none' && c.wallCutout === 'none' && c.height === 4;
+    c.fingerSlide === 'none' && noWallCutout && c.height === 4;
   if (isDefault) return 'default';
   const wallKey = c.wallPatternEnabled ? c.wallPattern : 'none';
-  return `${wallKey}|${c.lipStyle}|${c.fingerSlide}|${c.wallCutout}|${c.height}`;
+  const wcKey = `${wc.front ? 'F' : '-'}${wc.back ? 'B' : '-'}${wc.left ? 'L' : '-'}${wc.right ? 'R' : '-'}`;
+  return `${wallKey}|${c.lipStyle}|${c.fingerSlide}|${wcKey}|${c.height}`;
 }
 
 export interface UniqueConfig {
@@ -64,7 +67,8 @@ function buildStlFilename(w: number, d: number, c: BinCustomization, defaultPara
   if (c.lipStyle !== 'normal') parts.push(c.lipStyle);
   if (c.fingerSlide !== 'none') parts.push('fingerslid');
   if (c.wallPatternEnabled) parts.push('patterned');
-  if (c.wallCutout !== 'none') parts.push('cutout');
+  const { front, back, left, right } = c.wallCutout;
+  if (front || back || left || right) parts.push('cutout');
   if (defaultParams && Object.keys(defaultParams).length > 0) {
     parts.push(hashGeneratorParams(defaultParams));
   }
@@ -294,6 +298,20 @@ async function runGenerationPipeline(
   }
 }
 
+function verticalEnum(front: boolean, back: boolean): string {
+  if (front && back) return 'enabled';
+  if (front) return 'frontonly';
+  if (back) return 'backonly';
+  return 'disabled';
+}
+
+function horizontalEnum(left: boolean, right: boolean): string {
+  if (left && right) return 'enabled';
+  if (left) return 'leftonly';
+  if (right) return 'rightonly';
+  return 'disabled';
+}
+
 export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> {
   const c = cfg.customization;
   const params: Record<string, unknown> = {
@@ -314,15 +332,9 @@ export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> 
     delete params.wallpattern_style;
   }
 
-  if (c.wallCutout !== 'none') {
-    params.wallcutout_enabled = true;
-    if (c.wallCutout === 'vertical') params.wallcutout_walls = [1, 0, 1, 0];
-    else if (c.wallCutout === 'horizontal') params.wallcutout_walls = [0, 1, 0, 1];
-    else if (c.wallCutout === 'both') params.wallcutout_walls = [1, 1, 1, 1];
-  } else {
-    params.wallcutout_enabled = false;
-    delete params.wallcutout_walls;
-  }
+  const wc = c.wallCutout;
+  params.wallcutout_vertical = verticalEnum(wc.front, wc.back);
+  params.wallcutout_horizontal = horizontalEnum(wc.left, wc.right);
 
   return params;
 }
