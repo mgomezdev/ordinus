@@ -41,7 +41,11 @@ function getCustomizationBadges(customization: BinCustomization | undefined): st
   if (customization.wallPatternEnabled) badges.push(customization.wallPattern);
   if (customization.lipStyle !== 'normal') badges.push(`lip: ${customization.lipStyle}`);
   if (customization.fingerSlide !== 'none') badges.push(`slide: ${customization.fingerSlide}`);
-  if (customization.wallCutout !== 'none') badges.push(`cutout: ${customization.wallCutout}`);
+  const wc = customization.wallCutout;
+  if (wc.front || wc.back || wc.left || wc.right) {
+    const sides = (['front', 'back', 'left', 'right'] as const).filter(s => wc[s]).join('/');
+    badges.push(`cutout: ${sides}`);
+  }
   if (customization.height !== 8) badges.push(`h: ${customization.height}`);
   return badges;
 }
@@ -92,7 +96,8 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
     return () => window.removeEventListener('resize', handler);
   }, [showPopover, computePopoverPos]);
 
-  // Apply draft when item is deselected while popover is open (e.g. click outside)
+  // Apply draft when item is deselected while popover is open (e.g. click outside).
+  // setState calls here synchronize popover visibility to the external isSelected prop change.
   useEffect(() => {
     if (isSelected || !showPopover || popoverDraft === undefined) return;
     const hasChanges = JSON.stringify(popoverDraft) !== JSON.stringify(item.customization ?? null);
@@ -100,6 +105,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
       onCustomizationChange?.(item.instanceId, popoverDraft);
       onCustomizationChangeWithGeneration?.(item.instanceId, popoverDraft);
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPopoverDraft(undefined);
     setShowPopover(false);
     setPopoverPos(null);

@@ -38,8 +38,8 @@ describe('getBOMKey', () => {
   });
 
   it('returns itemId::serialized for non-default customization', () => {
-    const custom: BinCustomization = { wallPatternEnabled: true, wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 8 };
-    expect(getBOMKey('bin-1x1', custom)).toBe('bin-1x1::grid|normal|none|none|8');
+    const custom: BinCustomization = { wallPatternEnabled: true, wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: { front: false, back: false, left: false, right: false }, height: 8 };
+    expect(getBOMKey('bin-1x1', custom)).toBe('bin-1x1::grid|normal|none|----|8');
   });
 });
 
