@@ -109,10 +109,10 @@ PARAM_REGISTRY = {
     "wallcutout_vertical_angle":         {"default": 70,         "type": "number"},
     "wallcutout_vertical_height":        {"default": 0,          "type": "number"},
     "wallcutout_vertical_corner_radius": {"default": 5,          "type": "number"},
-    "wallcutout_horizontal_width":         {"default": 0,        "type": "number"},
-    "wallcutout_horizontal_angle":         {"default": 70,       "type": "number"},
-    "wallcutout_horizontal_height":        {"default": 0,        "type": "number"},
-    "wallcutout_horizontal_corner_radius": {"default": 5,        "type": "number"},
+    "wallcutout_horizontal_width":         {"default": 0,          "type": "number"},
+    "wallcutout_horizontal_angle":         {"default": 70,         "type": "number"},
+    "wallcutout_horizontal_height":        {"default": 0,          "type": "number"},
+    "wallcutout_horizontal_corner_radius": {"default": 5,          "type": "number"},
 
     # Extendable
     "extension_x_enabled":   {"default": False, "type": "bool"},
