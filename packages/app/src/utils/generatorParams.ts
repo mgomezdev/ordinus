@@ -32,15 +32,13 @@ export function generatorParamsToBinCustomization(
     }
   }
 
-  if (hasField(customizableFields, 'wallCutout') &&
-      (params.wallcutout_vertical !== undefined || params.wallcutout_horizontal !== undefined)) {
-    const v = (params.wallcutout_vertical as string | undefined) ?? 'disabled';
-    const h = (params.wallcutout_horizontal as string | undefined) ?? 'disabled';
+  if (hasField(customizableFields, 'wallCutout') && params.wallcutout_enabled !== undefined) {
+    const walls = (params.wallcutout_walls as number[] | undefined) ?? [0, 0, 0, 0];
     result.wallCutout = {
-      front: v === 'frontonly' || v === 'enabled',
-      back:  v === 'backonly'  || v === 'enabled',
-      left:  h === 'leftonly'  || h === 'enabled',
-      right: h === 'rightonly' || h === 'enabled',
+      front: walls[0] === -2,
+      back:  walls[1] === -2,
+      left:  walls[2] === -2,
+      right: walls[3] === -2,
     };
   }
 

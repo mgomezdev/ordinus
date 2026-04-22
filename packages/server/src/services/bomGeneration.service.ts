@@ -298,20 +298,6 @@ async function runGenerationPipeline(
   }
 }
 
-function verticalEnum(front: boolean, back: boolean): string {
-  if (front && back) return 'enabled';
-  if (front) return 'frontonly';
-  if (back) return 'backonly';
-  return 'disabled';
-}
-
-function horizontalEnum(left: boolean, right: boolean): string {
-  if (left && right) return 'enabled';
-  if (left) return 'leftonly';
-  if (right) return 'rightonly';
-  return 'disabled';
-}
-
 export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> {
   const c = cfg.customization;
   const params: Record<string, unknown> = {
@@ -333,8 +319,13 @@ export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> 
   }
 
   const wc = c.wallCutout;
-  params.wallcutout_vertical = verticalEnum(wc.front, wc.back);
-  params.wallcutout_horizontal = horizontalEnum(wc.left, wc.right);
+  params.wallcutout_enabled = wc.front || wc.back || wc.left || wc.right;
+  params.wallcutout_walls = [
+    wc.front ? -2 : 0,
+    wc.back  ? -2 : 0,
+    wc.left  ? -2 : 0,
+    wc.right ? -2 : 0,
+  ];
 
   return params;
 }

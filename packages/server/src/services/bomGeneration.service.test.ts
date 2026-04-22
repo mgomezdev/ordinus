@@ -204,53 +204,45 @@ describe('buildGenerateParams', () => {
 });
 
 describe('buildGenerateParams — wall cutout', () => {
-  it('no walls → both disabled', () => {
+  it('no walls → enabled=false, all zeros', () => {
     const params = buildGenerateParams(makeCustomization({ wallCutout: { front: false, back: false, left: false, right: false } }));
-    expect(params.wallcutout_vertical).toBe('disabled');
-    expect(params.wallcutout_horizontal).toBe('disabled');
-    expect(params).not.toHaveProperty('wallcutout_enabled');
-    expect(params).not.toHaveProperty('wallcutout_walls');
+    expect(params.wallcutout_enabled).toBe(false);
+    expect(params.wallcutout_walls).toEqual([0, 0, 0, 0]);
   });
 
-  it('front only → frontonly vertical, disabled horizontal', () => {
+  it('front only → enabled=true, walls=[-2,0,0,0]', () => {
     const params = buildGenerateParams(makeCustomization({ wallCutout: { front: true, back: false, left: false, right: false } }));
-    expect(params.wallcutout_vertical).toBe('frontonly');
-    expect(params.wallcutout_horizontal).toBe('disabled');
+    expect(params.wallcutout_enabled).toBe(true);
+    expect(params.wallcutout_walls).toEqual([-2, 0, 0, 0]);
   });
 
-  it('back only → backonly vertical', () => {
+  it('back only → walls=[0,-2,0,0]', () => {
     const params = buildGenerateParams(makeCustomization({ wallCutout: { front: false, back: true, left: false, right: false } }));
-    expect(params.wallcutout_vertical).toBe('backonly');
-    expect(params.wallcutout_horizontal).toBe('disabled');
+    expect(params.wallcutout_enabled).toBe(true);
+    expect(params.wallcutout_walls).toEqual([0, -2, 0, 0]);
   });
 
-  it('front + back → enabled vertical', () => {
-    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: true, back: true, left: false, right: false } }));
-    expect(params.wallcutout_vertical).toBe('enabled');
-    expect(params.wallcutout_horizontal).toBe('disabled');
-  });
-
-  it('left only → leftonly horizontal', () => {
+  it('left only → walls=[0,0,-2,0]', () => {
     const params = buildGenerateParams(makeCustomization({ wallCutout: { front: false, back: false, left: true, right: false } }));
-    expect(params.wallcutout_vertical).toBe('disabled');
-    expect(params.wallcutout_horizontal).toBe('leftonly');
+    expect(params.wallcutout_enabled).toBe(true);
+    expect(params.wallcutout_walls).toEqual([0, 0, -2, 0]);
   });
 
-  it('right only → rightonly horizontal', () => {
+  it('right only → walls=[0,0,0,-2]', () => {
     const params = buildGenerateParams(makeCustomization({ wallCutout: { front: false, back: false, left: false, right: true } }));
-    expect(params.wallcutout_vertical).toBe('disabled');
-    expect(params.wallcutout_horizontal).toBe('rightonly');
+    expect(params.wallcutout_enabled).toBe(true);
+    expect(params.wallcutout_walls).toEqual([0, 0, 0, -2]);
   });
 
-  it('left + right → enabled horizontal', () => {
-    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: false, back: false, left: true, right: true } }));
-    expect(params.wallcutout_vertical).toBe('disabled');
-    expect(params.wallcutout_horizontal).toBe('enabled');
+  it('front + left → walls=[-2,0,-2,0]', () => {
+    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: true, back: false, left: true, right: false } }));
+    expect(params.wallcutout_enabled).toBe(true);
+    expect(params.wallcutout_walls).toEqual([-2, 0, -2, 0]);
   });
 
-  it('all walls → enabled vertical + enabled horizontal', () => {
+  it('all walls → enabled=true, all -2', () => {
     const params = buildGenerateParams(makeCustomization({ wallCutout: { front: true, back: true, left: true, right: true } }));
-    expect(params.wallcutout_vertical).toBe('enabled');
-    expect(params.wallcutout_horizontal).toBe('enabled');
+    expect(params.wallcutout_enabled).toBe(true);
+    expect(params.wallcutout_walls).toEqual([-2, -2, -2, -2]);
   });
 });
