@@ -1705,7 +1705,7 @@ describe('useGridItems', () => {
       wallPattern: 'grid',
       lipStyle: 'reduced',
       fingerSlide: 'rounded',
-      wallCutout: 'vertical',
+      wallCutout: { front: true, back: true, left: false, right: false },
     };
 
     it('updateItemCustomization should update customization for a specific item', () => {

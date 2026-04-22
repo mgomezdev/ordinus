@@ -28,7 +28,7 @@ vi.mock('./PlacedItemOverlay', () => ({
       {item.itemId}
       <button
         data-testid={`trigger-customization-${item.instanceId}`}
-        onClick={() => onCustomizationChangeWithGeneration?.(item.instanceId, { wallPatternEnabled: true, wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 4 })}
+        onClick={() => onCustomizationChangeWithGeneration?.(item.instanceId, { wallPatternEnabled: true, wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: { front: false, back: false, left: false, right: false }, height: 4 })}
       >
         change customization
       </button>

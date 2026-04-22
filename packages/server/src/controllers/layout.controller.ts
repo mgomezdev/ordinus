@@ -22,7 +22,12 @@ const binCustomizationSchema = z.preprocess(
     wallPattern: z.enum(['grid', 'hexgrid', 'brick', 'voronoi', 'voronoigrid', 'voronoihexgrid']),
     lipStyle: z.enum(['normal', 'reduced', 'minimum', 'none']),
     fingerSlide: z.enum(['none', 'rounded', 'chamfered']),
-    wallCutout: z.enum(['none', 'vertical', 'horizontal', 'both']),
+    wallCutout: z.object({
+      front: z.boolean(),
+      back: z.boolean(),
+      left: z.boolean(),
+      right: z.boolean(),
+    }),
     height: z.number().int().min(1).max(20),
   })
 );

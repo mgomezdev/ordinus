@@ -32,8 +32,8 @@ describe('requestGenerationApi', () => {
   it('includes customization in the request body when provided', async () => {
     mockApiFetch.mockResolvedValue({ hash: 'def456', status: 'pending' });
 
-    const customization = { wallPatternEnabled: true, wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 4 };
-    await requestGenerationApi('lib-1', 'item-1', customization as never, 'tok');
+    const customization = { wallPatternEnabled: true, wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: { front: false, back: false, left: false, right: false }, height: 4 };
+    await requestGenerationApi('lib-1', 'item-1', customization, 'tok');
 
     const call = mockApiFetch.mock.calls[0];
     const body = JSON.parse((call[1] as RequestInit).body as string);

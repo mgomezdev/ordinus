@@ -9,13 +9,13 @@ const ALL_FIELDS: CustomizableFieldDef[] = [
   { field: 'wallPattern', label: 'Wall Pattern', options: ['grid', 'hexgrid', 'brick'] },
   { field: 'lipStyle',    label: 'Lip Style',    options: ['normal', 'reduced', 'minimum', 'none'] },
   { field: 'fingerSlide', label: 'Finger Slide', options: ['none', 'rounded', 'chamfered'] },
-  { field: 'wallCutout',  label: 'Wall Cutout',  options: ['none', 'vertical', 'horizontal', 'both'] },
+  { field: 'wallCutout',  label: 'Wall Cutout' },
   { field: 'height',      label: 'Height',       min: 1, max: 20 },
 ];
 const SHADOWBOX_FIELDS: CustomizableFieldDef[] = [
   { field: 'lipStyle',    label: 'Lip Style',    options: ['normal', 'reduced', 'minimum', 'none'] },
   { field: 'fingerSlide', label: 'Finger Slide', options: ['none', 'rounded', 'chamfered'] },
-  { field: 'wallCutout',  label: 'Wall Cutout',  options: ['none', 'vertical', 'horizontal', 'both'] },
+  { field: 'wallCutout',  label: 'Wall Cutout' },
   { field: 'height',      label: 'Height',       min: 1, max: 20 },
 ];
 
@@ -28,7 +28,7 @@ describe('BinCustomizationPanel', () => {
     wallPattern: 'grid',
     lipStyle: 'reduced',
     fingerSlide: 'rounded',
-    wallCutout: 'vertical',
+    wallCutout: { front: true, back: false, left: false, right: false },
     height: 8,
   };
 
@@ -38,7 +38,7 @@ describe('BinCustomizationPanel', () => {
   });
 
   describe('Rendering', () => {
-    it('should render all four customization selects', () => {
+    it('should render all four customization controls', () => {
       render(
         <BinCustomizationPanel
           customization={DEFAULT_BIN_CUSTOMIZATION}
@@ -51,7 +51,8 @@ describe('BinCustomizationPanel', () => {
       expect(screen.getByLabelText(/wall pattern/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/lip style/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/finger slide/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/wall cutout/i)).toBeInTheDocument();
+      // wallCutout now renders checkboxes; verify the label text is present
+      expect(screen.getByText(/wall cutout/i)).toBeInTheDocument();
     });
 
     it('should render a reset button', () => {
@@ -110,20 +111,6 @@ describe('BinCustomizationPanel', () => {
       const fingerSlideSelect = screen.getByLabelText(/finger slide/i) as HTMLSelectElement;
       expect(fingerSlideSelect.value).toBe('rounded');
     });
-
-    it('should display current wallCutout value in the select', () => {
-      render(
-        <BinCustomizationPanel
-          customization={nonDefaultCustomization}
-          onChange={mockOnChange}
-          onReset={mockOnReset}
-          customizableFields={ALL_FIELDS}
-        />
-      );
-
-      const wallCutoutSelect = screen.getByLabelText(/wall cutout/i) as HTMLSelectElement;
-      expect(wallCutoutSelect.value).toBe('vertical');
-    });
   });
 
   describe('Default values when customization is undefined', () => {
@@ -169,7 +156,7 @@ describe('BinCustomizationPanel', () => {
       expect(fingerSlideSelect.value).toBe(DEFAULT_BIN_CUSTOMIZATION.fingerSlide);
     });
 
-    it('should show default wallCutout when customization is undefined', () => {
+    it('should show all wall cutout checkboxes unchecked when customization is undefined (default all false)', () => {
       render(
         <BinCustomizationPanel
           customization={undefined}
@@ -179,8 +166,10 @@ describe('BinCustomizationPanel', () => {
         />
       );
 
-      const wallCutoutSelect = screen.getByLabelText(/wall cutout/i) as HTMLSelectElement;
-      expect(wallCutoutSelect.value).toBe(DEFAULT_BIN_CUSTOMIZATION.wallCutout);
+      expect(screen.getByRole('checkbox', { name: /front/i })).not.toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /back/i })).not.toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /left/i })).not.toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /right/i })).not.toBeChecked();
     });
   });
 
@@ -261,25 +250,6 @@ describe('BinCustomizationPanel', () => {
       );
     });
 
-    it('should call onChange with updated wallCutout when wall cutout select changes', () => {
-      render(
-        <BinCustomizationPanel
-          customization={DEFAULT_BIN_CUSTOMIZATION}
-          onChange={mockOnChange}
-          onReset={mockOnReset}
-          customizableFields={ALL_FIELDS}
-        />
-      );
-
-      const wallCutoutSelect = screen.getByLabelText(/wall cutout/i);
-      fireEvent.change(wallCutoutSelect, { target: { value: 'both' } });
-
-      expect(mockOnChange).toHaveBeenCalledTimes(1);
-      expect(mockOnChange).toHaveBeenCalledWith(
-        expect.objectContaining({ wallCutout: 'both' })
-      );
-    });
-
     it('should preserve other customization fields when changing wallPattern style', () => {
       render(
         <BinCustomizationPanel
@@ -298,7 +268,7 @@ describe('BinCustomizationPanel', () => {
         wallPattern: 'brick',
         lipStyle: 'reduced',
         fingerSlide: 'rounded',
-        wallCutout: 'vertical',
+        wallCutout: { front: true, back: false, left: false, right: false },
         height: 8,
       });
     });
@@ -321,7 +291,7 @@ describe('BinCustomizationPanel', () => {
         wallPattern: 'grid',
         lipStyle: 'none',
         fingerSlide: 'rounded',
-        wallCutout: 'vertical',
+        wallCutout: { front: true, back: false, left: false, right: false },
         height: 8,
       });
     });
@@ -443,7 +413,7 @@ describe('BinCustomizationPanel', () => {
     it('should enable reset button when only wallCutout differs from default', () => {
       render(
         <BinCustomizationPanel
-          customization={{ ...DEFAULT_BIN_CUSTOMIZATION, wallCutout: 'horizontal' }}
+          customization={{ ...DEFAULT_BIN_CUSTOMIZATION, wallCutout: { front: true, back: false, left: false, right: false } }}
           onChange={mockOnChange}
           onReset={mockOnReset}
           customizableFields={ALL_FIELDS}
@@ -552,26 +522,95 @@ describe('BinCustomizationPanel', () => {
     });
   });
 
-  describe('Wall cutout select options', () => {
-    it('should have all 4 wall cutout options (none, vertical, horizontal, both)', () => {
+  describe('wallCutout checkboxes', () => {
+    const wallCutoutField: CustomizableFieldDef = { field: 'wallCutout', label: 'Wall Cutout' };
+    const baseCustomization: BinCustomization = {
+      ...DEFAULT_BIN_CUSTOMIZATION,
+      wallCutout: { front: false, back: false, left: false, right: false },
+    };
+
+    it('renders 4 checkboxes when wallCutout field is present', () => {
       render(
         <BinCustomizationPanel
-          customization={DEFAULT_BIN_CUSTOMIZATION}
-          onChange={mockOnChange}
-          onReset={mockOnReset}
-          customizableFields={ALL_FIELDS}
+          customization={baseCustomization}
+          customizableFields={[wallCutoutField]}
+          onChange={vi.fn()}
+          onReset={vi.fn()}
         />
       );
+      expect(screen.getByRole('checkbox', { name: /front/i })).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /back/i })).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /left/i })).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /right/i })).toBeInTheDocument();
+    });
 
-      const wallCutoutSelect = screen.getByLabelText(/wall cutout/i);
-      const options = Array.from((wallCutoutSelect as HTMLSelectElement).options).map(
-        (opt) => opt.value
+    it('reflects checked state from customization', () => {
+      render(
+        <BinCustomizationPanel
+          customization={{ ...baseCustomization, wallCutout: { front: true, back: false, left: false, right: false } }}
+          customizableFields={[wallCutoutField]}
+          onChange={vi.fn()}
+          onReset={vi.fn()}
+        />
       );
+      expect(screen.getByRole('checkbox', { name: /front/i })).toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /back/i })).not.toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /left/i })).not.toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /right/i })).not.toBeChecked();
+    });
 
-      expect(options).toContain('none');
-      expect(options).toContain('vertical');
-      expect(options).toContain('horizontal');
-      expect(options).toContain('both');
+    it('calls onChange with updated wallCutout when front checkbox toggled', async () => {
+      const onChange = vi.fn();
+      render(
+        <BinCustomizationPanel
+          customization={baseCustomization}
+          customizableFields={[wallCutoutField]}
+          onChange={onChange}
+          onReset={vi.fn()}
+        />
+      );
+      fireEvent.click(screen.getByRole('checkbox', { name: /front/i }));
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wallCutout: expect.objectContaining({ front: true, back: false, left: false, right: false })
+        })
+      );
+    });
+
+    it('calls onChange with updated wallCutout when back checkbox toggled', async () => {
+      const onChange = vi.fn();
+      render(
+        <BinCustomizationPanel
+          customization={baseCustomization}
+          customizableFields={[wallCutoutField]}
+          onChange={onChange}
+          onReset={vi.fn()}
+        />
+      );
+      fireEvent.click(screen.getByRole('checkbox', { name: /back/i }));
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wallCutout: expect.objectContaining({ front: false, back: true, left: false, right: false })
+        })
+      );
+    });
+
+    it('unchecks a wall when toggled from true to false', async () => {
+      const onChange = vi.fn();
+      render(
+        <BinCustomizationPanel
+          customization={{ ...baseCustomization, wallCutout: { front: true, back: true, left: false, right: false } }}
+          customizableFields={[wallCutoutField]}
+          onChange={onChange}
+          onReset={vi.fn()}
+        />
+      );
+      fireEvent.click(screen.getByRole('checkbox', { name: /front/i }));
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wallCutout: expect.objectContaining({ front: false, back: true, left: false, right: false })
+        })
+      );
     });
   });
 

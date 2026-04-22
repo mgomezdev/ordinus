@@ -127,10 +127,21 @@ class TestBuildCommandOverrides:
         cmd = build_command({"floor_thickness": 1.2}, "out.stl")
         assert "floor_thickness=1.2" in cmd
 
-    def test_wallcutout_enabled(self):
-        cmd = build_command({"wallcutout_enabled": True, "wallcutout_walls": [1, 1, 1, 1]}, "out.stl")
-        assert "wallcutout_enabled=true" in cmd
-        assert "wallcutout_walls=[1,1,1,1]" in cmd
+    def test_wallcutout_vertical_enabled(self):
+        """Test wall cutout vertical enabled produces correct -D flag"""
+        cmd = build_command({"wallcutout_vertical": "enabled"}, "out.stl")
+        assert 'wallcutout_vertical="enabled"' in cmd
+
+    def test_wallcutout_horizontal_frontonly(self):
+        """Test wall cutout horizontal leftonly produces correct -D flag"""
+        cmd = build_command({"wallcutout_horizontal": "leftonly"}, "out.stl")
+        assert 'wallcutout_horizontal="leftonly"' in cmd
+
+    def test_wallcutout_disabled_not_in_command(self):
+        """Test that disabled (default) wall cutout params are not emitted"""
+        cmd = build_command({"wallcutout_vertical": "disabled", "wallcutout_horizontal": "disabled"}, "out.stl")
+        assert "wallcutout_vertical" not in " ".join(cmd)
+        assert "wallcutout_horizontal" not in " ".join(cmd)
 
     def test_wallpattern_enabled(self):
         cmd = build_command({"wallpattern_enabled": True, "wallpattern_style": "hexgrid"}, "out.stl")

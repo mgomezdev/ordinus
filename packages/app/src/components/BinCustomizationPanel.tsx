@@ -9,7 +9,6 @@ import type {
   FingerSlide,
   GeneratorParams,
   LipStyle,
-  WallCutout,
   WallPattern,
 } from '../types/gridfinity';
 
@@ -125,7 +124,10 @@ export function BinCustomizationPanel({
     !current.wallPatternEnabled &&
     current.lipStyle === effectiveDefaults.lipStyle &&
     current.fingerSlide === effectiveDefaults.fingerSlide &&
-    current.wallCutout === effectiveDefaults.wallCutout &&
+    current.wallCutout.front === effectiveDefaults.wallCutout.front &&
+    current.wallCutout.back === effectiveDefaults.wallCutout.back &&
+    current.wallCutout.left === effectiveDefaults.wallCutout.left &&
+    current.wallCutout.right === effectiveDefaults.wallCutout.right &&
     current.height === effectiveDefaults.height;
 
   const fieldDef = (name: CustomizableField) => customizableFields.find(d => d.field === name);
@@ -192,16 +194,23 @@ export function BinCustomizationPanel({
       )}
 
       {has('wallCutout') && (
-        <div className="bin-customization-field">
-          <label htmlFor={`${idPrefix}wall-cutout-select`}>Wall Cutout</label>
-          <select
-            id={`${idPrefix}wall-cutout-select`}
-            value={current.wallCutout}
-            onChange={(e) => onChange({ ...current, wallCutout: e.target.value as WallCutout })}
-          >
-            {optionsFor('wallCutout').map((o) => <option key={o} value={o}>{o}</option>)}
-          </select>
-        </div>
+        <fieldset className="bin-customization-field wall-cutout-fieldset">
+          <legend>Wall Cutout</legend>
+          <div className="wall-cutout-checkboxes">
+            {(['front', 'back', 'left', 'right'] as const).map((wall) => (
+              <label key={wall} className="wall-cutout-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={current.wallCutout[wall]}
+                  onChange={(e) =>
+                    onChange({ ...current, wallCutout: { ...current.wallCutout, [wall]: e.target.checked } })
+                  }
+                />
+                {wall.charAt(0).toUpperCase() + wall.slice(1)}
+              </label>
+            ))}
+          </div>
+        </fieldset>
       )}
 
       {has('height') && (

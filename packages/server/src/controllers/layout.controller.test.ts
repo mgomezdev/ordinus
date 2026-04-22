@@ -55,7 +55,7 @@ describe('POST /api/v1/layouts — customization field', () => {
         x: 0, y: 0, width: 2, height: 3, rotation: 0,
         customization: {
           wallPatternEnabled: true, wallPattern: 'hexgrid', lipStyle: 'normal',
-          fingerSlide: 'none', wallCutout: 'none', height: 10,
+          fingerSlide: 'none', wallCutout: { front: false, back: false, left: false, right: false }, height: 10,
         },
       }],
     };
@@ -75,7 +75,7 @@ describe('POST /api/v1/layouts — customization field', () => {
         x: 0, y: 0, width: 1, height: 1, rotation: 0,
         customization: {
           wallPatternEnabled: false, wallPattern: 'grid', lipStyle: 'normal',
-          fingerSlide: 'none', wallCutout: 'none', height: 8,
+          fingerSlide: 'none', wallCutout: { front: false, back: false, left: false, right: false }, height: 8,
           unknownField: 'should be stripped',
         },
       }],

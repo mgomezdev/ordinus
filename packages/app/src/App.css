@@ -2609,6 +2609,36 @@
   letter-spacing: var(--tracking-wide);
 }
 
+.wall-cutout-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.wall-cutout-fieldset legend {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  padding: 0;
+}
+
+.wall-cutout-checkboxes {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.wall-cutout-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: normal;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .bin-customization-field select {
   padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--border-secondary);
