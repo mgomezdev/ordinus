@@ -123,7 +123,7 @@ export interface CustomizableBooleanFieldDef {
 }
 
 export interface CustomizableSelectFieldDef {
-  field: Exclude<CustomizableField, 'height' | 'wallPatternEnabled'>;
+  field: Exclude<CustomizableField, 'height' | 'wallPatternEnabled' | 'wallCutout'>;
   label: string;
   options: string[];
 }
@@ -135,7 +135,16 @@ export interface CustomizableNumericFieldDef {
   max: number;
 }
 
-export type CustomizableFieldDef = CustomizableBooleanFieldDef | CustomizableSelectFieldDef | CustomizableNumericFieldDef;
+export interface CustomizableWallCutoutFieldDef {
+  field: 'wallCutout';
+  label: string;
+}
+
+export type CustomizableFieldDef =
+  | CustomizableBooleanFieldDef
+  | CustomizableSelectFieldDef
+  | CustomizableNumericFieldDef
+  | CustomizableWallCutoutFieldDef;
 
 export interface BinCustomization {
   wallPatternEnabled: boolean;

@@ -194,8 +194,8 @@ export function BinCustomizationPanel({
       )}
 
       {has('wallCutout') && (
-        <div className="bin-customization-field">
-          <label>Wall Cutout</label>
+        <fieldset className="bin-customization-field wall-cutout-fieldset">
+          <legend>Wall Cutout</legend>
           <div className="wall-cutout-checkboxes">
             {(['front', 'back', 'left', 'right'] as const).map((wall) => (
               <label key={wall} className="wall-cutout-checkbox-label">
@@ -210,7 +210,7 @@ export function BinCustomizationPanel({
               </label>
             ))}
           </div>
-        </div>
+        </fieldset>
       )}
 
       {has('height') && (
