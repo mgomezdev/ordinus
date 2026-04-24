@@ -406,6 +406,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       skipNextDirtyRef.current = false;
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsDirty(true);
   }, [placedItems, refImagePlacements, spacerConfig, drawerWidth, drawerDepth]);
 
