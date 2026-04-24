@@ -1098,6 +1098,63 @@ describe('App Integration Tests', () => {
 
 
   // ==========================================
+  // 11. isDirty breadcrumb indicator
+  // ==========================================
+  describe('isDirty breadcrumb indicator', () => {
+    beforeEach(() => {
+      mockIsAuthenticated = false;
+    });
+
+    it('does not show unsaved indicator on a fresh canvas with no saved layout', () => {
+      renderApp();
+      expect(screen.queryByText('unsaved changes')).not.toBeInTheDocument();
+    });
+
+    it('does not show unsaved indicator immediately after save completes', async () => {
+      renderApp();
+      // Simulate a successful save (sets layoutMeta.id)
+      act(() => {
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string) => void;
+        onSaveComplete(42, 'My Drawer');
+      });
+      expect(screen.queryByText('unsaved changes')).not.toBeInTheDocument();
+    });
+
+    it('shows unsaved indicator after placing an item on a saved layout', async () => {
+      renderApp();
+      act(() => {
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string) => void;
+        onSaveComplete(42, 'My Drawer');
+      });
+      placeItemViaGridPreview();
+      await waitFor(() => {
+        expect(screen.getByText('unsaved changes')).toBeInTheDocument();
+      });
+    });
+
+    it('hides unsaved indicator after saving again', async () => {
+      renderApp();
+      act(() => {
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string) => void;
+        onSaveComplete(42, 'My Drawer');
+      });
+      placeItemViaGridPreview();
+      await waitFor(() => {
+        expect(screen.getByText('unsaved changes')).toBeInTheDocument();
+      });
+      // Save again
+      mockUpdateMutateAsync.mockResolvedValueOnce({ id: 42, name: 'My Drawer' });
+      act(() => {
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string) => void;
+        onSaveComplete(42, 'My Drawer');
+      });
+      await waitFor(() => {
+        expect(screen.queryByText('unsaved changes')).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  // ==========================================
   // 10. Walkthrough auto-start
   // ==========================================
   describe('Walkthrough auto-start', () => {
