@@ -1091,6 +1091,23 @@
   cursor: not-allowed;
 }
 
+.floating-zoom-overlay {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.floating-zoom-overlay .zoom-controls {
+  background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  padding: 3px 5px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
 .zoom-level {
   font-size: var(--text-sm);
   font-family: var(--font-mono);

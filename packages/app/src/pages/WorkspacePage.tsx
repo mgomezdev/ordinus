@@ -8,7 +8,6 @@ import { DimensionInput } from '../components/DimensionInput';
 import { GridPreview } from '../components/GridPreview';
 import { GridSummary } from '../components/GridSummary';
 import { SpacerControls } from '../components/SpacerControls';
-import { ZoomControls } from '../components/ZoomControls';
 import { ImageViewToggle } from '../components/ImageViewToggle';
 import { GridViewport } from '../components/GridViewport';
 import { SidebarPanel } from '../components/SidebarPanel';
@@ -361,7 +360,6 @@ export function WorkspacePage() {
         <div className="preview-toolbar">
           <WorkspaceToolbar onExportPdf={handleExportPdf} exportPdfError={exportPdfError} />
           <ImageViewToggle mode={imageViewMode} onToggle={toggleImageViewMode} />
-          <ZoomControls zoom={transform.zoom} onZoomIn={zoomIn} onZoomOut={zoomOut} onResetZoom={resetZoom} onFitToScreen={handleFitToScreen} />
         </div>
         <GridViewport
           viewportRef={viewportRef}
@@ -372,6 +370,14 @@ export function WorkspacePage() {
           handleTouchStart={handleTouchStart}
           handleTouchMove={handleTouchMove}
           handleTouchEnd={handleTouchEnd}
+          zoomOverlayProps={{
+            zoom: transform.zoom,
+            onZoomIn: zoomIn,
+            onZoomOut: zoomOut,
+            onResetZoom: resetZoom,
+            onFitToScreen: handleFitToScreen,
+            showResetZoom: !isMobile,
+          }}
         >
           <GridPreview
             gridX={gridResult.gridX}

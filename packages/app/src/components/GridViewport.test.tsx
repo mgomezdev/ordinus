@@ -3,6 +3,12 @@ import { render, screen } from '@testing-library/react';
 import { GridViewport } from './GridViewport';
 import type { GridTransform } from '../hooks/useGridTransform';
 
+vi.mock('./ZoomControls', () => ({
+  ZoomControls: (props: Record<string, unknown>) => (
+    <div data-testid="floating-zoom" data-show-reset={String(props.showReset)} />
+  ),
+}));
+
 describe('GridViewport', () => {
   const defaultTransform: GridTransform = { zoom: 1, panX: 0, panY: 0 };
   const defaultProps = {
@@ -134,5 +140,49 @@ describe('GridViewport', () => {
       expect(ref.current).toBeInstanceOf(HTMLDivElement);
       expect(ref.current!.getAttribute('data-testid')).toBe('preview-viewport');
     });
+  });
+});
+
+describe('Floating zoom overlay', () => {
+  const defaultProps = {
+    transform: { zoom: 1, panX: 0, panY: 0 },
+    handleWheel: vi.fn(),
+    pan: vi.fn(),
+    isSpaceHeldRef: { current: false },
+    handleTouchStart: vi.fn(),
+    handleTouchMove: vi.fn(),
+    handleTouchEnd: vi.fn(),
+  };
+
+  const zoomProps = {
+    zoom: 1,
+    onZoomIn: vi.fn(),
+    onZoomOut: vi.fn(),
+    onResetZoom: vi.fn(),
+    onFitToScreen: vi.fn(),
+    showResetZoom: true,
+  };
+
+  it('does not render zoom overlay when zoom props are not provided', () => {
+    render(<GridViewport {...defaultProps}><div>content</div></GridViewport>);
+    expect(screen.queryByTestId('floating-zoom')).not.toBeInTheDocument();
+  });
+
+  it('renders zoom overlay when zoom props are provided', () => {
+    render(
+      <GridViewport {...defaultProps} zoomOverlayProps={zoomProps}>
+        <div>content</div>
+      </GridViewport>
+    );
+    expect(screen.getByTestId('floating-zoom')).toBeInTheDocument();
+  });
+
+  it('passes showReset false to ZoomControls when showResetZoom is false', () => {
+    render(
+      <GridViewport {...defaultProps} zoomOverlayProps={{ ...zoomProps, showResetZoom: false }}>
+        <div>content</div>
+      </GridViewport>
+    );
+    expect(screen.getByTestId('floating-zoom')).toHaveAttribute('data-show-reset', 'false');
   });
 });
