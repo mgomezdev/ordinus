@@ -15,6 +15,10 @@ import { WorkspaceToolbar } from '../components/WorkspaceToolbar';
 import { LibraryPanel } from '../components/LibraryPanel';
 import { exportToPdf } from '../utils/exportPdf';
 import { useMobileLayout } from '../hooks/useMobileLayout';
+import { useNavigate } from 'react-router-dom';
+import { useUpdateLayoutMutation } from '../hooks/useLayouts';
+import { buildPayload } from '../utils/layoutHelpers';
+import { MobileActionBar } from '../components/MobileActionBar';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3001/api/v1';
 
@@ -44,6 +48,10 @@ export function WorkspacePage() {
     handleClearAll, handleReset,
     dialogDispatch,
     exportPdfError, setExportPdfError,
+    handleSaveComplete,
+    drawerWidth,
+    drawerDepth,
+    isAuthenticated,
   } = ws;
 
   // Local UI state
@@ -167,6 +175,28 @@ export function WorkspacePage() {
       () => setExportPdfError('PDF export failed. Please try again.'),
     );
   }, [bomItems, gridResult, spacerConfig, unitSystem, layoutMeta.name, setExportPdfError]);
+
+  const navigate = useNavigate();
+  const updateLayoutMutation = useUpdateLayoutMutation();
+
+  const handleMobileSave = useCallback(async () => {
+    if (!layoutMeta.id) {
+      dialogDispatch({ type: 'OPEN', dialog: 'save' });
+      return;
+    }
+    const payload = buildPayload(
+      layoutMeta.name, layoutMeta.description,
+      gridResult.gridX, gridResult.gridY,
+      drawerWidth, drawerDepth, spacerConfig, placedItems, refImagePlacements,
+    );
+    const result = await updateLayoutMutation.mutateAsync({ id: layoutMeta.id, data: payload });
+    handleSaveComplete(result.id, result.name);
+  }, [layoutMeta, gridResult, drawerWidth, drawerDepth, spacerConfig, placedItems,
+    refImagePlacements, updateLayoutMutation, handleSaveComplete, dialogDispatch]);
+
+  const handleMobileSaveAsNew = useCallback(() => {
+    dialogDispatch({ type: 'OPEN', dialog: 'save' });
+  }, [dialogDispatch]);
 
   const handleFitWidth = useCallback(() => {
     const mm = unitSystem === 'imperial' ? width * 25.4 : width;
@@ -357,7 +387,7 @@ export function WorkspacePage() {
             </>
           )}
         </nav>
-        <div className="preview-toolbar">
+        <div className="preview-toolbar preview-toolbar--desktop-only">
           <WorkspaceToolbar onExportPdf={handleExportPdf} exportPdfError={exportPdfError} />
           <ImageViewToggle mode={imageViewMode} onToggle={toggleImageViewMode} />
         </div>
@@ -413,6 +443,20 @@ export function WorkspacePage() {
           />
         </GridViewport>
 
+        <MobileActionBar
+          isAuthenticated={isAuthenticated}
+          layoutMeta={layoutMeta}
+          placedItems={placedItems}
+          refImagePlacements={refImagePlacements}
+          isSaving={updateLayoutMutation.isPending}
+          imageViewMode={imageViewMode}
+          onSave={handleMobileSave}
+          onSaveAsNew={handleMobileSaveAsNew}
+          onLoad={() => navigate('/configs')}
+          onExport={handleExportPdf}
+          onToggleView={toggleImageViewMode}
+          onClearAll={handleClearAll}
+        />
       </section>
 
       {isMobile && (libraryOpen || settingsOpen) && (

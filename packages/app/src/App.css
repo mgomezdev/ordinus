@@ -4637,4 +4637,8 @@
   .mobile-action-bar {
     display: flex;
   }
+
+  .preview-toolbar--desktop-only {
+    display: none;
+  }
 }
