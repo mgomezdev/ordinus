@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { WorkspacePage } from './pages/WorkspacePage';
@@ -148,6 +148,17 @@ vi.mock('./hooks/useLayouts', () => ({
   useCloneLayoutMutation: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
   useUpdateLayoutMutation: () => ({ mutateAsync: mockUpdateMutateAsync, isPending: false }),
   useSaveLayoutMutation: () => ({ mutateAsync: vi.fn(), isPending: false, isError: false, error: null }),
+}));
+
+vi.mock('./hooks/useFavorites', () => ({
+  useFavorites: () => ({
+    favorites: [],
+    isLoading: false,
+    isFavorite: vi.fn(() => false),
+    toggleFavorite: vi.fn(),
+    removeFavorite: vi.fn(),
+    renameFavorite: vi.fn(),
+  }),
 }));
 
 vi.mock('./components/DimensionInput', () => ({
@@ -1085,6 +1096,63 @@ describe('App Integration Tests', () => {
     });
   });
 
+
+  // ==========================================
+  // 11. isDirty breadcrumb indicator
+  // ==========================================
+  describe('isDirty breadcrumb indicator', () => {
+    beforeEach(() => {
+      mockIsAuthenticated = false;
+    });
+
+    it('does not show unsaved indicator on a fresh canvas with no saved layout', () => {
+      renderApp();
+      expect(screen.queryByText('unsaved changes')).not.toBeInTheDocument();
+    });
+
+    it('does not show unsaved indicator immediately after save completes', async () => {
+      renderApp();
+      // Simulate a successful save (sets layoutMeta.id)
+      act(() => {
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string) => void;
+        onSaveComplete(42, 'My Drawer');
+      });
+      expect(screen.queryByText('unsaved changes')).not.toBeInTheDocument();
+    });
+
+    it('shows unsaved indicator after placing an item on a saved layout', async () => {
+      renderApp();
+      act(() => {
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string) => void;
+        onSaveComplete(42, 'My Drawer');
+      });
+      placeItemViaGridPreview();
+      await waitFor(() => {
+        expect(screen.getByText('unsaved changes')).toBeInTheDocument();
+      });
+    });
+
+    it('hides unsaved indicator after saving again', async () => {
+      renderApp();
+      act(() => {
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string) => void;
+        onSaveComplete(42, 'My Drawer');
+      });
+      placeItemViaGridPreview();
+      await waitFor(() => {
+        expect(screen.getByText('unsaved changes')).toBeInTheDocument();
+      });
+      // Save again
+      mockUpdateMutateAsync.mockResolvedValueOnce({ id: 42, name: 'My Drawer' });
+      act(() => {
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string) => void;
+        onSaveComplete(42, 'My Drawer');
+      });
+      await waitFor(() => {
+        expect(screen.queryByText('unsaved changes')).not.toBeInTheDocument();
+      });
+    });
+  });
 
   // ==========================================
   // 10. Walkthrough auto-start

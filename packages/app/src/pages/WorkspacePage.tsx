@@ -8,7 +8,6 @@ import { DimensionInput } from '../components/DimensionInput';
 import { GridPreview } from '../components/GridPreview';
 import { GridSummary } from '../components/GridSummary';
 import { SpacerControls } from '../components/SpacerControls';
-import { ZoomControls } from '../components/ZoomControls';
 import { ImageViewToggle } from '../components/ImageViewToggle';
 import { GridViewport } from '../components/GridViewport';
 import { SidebarPanel } from '../components/SidebarPanel';
@@ -16,6 +15,10 @@ import { WorkspaceToolbar } from '../components/WorkspaceToolbar';
 import { LibraryPanel } from '../components/LibraryPanel';
 import { exportToPdf } from '../utils/exportPdf';
 import { useMobileLayout } from '../hooks/useMobileLayout';
+import { useNavigate } from 'react-router-dom';
+import { useUpdateLayoutMutation } from '../hooks/useLayouts';
+import { buildPayload } from '../utils/layoutHelpers';
+import { MobileActionBar } from '../components/MobileActionBar';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3001/api/v1';
 
@@ -36,7 +39,7 @@ export function WorkspacePage() {
     selectItem, selectAll, deselectAll, handleDrop, duplicateItem,
     copyItems, pasteItems, deleteSelected, rotateSelected, updateItemCustomization,
     bomItems,
-    layoutMeta,
+    layoutMeta, isDirty,
     refImagePlacements, addRefImagePlacement, removeRefImagePlacement,
     updateRefImagePosition, updateRefImageScale, updateRefImageOpacity,
     updateRefImageRotation, toggleRefImageLock,
@@ -45,6 +48,10 @@ export function WorkspacePage() {
     handleClearAll, handleReset,
     dialogDispatch,
     exportPdfError, setExportPdfError,
+    handleSaveComplete,
+    drawerWidth,
+    drawerDepth,
+    isAuthenticated,
   } = ws;
 
   // Local UI state
@@ -168,6 +175,32 @@ export function WorkspacePage() {
       () => setExportPdfError('PDF export failed. Please try again.'),
     );
   }, [bomItems, gridResult, spacerConfig, unitSystem, layoutMeta.name, setExportPdfError]);
+
+  const navigate = useNavigate();
+  const updateLayoutMutation = useUpdateLayoutMutation();
+
+  const handleMobileSave = useCallback(async () => {
+    if (!layoutMeta.id) {
+      dialogDispatch({ type: 'OPEN', dialog: 'save' });
+      return;
+    }
+    const payload = buildPayload(
+      layoutMeta.name, layoutMeta.description,
+      gridResult.gridX, gridResult.gridY,
+      drawerWidth, drawerDepth, spacerConfig, placedItems, refImagePlacements,
+    );
+    try {
+      const result = await updateLayoutMutation.mutateAsync({ id: layoutMeta.id, data: payload });
+      handleSaveComplete(result.id, result.name);
+    } catch {
+      // updateLayoutMutation.isError is set true by TanStack Query; error UI is a future iteration
+    }
+  }, [layoutMeta, gridResult, drawerWidth, drawerDepth, spacerConfig, placedItems,
+    refImagePlacements, updateLayoutMutation, handleSaveComplete, dialogDispatch]);
+
+  const handleMobileSaveAsNew = useCallback(() => {
+    dialogDispatch({ type: 'OPEN', dialog: 'save' });
+  }, [dialogDispatch]);
 
   const handleFitWidth = useCallback(() => {
     const mm = unitSystem === 'imperial' ? width * 25.4 : width;
@@ -351,11 +384,16 @@ export function WorkspacePage() {
               <span className="canvas-breadcrumb-item canvas-breadcrumb-current">{layoutMeta.name}</span>
             </>
           )}
+          {isDirty && layoutMeta.id && (
+            <>
+              <span className="unsaved-dot" aria-hidden="true" />
+              <span className="unsaved-label">unsaved changes</span>
+            </>
+          )}
         </nav>
-        <div className="preview-toolbar">
+        <div className="preview-toolbar preview-toolbar--desktop-only">
           <WorkspaceToolbar onExportPdf={handleExportPdf} exportPdfError={exportPdfError} />
           <ImageViewToggle mode={imageViewMode} onToggle={toggleImageViewMode} />
-          <ZoomControls zoom={transform.zoom} onZoomIn={zoomIn} onZoomOut={zoomOut} onResetZoom={resetZoom} onFitToScreen={handleFitToScreen} />
         </div>
         <GridViewport
           viewportRef={viewportRef}
@@ -366,6 +404,14 @@ export function WorkspacePage() {
           handleTouchStart={handleTouchStart}
           handleTouchMove={handleTouchMove}
           handleTouchEnd={handleTouchEnd}
+          zoomOverlayProps={{
+            zoom: transform.zoom,
+            onZoomIn: zoomIn,
+            onZoomOut: zoomOut,
+            onResetZoom: resetZoom,
+            onFitToScreen: handleFitToScreen,
+            showResetZoom: !isMobile,
+          }}
         >
           <GridPreview
             gridX={gridResult.gridX}
@@ -401,6 +447,20 @@ export function WorkspacePage() {
           />
         </GridViewport>
 
+        <MobileActionBar
+          isAuthenticated={isAuthenticated}
+          layoutMeta={layoutMeta}
+          placedItems={placedItems}
+          refImagePlacements={refImagePlacements}
+          isSaving={updateLayoutMutation.isPending}
+          imageViewMode={imageViewMode}
+          onSave={handleMobileSave}
+          onSaveAsNew={handleMobileSaveAsNew}
+          onLoad={() => navigate('/configs')}
+          onExport={handleExportPdf}
+          onToggleView={toggleImageViewMode}
+          onClearAll={handleClearAll}
+        />
       </section>
 
       {isMobile && (libraryOpen || settingsOpen) && (

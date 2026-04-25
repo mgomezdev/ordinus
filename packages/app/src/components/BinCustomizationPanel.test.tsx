@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { BinCustomizationPanel } from './BinCustomizationPanel';
 import type { BinCustomization, CustomizableFieldDef } from '../types/gridfinity';
 import { DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
@@ -9,13 +9,13 @@ const ALL_FIELDS: CustomizableFieldDef[] = [
   { field: 'wallPattern', label: 'Wall Pattern', options: ['grid', 'hexgrid', 'brick'] },
   { field: 'lipStyle',    label: 'Lip Style',    options: ['normal', 'reduced', 'minimum', 'none'] },
   { field: 'fingerSlide', label: 'Finger Slide', options: ['none', 'rounded', 'chamfered'] },
-  { field: 'wallCutout',  label: 'Wall Cutout',  options: ['none', 'vertical', 'horizontal', 'both'] },
+  { field: 'wallCutout',  label: 'Wall Cutout' },
   { field: 'height',      label: 'Height',       min: 1, max: 20 },
 ];
 const SHADOWBOX_FIELDS: CustomizableFieldDef[] = [
   { field: 'lipStyle',    label: 'Lip Style',    options: ['normal', 'reduced', 'minimum', 'none'] },
   { field: 'fingerSlide', label: 'Finger Slide', options: ['none', 'rounded', 'chamfered'] },
-  { field: 'wallCutout',  label: 'Wall Cutout',  options: ['none', 'vertical', 'horizontal', 'both'] },
+  { field: 'wallCutout',  label: 'Wall Cutout' },
   { field: 'height',      label: 'Height',       min: 1, max: 20 },
 ];
 
@@ -28,7 +28,7 @@ describe('BinCustomizationPanel', () => {
     wallPattern: 'grid',
     lipStyle: 'reduced',
     fingerSlide: 'rounded',
-    wallCutout: 'vertical',
+    wallCutout: { front: true, back: false, left: false, right: false },
     height: 8,
   };
 
@@ -38,7 +38,7 @@ describe('BinCustomizationPanel', () => {
   });
 
   describe('Rendering', () => {
-    it('should render all four customization selects', () => {
+    it('should render all four customization controls', () => {
       render(
         <BinCustomizationPanel
           customization={DEFAULT_BIN_CUSTOMIZATION}
@@ -51,7 +51,8 @@ describe('BinCustomizationPanel', () => {
       expect(screen.getByLabelText(/wall pattern/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/lip style/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/finger slide/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/wall cutout/i)).toBeInTheDocument();
+      // wallCutout now renders checkboxes; verify the label text is present
+      expect(screen.getByText(/wall cutout/i)).toBeInTheDocument();
     });
 
     it('should render a reset button', () => {
@@ -110,20 +111,6 @@ describe('BinCustomizationPanel', () => {
       const fingerSlideSelect = screen.getByLabelText(/finger slide/i) as HTMLSelectElement;
       expect(fingerSlideSelect.value).toBe('rounded');
     });
-
-    it('should display current wallCutout value in the select', () => {
-      render(
-        <BinCustomizationPanel
-          customization={nonDefaultCustomization}
-          onChange={mockOnChange}
-          onReset={mockOnReset}
-          customizableFields={ALL_FIELDS}
-        />
-      );
-
-      const wallCutoutSelect = screen.getByLabelText(/wall cutout/i) as HTMLSelectElement;
-      expect(wallCutoutSelect.value).toBe('vertical');
-    });
   });
 
   describe('Default values when customization is undefined', () => {
@@ -169,7 +156,7 @@ describe('BinCustomizationPanel', () => {
       expect(fingerSlideSelect.value).toBe(DEFAULT_BIN_CUSTOMIZATION.fingerSlide);
     });
 
-    it('should show default wallCutout when customization is undefined', () => {
+    it('should show all wall cutout checkboxes unchecked when customization is undefined (default all false)', () => {
       render(
         <BinCustomizationPanel
           customization={undefined}
@@ -179,8 +166,10 @@ describe('BinCustomizationPanel', () => {
         />
       );
 
-      const wallCutoutSelect = screen.getByLabelText(/wall cutout/i) as HTMLSelectElement;
-      expect(wallCutoutSelect.value).toBe(DEFAULT_BIN_CUSTOMIZATION.wallCutout);
+      expect(screen.getByRole('checkbox', { name: /front/i })).not.toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /back/i })).not.toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /left/i })).not.toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /right/i })).not.toBeChecked();
     });
   });
 
@@ -261,25 +250,6 @@ describe('BinCustomizationPanel', () => {
       );
     });
 
-    it('should call onChange with updated wallCutout when wall cutout select changes', () => {
-      render(
-        <BinCustomizationPanel
-          customization={DEFAULT_BIN_CUSTOMIZATION}
-          onChange={mockOnChange}
-          onReset={mockOnReset}
-          customizableFields={ALL_FIELDS}
-        />
-      );
-
-      const wallCutoutSelect = screen.getByLabelText(/wall cutout/i);
-      fireEvent.change(wallCutoutSelect, { target: { value: 'both' } });
-
-      expect(mockOnChange).toHaveBeenCalledTimes(1);
-      expect(mockOnChange).toHaveBeenCalledWith(
-        expect.objectContaining({ wallCutout: 'both' })
-      );
-    });
-
     it('should preserve other customization fields when changing wallPattern style', () => {
       render(
         <BinCustomizationPanel
@@ -298,7 +268,7 @@ describe('BinCustomizationPanel', () => {
         wallPattern: 'brick',
         lipStyle: 'reduced',
         fingerSlide: 'rounded',
-        wallCutout: 'vertical',
+        wallCutout: { front: true, back: false, left: false, right: false },
         height: 8,
       });
     });
@@ -321,7 +291,7 @@ describe('BinCustomizationPanel', () => {
         wallPattern: 'grid',
         lipStyle: 'none',
         fingerSlide: 'rounded',
-        wallCutout: 'vertical',
+        wallCutout: { front: true, back: false, left: false, right: false },
         height: 8,
       });
     });
@@ -443,7 +413,7 @@ describe('BinCustomizationPanel', () => {
     it('should enable reset button when only wallCutout differs from default', () => {
       render(
         <BinCustomizationPanel
-          customization={{ ...DEFAULT_BIN_CUSTOMIZATION, wallCutout: 'horizontal' }}
+          customization={{ ...DEFAULT_BIN_CUSTOMIZATION, wallCutout: { front: true, back: false, left: false, right: false } }}
           onChange={mockOnChange}
           onReset={mockOnReset}
           customizableFields={ALL_FIELDS}
@@ -552,26 +522,95 @@ describe('BinCustomizationPanel', () => {
     });
   });
 
-  describe('Wall cutout select options', () => {
-    it('should have all 4 wall cutout options (none, vertical, horizontal, both)', () => {
+  describe('wallCutout checkboxes', () => {
+    const wallCutoutField: CustomizableFieldDef = { field: 'wallCutout', label: 'Wall Cutout' };
+    const baseCustomization: BinCustomization = {
+      ...DEFAULT_BIN_CUSTOMIZATION,
+      wallCutout: { front: false, back: false, left: false, right: false },
+    };
+
+    it('renders 4 checkboxes when wallCutout field is present', () => {
       render(
         <BinCustomizationPanel
-          customization={DEFAULT_BIN_CUSTOMIZATION}
-          onChange={mockOnChange}
-          onReset={mockOnReset}
-          customizableFields={ALL_FIELDS}
+          customization={baseCustomization}
+          customizableFields={[wallCutoutField]}
+          onChange={vi.fn()}
+          onReset={vi.fn()}
         />
       );
+      expect(screen.getByRole('checkbox', { name: /front/i })).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /back/i })).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /left/i })).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /right/i })).toBeInTheDocument();
+    });
 
-      const wallCutoutSelect = screen.getByLabelText(/wall cutout/i);
-      const options = Array.from((wallCutoutSelect as HTMLSelectElement).options).map(
-        (opt) => opt.value
+    it('reflects checked state from customization', () => {
+      render(
+        <BinCustomizationPanel
+          customization={{ ...baseCustomization, wallCutout: { front: true, back: false, left: false, right: false } }}
+          customizableFields={[wallCutoutField]}
+          onChange={vi.fn()}
+          onReset={vi.fn()}
+        />
       );
+      expect(screen.getByRole('checkbox', { name: /front/i })).toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /back/i })).not.toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /left/i })).not.toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /right/i })).not.toBeChecked();
+    });
 
-      expect(options).toContain('none');
-      expect(options).toContain('vertical');
-      expect(options).toContain('horizontal');
-      expect(options).toContain('both');
+    it('calls onChange with updated wallCutout when front checkbox toggled', async () => {
+      const onChange = vi.fn();
+      render(
+        <BinCustomizationPanel
+          customization={baseCustomization}
+          customizableFields={[wallCutoutField]}
+          onChange={onChange}
+          onReset={vi.fn()}
+        />
+      );
+      fireEvent.click(screen.getByRole('checkbox', { name: /front/i }));
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wallCutout: expect.objectContaining({ front: true, back: false, left: false, right: false })
+        })
+      );
+    });
+
+    it('calls onChange with updated wallCutout when back checkbox toggled', async () => {
+      const onChange = vi.fn();
+      render(
+        <BinCustomizationPanel
+          customization={baseCustomization}
+          customizableFields={[wallCutoutField]}
+          onChange={onChange}
+          onReset={vi.fn()}
+        />
+      );
+      fireEvent.click(screen.getByRole('checkbox', { name: /back/i }));
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wallCutout: expect.objectContaining({ front: false, back: true, left: false, right: false })
+        })
+      );
+    });
+
+    it('unchecks a wall when toggled from true to false', async () => {
+      const onChange = vi.fn();
+      render(
+        <BinCustomizationPanel
+          customization={{ ...baseCustomization, wallCutout: { front: true, back: true, left: false, right: false } }}
+          customizableFields={[wallCutoutField]}
+          onChange={onChange}
+          onReset={vi.fn()}
+        />
+      );
+      fireEvent.click(screen.getByRole('checkbox', { name: /front/i }));
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wallCutout: expect.objectContaining({ front: false, back: true, left: false, right: false })
+        })
+      );
     });
   });
 
@@ -694,7 +733,7 @@ describe('BinCustomizationPanel', () => {
   });
 
   describe('height field', () => {
-    it('renders unit and mm inputs', () => {
+    it('renders stepper input and mm display', () => {
       render(
         <BinCustomizationPanel
           customization={DEFAULT_BIN_CUSTOMIZATION}
@@ -704,10 +743,10 @@ describe('BinCustomizationPanel', () => {
         />
       );
       expect(screen.getByLabelText('Height in units')).toBeInTheDocument();
-      expect(screen.getByLabelText('Height in millimeters')).toBeInTheDocument();
+      expect(screen.getByText('28 mm')).toBeInTheDocument();
     });
 
-    it('unit input shows current height, mm input shows height * 7', () => {
+    it('input shows current height and mm display reflects it', () => {
       render(
         <BinCustomizationPanel
           customization={{ ...DEFAULT_BIN_CUSTOMIZATION, height: 3 }}
@@ -717,53 +756,60 @@ describe('BinCustomizationPanel', () => {
         />
       );
       expect(screen.getByLabelText('Height in units')).toHaveValue(3);
-      expect(screen.getByLabelText('Height in millimeters')).toHaveValue(21);
+      expect(screen.getByText('21 mm')).toBeInTheDocument();
     });
 
-    it('changing unit input calls onChange with new height', () => {
+    it('− button decrements height', () => {
       render(
         <BinCustomizationPanel
-          customization={DEFAULT_BIN_CUSTOMIZATION}
+          customization={{ ...DEFAULT_BIN_CUSTOMIZATION, height: 4 }}
           onChange={mockOnChange}
           onReset={mockOnReset}
           customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
         />
       );
-      fireEvent.change(screen.getByLabelText('Height in units'), { target: { value: '5' } });
-      expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ height: 5 }));
-    });
-
-    it('blurring mm input with aligned value calls onChange with correct units', () => {
-      render(
-        <BinCustomizationPanel
-          customization={DEFAULT_BIN_CUSTOMIZATION}
-          onChange={mockOnChange}
-          onReset={mockOnReset}
-          customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
-        />
-      );
-      fireEvent.change(screen.getByLabelText('Height in millimeters'), { target: { value: '35' } });
-      fireEvent.blur(screen.getByLabelText('Height in millimeters'));
-      expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ height: 5 }));
-    });
-
-    it('blurring mm input with unaligned value rounds down and shows correction message', async () => {
-      render(
-        <BinCustomizationPanel
-          customization={DEFAULT_BIN_CUSTOMIZATION}
-          onChange={mockOnChange}
-          onReset={mockOnReset}
-          customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
-        />
-      );
-      fireEvent.change(screen.getByLabelText('Height in millimeters'), { target: { value: '23' } });
-      fireEvent.blur(screen.getByLabelText('Height in millimeters'));
+      fireEvent.click(screen.getByLabelText('Decrease height'));
       expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ height: 3 }));
-      expect(await screen.findByText(/rounded to 3u \(21mm\)/i)).toBeInTheDocument();
     });
 
-    it('correction message disappears after 2 seconds', async () => {
-      vi.useFakeTimers();
+    it('+ button increments height', () => {
+      render(
+        <BinCustomizationPanel
+          customization={{ ...DEFAULT_BIN_CUSTOMIZATION, height: 4 }}
+          onChange={mockOnChange}
+          onReset={mockOnReset}
+          customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
+        />
+      );
+      fireEvent.click(screen.getByLabelText('Increase height'));
+      expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ height: 5 }));
+    });
+
+    it('− button disabled at min', () => {
+      render(
+        <BinCustomizationPanel
+          customization={{ ...DEFAULT_BIN_CUSTOMIZATION, height: 1 }}
+          onChange={mockOnChange}
+          onReset={mockOnReset}
+          customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
+        />
+      );
+      expect(screen.getByLabelText('Decrease height')).toBeDisabled();
+    });
+
+    it('+ button disabled at max', () => {
+      render(
+        <BinCustomizationPanel
+          customization={{ ...DEFAULT_BIN_CUSTOMIZATION, height: 20 }}
+          onChange={mockOnChange}
+          onReset={mockOnReset}
+          customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
+        />
+      );
+      expect(screen.getByLabelText('Increase height')).toBeDisabled();
+    });
+
+    it('typing a value and blurring calls onChange with clamped integer', () => {
       render(
         <BinCustomizationPanel
           customization={DEFAULT_BIN_CUSTOMIZATION}
@@ -772,12 +818,37 @@ describe('BinCustomizationPanel', () => {
           customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
         />
       );
-      fireEvent.change(screen.getByLabelText('Height in millimeters'), { target: { value: '23' } });
-      fireEvent.blur(screen.getByLabelText('Height in millimeters'));
-      expect(screen.getByText(/rounded to 3u \(21mm\)/i)).toBeInTheDocument();
-      await act(async () => { vi.advanceTimersByTime(2001); });
-      expect(screen.queryByText(/rounded to 3u \(21mm\)/i)).not.toBeInTheDocument();
-      vi.useRealTimers();
+      fireEvent.change(screen.getByLabelText('Height in units'), { target: { value: '8' } });
+      fireEvent.blur(screen.getByLabelText('Height in units'));
+      expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ height: 8 }));
+    });
+
+    it('value above max is clamped on blur', () => {
+      render(
+        <BinCustomizationPanel
+          customization={DEFAULT_BIN_CUSTOMIZATION}
+          onChange={mockOnChange}
+          onReset={mockOnReset}
+          customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
+        />
+      );
+      fireEvent.change(screen.getByLabelText('Height in units'), { target: { value: '99' } });
+      fireEvent.blur(screen.getByLabelText('Height in units'));
+      expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ height: 20 }));
+    });
+
+    it('non-numeric input reverts to current height on blur', () => {
+      render(
+        <BinCustomizationPanel
+          customization={{ ...DEFAULT_BIN_CUSTOMIZATION, height: 4 }}
+          onChange={mockOnChange}
+          onReset={mockOnReset}
+          customizableFields={[{ field: 'height', label: 'Height', min: 1, max: 20 }]}
+        />
+      );
+      fireEvent.change(screen.getByLabelText('Height in units'), { target: { value: 'abc' } });
+      fireEvent.blur(screen.getByLabelText('Height in units'));
+      expect(mockOnChange).toHaveBeenCalledWith(expect.objectContaining({ height: 4 }));
     });
   });
 

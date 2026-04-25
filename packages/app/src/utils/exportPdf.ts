@@ -27,7 +27,11 @@ function formatCustomizationText(item: BOMItem): string {
   if (item.customization.wallPatternEnabled) parts.push(item.customization.wallPattern);
   if (item.customization.lipStyle !== 'normal') parts.push(`lip: ${item.customization.lipStyle}`);
   if (item.customization.fingerSlide !== 'none') parts.push(`slide: ${item.customization.fingerSlide}`);
-  if (item.customization.wallCutout !== 'none') parts.push(`cutout: ${item.customization.wallCutout}`);
+  const wc = item.customization.wallCutout;
+  if (wc.front || wc.back || wc.left || wc.right) {
+    const sides = (['front', 'back', 'left', 'right'] as const).filter(s => wc[s]).join('/');
+    parts.push(`cutout: ${sides}`);
+  }
   return parts.join(', ');
 }
 

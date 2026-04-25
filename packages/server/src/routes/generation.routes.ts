@@ -79,7 +79,7 @@ router.post('/generate', requireAuth, async (req: Request, res: Response, next: 
     const { widthUnits, heightUnits } = itemRows[0];
 
     const defaultCustomization: BinCustomization = {
-      wallPatternEnabled: false, wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 4,
+      wallPatternEnabled: false, wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: { front: false, back: false, left: false, right: false }, height: 4,
     };
 
     const params = buildGenerateParams({

@@ -32,6 +32,16 @@ vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
+vi.mock('../hooks/useFavorites', () => ({
+  useFavorites: () => ({
+    isFavorite: () => false,
+    toggleFavorite: vi.fn(),
+    favorites: [],
+    isLoading: false,
+    removeFavorite: vi.fn(),
+    renameFavorite: vi.fn(),
+  }),
+}));
 
 // Mock generation.api
 vi.mock('../api/generation.api', () => ({
@@ -79,7 +89,7 @@ describe('PlacedItemOverlay', () => {
       { field: 'wallPattern', label: 'Wall Pattern', options: ['grid', 'hexgrid', 'brick'] },
       { field: 'lipStyle',    label: 'Lip Style',    options: ['normal', 'reduced', 'minimum', 'none'] },
       { field: 'fingerSlide', label: 'Finger Slide', options: ['none', 'rounded', 'chamfered'] },
-      { field: 'wallCutout',  label: 'Wall Cutout',  options: ['none', 'vertical', 'horizontal', 'both'] },
+      { field: 'wallCutout',  label: 'Wall Cutout' },
       { field: 'height',      label: 'Height',       min: 1, max: 20 },
     ],
     parameters: {},
@@ -1716,7 +1726,7 @@ describe('PlacedItemOverlay', () => {
       const item = createMockItem({
         customization: {
           ...DEFAULT_BIN_CUSTOMIZATION,
-          wallCutout: 'vertical',
+          wallCutout: { front: true, back: true, left: false, right: false },
         },
       });
       const { container } = render(
@@ -1742,7 +1752,7 @@ describe('PlacedItemOverlay', () => {
           wallPattern: 'grid',
           lipStyle: 'reduced',
           fingerSlide: 'rounded',
-          wallCutout: 'none',
+          wallCutout: { front: false, back: false, left: false, right: false },
           height: 4,
         },
       });
@@ -2114,7 +2124,7 @@ describe('PlacedItemOverlay', () => {
       mockOnCustomizationReset.mockClear();
     });
 
-    it('should render four select fields when popover is open', async () => {
+    it('should render customization fields when popover is open', async () => {
       const item = createMockItemWithLibrary();
       render(
         <PlacedItemOverlay
@@ -2135,7 +2145,8 @@ describe('PlacedItemOverlay', () => {
       expect(screen.getByLabelText('Wall Pattern')).toBeInTheDocument();
       expect(screen.getByLabelText('Lip Style')).toBeInTheDocument();
       expect(screen.getByLabelText('Finger Slide')).toBeInTheDocument();
-      expect(screen.getByLabelText('Wall Cutout')).toBeInTheDocument();
+      // Wall Cutout is now a fieldset with checkboxes
+      expect(screen.getByRole('group', { name: 'Wall Cutout' })).toBeInTheDocument();
     });
 
     it('should call onCustomizationChange when popover is closed after a select value changes', async () => {
@@ -2259,7 +2270,7 @@ describe('PlacedItemOverlay', () => {
           wallPattern: 'grid',
           lipStyle: 'normal',
           fingerSlide: 'none',
-          wallCutout: 'none',
+          wallCutout: { front: false, back: false, left: false, right: false },
           height: 4,
         },
       });

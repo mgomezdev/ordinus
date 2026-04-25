@@ -75,6 +75,7 @@ export interface PlacedItem {
   customization?: BinCustomization;
   shadowBoxId?: string | null;
   parameters?: GeneratorParams;
+  paramHash?: string | null;
 }
 
 export interface PlacedItemWithValidity extends PlacedItem {
@@ -82,12 +83,14 @@ export interface PlacedItemWithValidity extends PlacedItem {
 }
 
 export interface DragData {
-  type: 'library' | 'placed' | 'ref-image';
+  type: 'library' | 'placed' | 'ref-image' | 'favorite';
   itemId: string;
   instanceId?: string;
   refImageId?: number;
   refImageUrl?: string;
   refImageName?: string;
+  favoriteCustomization?: BinCustomization;
+  favoriteParamHash?: string | null;
 }
 
 
@@ -108,7 +111,12 @@ export interface ReferenceImage {
 export type WallPattern = 'grid' | 'hexgrid' | 'brick' | 'voronoi' | 'voronoigrid' | 'voronoihexgrid';
 export type LipStyle = 'normal' | 'reduced' | 'minimum' | 'none';
 export type FingerSlide = 'none' | 'rounded' | 'chamfered';
-export type WallCutout = 'none' | 'vertical' | 'horizontal' | 'both';
+export interface WallCutoutConfig {
+  front: boolean;
+  back: boolean;
+  left: boolean;
+  right: boolean;
+}
 
 export type CustomizableField = 'wallPatternEnabled' | 'wallPattern' | 'lipStyle' | 'fingerSlide' | 'wallCutout' | 'height';
 
@@ -118,7 +126,7 @@ export interface CustomizableBooleanFieldDef {
 }
 
 export interface CustomizableSelectFieldDef {
-  field: Exclude<CustomizableField, 'height' | 'wallPatternEnabled'>;
+  field: Exclude<CustomizableField, 'height' | 'wallPatternEnabled' | 'wallCutout'>;
   label: string;
   options: string[];
 }
@@ -130,14 +138,23 @@ export interface CustomizableNumericFieldDef {
   max: number;
 }
 
-export type CustomizableFieldDef = CustomizableBooleanFieldDef | CustomizableSelectFieldDef | CustomizableNumericFieldDef;
+export interface CustomizableWallCutoutFieldDef {
+  field: 'wallCutout';
+  label: string;
+}
+
+export type CustomizableFieldDef =
+  | CustomizableBooleanFieldDef
+  | CustomizableSelectFieldDef
+  | CustomizableNumericFieldDef
+  | CustomizableWallCutoutFieldDef;
 
 export interface BinCustomization {
   wallPatternEnabled: boolean;
   wallPattern: WallPattern;
   lipStyle: LipStyle;
   fingerSlide: FingerSlide;
-  wallCutout: WallCutout;
+  wallCutout: WallCutoutConfig;
   height: number;  // gridfinity units (1-20), default 4
 }
 
@@ -146,13 +163,35 @@ export const DEFAULT_BIN_CUSTOMIZATION: BinCustomization = {
   wallPattern: 'grid',
   lipStyle: 'normal',
   fingerSlide: 'none',
-  wallCutout: 'none',
+  wallCutout: { front: false, back: false, left: false, right: false },
   height: 4,
 };
 
+export interface FavoriteItem {
+  id: string;
+  name: string;
+  createdAt: number;
+  libraryId: string;
+  libraryItemId: string;
+  libraryItemName: string;
+  widthUnits: number;
+  heightUnits: number;
+  color: string;
+  paramHash: string | null;
+  imageUrl: string;
+  perspectiveImageUrl: string | null;
+  perspectiveImageUrl90: string | null;
+  perspectiveImageUrl180: string | null;
+  perspectiveImageUrl270: string | null;
+  customization: BinCustomization;
+}
+
 export function serializeCustomization(c: BinCustomization | undefined): string {
   if (!c) return '';
-  return `${c.wallPatternEnabled ? c.wallPattern : 'none'}|${c.lipStyle}|${c.fingerSlide}|${c.wallCutout}|${c.height}`;
+  const wc = c.wallCutout;
+  const wcKey =
+    `${wc.front ? 'F' : '-'}${wc.back ? 'B' : '-'}${wc.left ? 'L' : '-'}${wc.right ? 'R' : '-'}`;
+  return `${c.wallPatternEnabled ? c.wallPattern : 'none'}|${c.lipStyle}|${c.fingerSlide}|${wcKey}|${c.height}`;
 }
 
 export function isDefaultCustomization(c: BinCustomization | undefined): boolean {
@@ -160,7 +199,7 @@ export function isDefaultCustomization(c: BinCustomization | undefined): boolean
   return !c.wallPatternEnabled
     && c.lipStyle === 'normal'
     && c.fingerSlide === 'none'
-    && c.wallCutout === 'none'
+    && !c.wallCutout.front && !c.wallCutout.back && !c.wallCutout.left && !c.wallCutout.right
     && c.height === 4;
 }
 

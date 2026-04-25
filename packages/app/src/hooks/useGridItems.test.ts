@@ -383,6 +383,107 @@ describe('useGridItems', () => {
         y: 2,
       });
     });
+
+    it('should add a favorite item with customization when drag type is favorite', () => {
+      const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
+      const favoriteCustomization: BinCustomization = {
+        wallPatternEnabled: true,
+        wallPattern: 'hexgrid',
+        lipStyle: 'reduced',
+        fingerSlide: 'rounded',
+        wallCutout: 'vertical',
+        height: 6,
+      };
+
+      act(() => {
+        result.current.handleDrop(
+          { type: 'favorite', itemId: 'bin-1x1', favoriteCustomization },
+          1,
+          1,
+        );
+      });
+
+      expect(result.current.placedItems).toHaveLength(1);
+      expect(result.current.placedItems[0]).toMatchObject({
+        itemId: 'bin-1x1',
+        x: 1,
+        y: 1,
+        customization: favoriteCustomization,
+      });
+    });
+
+    it('should not add item when drag type is favorite but favoriteCustomization is missing', () => {
+      const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
+
+      act(() => {
+        result.current.handleDrop({ type: 'favorite', itemId: 'bin-1x1' }, 1, 1);
+      });
+
+      expect(result.current.placedItems).toHaveLength(0);
+    });
+  });
+
+  describe('addItemWithCustomization', () => {
+    const customization: BinCustomization = {
+      wallPatternEnabled: true,
+      wallPattern: 'brick',
+      lipStyle: 'minimum',
+      fingerSlide: 'chamfered',
+      wallCutout: 'horizontal',
+      height: 8,
+    };
+
+    it('should add item at specified position with the given customization', () => {
+      const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
+
+      act(() => {
+        result.current.addItemWithCustomization('bin-1x1', 2, 3, customization);
+      });
+
+      expect(result.current.placedItems).toHaveLength(1);
+      expect(result.current.placedItems[0]).toMatchObject({
+        itemId: 'bin-1x1',
+        x: 2,
+        y: 3,
+        width: 1,
+        height: 1,
+        rotation: 0,
+        customization,
+      });
+    });
+
+    it('should select the newly added item', () => {
+      const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
+
+      act(() => {
+        result.current.addItemWithCustomization('bin-1x1', 0, 0, customization);
+      });
+
+      expect(result.current.selectedItemId).toBe(result.current.placedItems[0].instanceId);
+    });
+
+    it('should not add item when itemId is invalid', () => {
+      const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
+
+      act(() => {
+        result.current.addItemWithCustomization('invalid-item', 0, 0, customization);
+      });
+
+      expect(result.current.placedItems).toHaveLength(0);
+    });
+
+    it('should generate a unique instanceId', () => {
+      const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
+
+      act(() => {
+        result.current.addItemWithCustomization('bin-1x1', 0, 0, customization);
+        result.current.addItemWithCustomization('bin-1x1', 1, 1, customization);
+      });
+
+      expect(result.current.placedItems[0].instanceId).not.toBe(
+        result.current.placedItems[1].instanceId,
+      );
+    });
   });
 
   describe('Collision Detection', () => {
@@ -1604,7 +1705,7 @@ describe('useGridItems', () => {
       wallPattern: 'grid',
       lipStyle: 'reduced',
       fingerSlide: 'rounded',
-      wallCutout: 'vertical',
+      wallCutout: { front: true, back: true, left: false, right: false },
     };
 
     it('updateItemCustomization should update customization for a specific item', () => {

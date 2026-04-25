@@ -199,11 +199,34 @@ export const bomGenerations = sqliteTable('bom_generations', {
   errorMessage: text('error_message'),
 });
 
+export const favorites = sqliteTable('favorites', {
+  id: text('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  libraryId: text('library_id').notNull(),
+  libraryItemId: text('library_item_id').notNull(),
+  libraryItemName: text('library_item_name').notNull(),
+  widthUnits: integer('width_units').notNull(),
+  heightUnits: integer('height_units').notNull(),
+  color: text('color').notNull().default('#3B82F6'),
+  paramHash: text('param_hash'),
+  imageUrl: text('image_url').notNull().default(''),
+  perspectiveImageUrl: text('perspective_image_url'),
+  perspectiveImageUrl90: text('perspective_image_url90'),
+  perspectiveImageUrl180: text('perspective_image_url180'),
+  perspectiveImageUrl270: text('perspective_image_url270'),
+  customization: text('customization').notNull(),
+  createdAt: integer('created_at').notNull(),
+}, (table) => [
+  index('idx_favorites_user').on(table.userId),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   refreshTokens: many(refreshTokens),
   layouts: many(layouts),
   stlUploads: many(userStlUploads),
+  favorites: many(favorites),
 }));
 
 export const refreshTokensRelations = relations(refreshTokens, ({ one }) => ({
@@ -300,5 +323,12 @@ export const bomGenerationsRelations = relations(bomGenerations, ({ one }) => ({
   layout: one(layouts, {
     fields: [bomGenerations.layoutId],
     references: [layouts.id],
+  }),
+}));
+
+export const favoritesRelations = relations(favorites, ({ one }) => ({
+  user: one(users, {
+    fields: [favorites.userId],
+    references: [users.id],
   }),
 }));

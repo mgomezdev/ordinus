@@ -32,22 +32,14 @@ export function generatorParamsToBinCustomization(
     }
   }
 
-  if (hasField(customizableFields, 'wallCutout')) {
-    if (params.wallcutout_enabled === false) {
-      result.wallCutout = 'none';
-    } else if (params.wallcutout_enabled === true) {
-      const walls = params.wallcutout_walls as number[] | undefined;
-      if (!walls || walls.length < 2) {
-        result.wallCutout = 'none';
-      } else {
-        const hasVertical = walls[0] === 1;
-        const hasHorizontal = walls[1] === 1;
-        if (hasVertical && hasHorizontal) result.wallCutout = 'both';
-        else if (hasVertical) result.wallCutout = 'vertical';
-        else if (hasHorizontal) result.wallCutout = 'horizontal';
-        else result.wallCutout = 'none';
-      }
-    }
+  if (hasField(customizableFields, 'wallCutout') && params.wallcutout_enabled !== undefined) {
+    const walls = (params.wallcutout_walls as number[] | undefined) ?? [0, 0, 0, 0];
+    result.wallCutout = {
+      front: walls[0] === -2,
+      back:  walls[1] === -2,
+      left:  walls[2] === -2,
+      right: walls[3] === -2,
+    };
   }
 
   if (hasField(customizableFields, 'height') && params.height !== undefined) {

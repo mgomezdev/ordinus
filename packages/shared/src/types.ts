@@ -61,7 +61,12 @@ export interface LibraryItem {
 export type WallPattern = 'grid' | 'hexgrid' | 'brick' | 'voronoi' | 'voronoigrid' | 'voronoihexgrid';
 export type LipStyle = 'normal' | 'reduced' | 'minimum' | 'none';
 export type FingerSlide = 'none' | 'rounded' | 'chamfered';
-export type WallCutout = 'none' | 'vertical' | 'horizontal' | 'both';
+export interface WallCutoutConfig {
+  front: boolean;
+  back: boolean;
+  left: boolean;
+  right: boolean;
+}
 
 export type GeneratorParams = Record<string, unknown>;
 
@@ -73,7 +78,7 @@ export interface BinCustomization {
   wallPattern: WallPattern;
   lipStyle: LipStyle;
   fingerSlide: FingerSlide;
-  wallCutout: WallCutout;
+  wallCutout: WallCutoutConfig;
   height: number;
 }
 

@@ -10,6 +10,7 @@ import { BinCustomizationPanel } from './BinCustomizationPanel';
 import { getRotatedPerspectiveUrl } from '../utils/imageHelpers';
 import { BinContextMenu } from './BinContextMenu';
 import { useAuth } from '../contexts/AuthContext';
+import { useFavorites } from '../hooks/useFavorites';
 import { generatedImageUrl } from '../api/generation.api';
 
 interface PlacedItemOverlayProps {
@@ -41,7 +42,11 @@ function getCustomizationBadges(customization: BinCustomization | undefined): st
   if (customization.wallPatternEnabled) badges.push(customization.wallPattern);
   if (customization.lipStyle !== 'normal') badges.push(`lip: ${customization.lipStyle}`);
   if (customization.fingerSlide !== 'none') badges.push(`slide: ${customization.fingerSlide}`);
-  if (customization.wallCutout !== 'none') badges.push(`cutout: ${customization.wallCutout}`);
+  const wc = customization.wallCutout;
+  if (wc.front || wc.back || wc.left || wc.right) {
+    const sides = (['front', 'back', 'left', 'right'] as const).filter(s => wc[s]).join('/');
+    badges.push(`cutout: ${sides}`);
+  }
   if (customization.height !== 8) badges.push(`h: ${customization.height}`);
   return badges;
 }
@@ -56,6 +61,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const [libraryMeta, setLibraryMeta] = useState<LibraryMeta>({ customizableFields: [], parameters: {} });
 
   const { isAuthenticated } = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [, setSearchParams] = useSearchParams();
 
   useEffect(() => {
@@ -92,7 +98,8 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
     return () => window.removeEventListener('resize', handler);
   }, [showPopover, computePopoverPos]);
 
-  // Apply draft when item is deselected while popover is open (e.g. click outside)
+  // Apply draft when item is deselected while popover is open (e.g. click outside).
+  // setState calls here synchronize popover visibility to the external isSelected prop change.
   useEffect(() => {
     if (isSelected || !showPopover || popoverDraft === undefined) return;
     const hasChanges = JSON.stringify(popoverDraft) !== JSON.stringify(item.customization ?? null);
@@ -100,6 +107,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
       onCustomizationChange?.(item.instanceId, popoverDraft);
       onCustomizationChangeWithGeneration?.(item.instanceId, popoverDraft);
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncing popover state to external isSelected prop change
     setPopoverDraft(undefined);
     setShowPopover(false);
     setPopoverPos(null);
@@ -111,7 +119,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
 
   const perspectiveUrl = libraryItem?.perspectiveImageUrl;
   const orthoUrl = libraryItem?.imageUrl;
-  const hasGeneratedImages = !!(libraryItem?.paramHash) || generationEntry?.status === 'complete';
+  const hasGeneratedImages = !!(item.paramHash ?? libraryItem?.paramHash) || generationEntry?.status === 'complete';
   const usingPerspective = imageViewMode === 'perspective' && (!!perspectiveUrl || hasGeneratedImages);
 
   // Use explicit rotation-specific URLs when available, fall back to derived
@@ -136,7 +144,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const effectiveImageSrc = (() => {
     const hash = generationEntry?.status === 'complete'
       ? generationEntry.hash
-      : libraryItem?.paramHash ?? null;
+      : item.paramHash ?? libraryItem?.paramHash ?? null;
     if (hash) {
       const filename = imageViewMode === 'perspective'
         ? `perspective_${item.rotation}.png`
@@ -273,6 +281,8 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const effectiveContextMenuPos = isSelected ? contextMenuPos : null;
 
   const badges = getCustomizationBadges(item.customization);
+  const currentCustomization = item.customization ?? DEFAULT_BIN_CUSTOMIZATION;
+  const isFavorited = isAuthenticated && isFavorite(item.itemId, currentCustomization);
 
   return (
     <div
@@ -344,6 +354,21 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
+          {isAuthenticated && libraryItem && (
+            <button
+              className={`placed-item-toolbar-btn placed-item-toolbar-btn--heart${isFavorited ? ' favorited' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                const generationHash = generationEntry?.status === 'complete' ? generationEntry.hash : (libraryItem.paramHash ?? null);
+                toggleFavorite(libraryItem, currentCustomization, generationHash);
+              }}
+              draggable={false}
+              aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+              title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              {isFavorited ? '♥' : '♡'}
+            </button>
+          )}
           {onRotateCcw && (
             <button
               className="placed-item-toolbar-btn"
@@ -397,7 +422,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
               aria-label="Remove item"
               title="Remove item (Del)"
             >
-              &times;
+              🗑
             </button>
           )}
         </div>

@@ -26,11 +26,6 @@ describe('formatCustomizationDescription', () => {
       .toBe('Chamfered Finger Slide');
   });
 
-  it('formats non-default wall cutout', () => {
-    expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, wallCutout: 'both' }))
-      .toBe('Full Cutout');
-  });
-
   it('formats non-default height', () => {
     expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, height: 3 }))
       .toBe('3u height');
@@ -42,9 +37,9 @@ describe('formatCustomizationDescription', () => {
       wallPattern: 'hexgrid',
       lipStyle: 'reduced',
       fingerSlide: 'rounded',
-      wallCutout: 'vertical',
+      wallCutout: { front: true, back: false, left: false, right: false },
       height: 3,
-    })).toBe('Hex Wall · Reduced Lip · Rounded Finger Slide · Vertical Cutout · 3u height');
+    })).toBe('Hex Wall · Reduced Lip · Rounded Finger Slide · Front Cutout · 3u height');
   });
 
   it('handles all wall pattern values', () => {
@@ -59,12 +54,49 @@ describe('formatCustomizationDescription', () => {
     expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, lipStyle: 'none' })).toBe('No Lip');
   });
 
-  it('handles all wall cutout values', () => {
-    expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, wallCutout: 'vertical' })).toBe('Vertical Cutout');
-    expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, wallCutout: 'horizontal' })).toBe('Horizontal Cutout');
-  });
-
   it('handles rounded finger slide', () => {
     expect(formatCustomizationDescription({ ...DEFAULT_BIN_CUSTOMIZATION, fingerSlide: 'rounded' })).toBe('Rounded Finger Slide');
+  });
+
+  describe('wall cutout description', () => {
+    it('all false → no cutout in description', () => {
+      const desc = formatCustomizationDescription({
+        ...DEFAULT_BIN_CUSTOMIZATION,
+        wallCutout: { front: false, back: false, left: false, right: false },
+      });
+      expect(desc).not.toContain('Cutout');
+    });
+
+    it('front only → "Front Cutout"', () => {
+      const desc = formatCustomizationDescription({
+        ...DEFAULT_BIN_CUSTOMIZATION,
+        wallCutout: { front: true, back: false, left: false, right: false },
+      });
+      expect(desc).toContain('Front Cutout');
+    });
+
+    it('all walls → "Full Cutout"', () => {
+      const desc = formatCustomizationDescription({
+        ...DEFAULT_BIN_CUSTOMIZATION,
+        wallCutout: { front: true, back: true, left: true, right: true },
+      });
+      expect(desc).toContain('Full Cutout');
+    });
+
+    it('front + back → "Front/Back Cutout"', () => {
+      const desc = formatCustomizationDescription({
+        ...DEFAULT_BIN_CUSTOMIZATION,
+        wallCutout: { front: true, back: true, left: false, right: false },
+      });
+      expect(desc).toContain('Front/Back Cutout');
+    });
+
+    it('left + right → "Left/Right Cutout"', () => {
+      const desc = formatCustomizationDescription({
+        ...DEFAULT_BIN_CUSTOMIZATION,
+        wallCutout: { front: false, back: false, left: true, right: true },
+      });
+      expect(desc).toContain('Left/Right Cutout');
+    });
   });
 });

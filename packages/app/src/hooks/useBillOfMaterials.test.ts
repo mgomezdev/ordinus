@@ -38,8 +38,8 @@ describe('getBOMKey', () => {
   });
 
   it('returns itemId::serialized for non-default customization', () => {
-    const custom: BinCustomization = { wallPatternEnabled: true, wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 8 };
-    expect(getBOMKey('bin-1x1', custom)).toBe('bin-1x1::grid|normal|none|none|8');
+    const custom: BinCustomization = { wallPatternEnabled: true, wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: { front: false, back: false, left: false, right: false }, height: 8 };
+    expect(getBOMKey('bin-1x1', custom)).toBe('bin-1x1::grid|normal|none|----|8');
   });
 });
 
@@ -376,14 +376,14 @@ describe('useBillOfMaterials', () => {
       wallPattern: 'grid',
       lipStyle: 'normal',
       fingerSlide: 'none',
-      wallCutout: 'none',
+      wallCutout: { front: false, back: false, left: false, right: false },
     };
 
     const hexCustomization: BinCustomization = {
       wallPattern: 'hexgrid',
       lipStyle: 'reduced',
       fingerSlide: 'rounded',
-      wallCutout: 'vertical',
+      wallCutout: { front: true, back: true, left: false, right: false },
     };
 
     it('should treat items with same itemId but different customizations as separate BOM lines', () => {
@@ -512,7 +512,7 @@ describe('useBillOfMaterials', () => {
         wallPattern: 'voronoi',
         lipStyle: 'none',
         fingerSlide: 'chamfered',
-        wallCutout: 'both',
+        wallCutout: { front: true, back: true, left: true, right: true },
       };
 
       const placedItems: PlacedItem[] = [
