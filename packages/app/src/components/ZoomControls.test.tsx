@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ZoomControls } from './ZoomControls';
 
@@ -49,6 +50,21 @@ describe('ZoomControls', () => {
     it('should render fit to screen button', () => {
       render(<ZoomControls {...defaultProps} />);
       expect(screen.getByLabelText('Fit to screen')).toBeInTheDocument();
+    });
+
+    it('renders reset zoom button by default', () => {
+      render(<ZoomControls {...defaultProps} />);
+      expect(screen.getByLabelText('Reset zoom')).toBeInTheDocument();
+    });
+
+    it('hides reset zoom button when showReset is false', () => {
+      render(<ZoomControls {...defaultProps} showReset={false} />);
+      expect(screen.queryByLabelText('Reset zoom')).not.toBeInTheDocument();
+    });
+
+    it('shows reset zoom button when showReset is true', () => {
+      render(<ZoomControls {...defaultProps} showReset={true} />);
+      expect(screen.getByLabelText('Reset zoom')).toBeInTheDocument();
     });
   });
 

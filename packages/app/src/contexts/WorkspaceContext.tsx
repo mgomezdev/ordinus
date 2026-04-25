@@ -108,6 +108,9 @@ interface WorkspaceContextValue {
   handleSaveComplete: (layoutId: number, name: string) => void;
   handleClearLayout: () => void;
 
+  // Dirty state
+  isDirty: boolean;
+
   // Ref images
   refImagePlacements: RefImagePlacement[];
   addRefImagePlacement: UseRefImagePlacementsReturn['addPlacement'];
@@ -215,6 +218,10 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     customizableFields: [],
     parameters: {},
   });
+
+  const [isDirty, setIsDirty] = useState(false);
+  const mountedRef = useRef(false);
+  const skipNextDirtyRef = useRef(false);
 
   // Hooks
   const { dialogs, dialogDispatch, closeRebind } = useDialogState();
@@ -339,7 +346,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   }, [unitSystem, width, depth]);
 
   const {
-    handleSaveComplete,
+    handleSaveComplete: actionsHandleSaveComplete,
     handleCloneCurrentLayout,
   } = useLayoutActions({
     layoutId: layoutMeta.id,
@@ -348,11 +355,28 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     rawHandleSaveComplete,
   });
 
-  const { handleLoadLayout, loadLayout } = useLayoutLoader({
+  const handleSaveComplete = useCallback((id: number, name: string) => {
+    actionsHandleSaveComplete(id, name);
+    setIsDirty(false);
+  }, [actionsHandleSaveComplete]);
+
+  const { handleLoadLayout: rawHandleLoadLayout, loadLayout: rawLoadLayout } = useLayoutLoader({
     unitSystem, setWidth, setDepth, setSpacerConfig,
     loadItems, loadRefImagePlacements, layoutDispatch, getAccessToken,
     clearExtras,
   });
+
+  const handleLoadLayout = useCallback((config: LoadedLayoutConfig) => {
+    skipNextDirtyRef.current = true;
+    rawHandleLoadLayout(config);
+    setIsDirty(false);
+  }, [rawHandleLoadLayout]);
+
+  const loadLayout = useCallback(async (id: number) => {
+    skipNextDirtyRef.current = true;
+    await rawLoadLayout(id);
+    setIsDirty(false);
+  }, [rawLoadLayout]);
 
   // handleClearAll: confirms then clears items and ref images
   const handleClearAll = useCallback(async () => {
@@ -372,6 +396,19 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     setUnitSystem('metric');
     setSpacerConfig({ horizontal: 'none', vertical: 'none' });
   }, []);
+
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    if (skipNextDirtyRef.current) {
+      skipNextDirtyRef.current = false;
+      return;
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsDirty(true);
+  }, [placedItems, refImagePlacements, spacerConfig, drawerWidth, drawerDepth]);
 
   // Generation state
   const { getEntry: getGenerationEntry, trackHash } = useGenerationState(API_BASE_URL);
@@ -460,6 +497,9 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     layoutMeta,
     handleSaveComplete,
     handleClearLayout,
+
+    // Dirty state
+    isDirty,
 
     // Ref images
     refImagePlacements,
