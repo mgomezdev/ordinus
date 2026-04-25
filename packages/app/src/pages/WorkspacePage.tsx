@@ -193,7 +193,7 @@ export function WorkspacePage() {
       const result = await updateLayoutMutation.mutateAsync({ id: layoutMeta.id, data: payload });
       handleSaveComplete(result.id, result.name);
     } catch {
-      // mutation.isError is set by TanStack Query; error surface handled by MobileActionBar state
+      // updateLayoutMutation.isError is set true by TanStack Query; error UI is a future iteration
     }
   }, [layoutMeta, gridResult, drawerWidth, drawerDepth, spacerConfig, placedItems,
     refImagePlacements, updateLayoutMutation, handleSaveComplete, dialogDispatch]);
