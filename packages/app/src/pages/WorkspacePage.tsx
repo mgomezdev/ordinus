@@ -189,8 +189,12 @@ export function WorkspacePage() {
       gridResult.gridX, gridResult.gridY,
       drawerWidth, drawerDepth, spacerConfig, placedItems, refImagePlacements,
     );
-    const result = await updateLayoutMutation.mutateAsync({ id: layoutMeta.id, data: payload });
-    handleSaveComplete(result.id, result.name);
+    try {
+      const result = await updateLayoutMutation.mutateAsync({ id: layoutMeta.id, data: payload });
+      handleSaveComplete(result.id, result.name);
+    } catch {
+      // mutation.isError is set by TanStack Query; error surface handled by MobileActionBar state
+    }
   }, [layoutMeta, gridResult, drawerWidth, drawerDepth, spacerConfig, placedItems,
     refImagePlacements, updateLayoutMutation, handleSaveComplete, dialogDispatch]);
 
