@@ -36,7 +36,7 @@ export function WorkspacePage() {
     selectItem, selectAll, deselectAll, handleDrop, duplicateItem,
     copyItems, pasteItems, deleteSelected, rotateSelected, updateItemCustomization,
     bomItems,
-    layoutMeta,
+    layoutMeta, isDirty,
     refImagePlacements, addRefImagePlacement, removeRefImagePlacement,
     updateRefImagePosition, updateRefImageScale, updateRefImageOpacity,
     updateRefImageRotation, toggleRefImageLock,
@@ -349,6 +349,12 @@ export function WorkspacePage() {
             <>
               <span className="canvas-breadcrumb-sep">›</span>
               <span className="canvas-breadcrumb-item canvas-breadcrumb-current">{layoutMeta.name}</span>
+            </>
+          )}
+          {isDirty && layoutMeta.id && (
+            <>
+              <span className="unsaved-dot" aria-hidden="true" />
+              <span className="unsaved-label">unsaved changes</span>
             </>
           )}
         </nav>
