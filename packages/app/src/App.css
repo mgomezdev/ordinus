@@ -4549,3 +4549,92 @@
   background: #fff1f8;
   border-color: #f9a8d4;
 }
+
+/* ==============================
+   Mobile Action Bar
+   ============================== */
+
+.mobile-action-bar {
+  display: none;
+  align-items: stretch;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-primary);
+  padding: 4px 4px 8px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.mab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 3px;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.mab-btn:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.mab-btn:not(:disabled):active {
+  background: var(--bg-hover);
+}
+
+.mab-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.mab-label {
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.mab-sublabel {
+  font-size: 7px;
+  font-weight: 500;
+  opacity: 0.7;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.mab-save--has-id {
+  background: var(--accent-primary);
+  color: white;
+  flex: 1.2;
+  border-radius: 10px;
+}
+
+.mab-save--has-id:not(:disabled):active {
+  opacity: 0.85;
+}
+
+.mab-save--new {
+  color: var(--accent-primary);
+  border: 1.5px solid var(--accent-primary);
+  flex: 1.2;
+  border-radius: 10px;
+}
+
+@media (max-width: 1024px) {
+  .mobile-action-bar {
+    display: flex;
+  }
+}
