@@ -1,5 +1,15 @@
 import { useEffect, useRef, type ReactNode, type RefObject, type MutableRefObject } from 'react';
 import type { GridTransform } from '../hooks/useGridTransform';
+import { ZoomControls } from './ZoomControls';
+
+interface ZoomOverlayProps {
+  zoom: number;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onResetZoom: () => void;
+  onFitToScreen: () => void;
+  showResetZoom: boolean;
+}
 
 interface GridViewportProps {
   children: ReactNode;
@@ -11,6 +21,7 @@ interface GridViewportProps {
   handleTouchStart: (e: TouchEvent) => void;
   handleTouchMove: (e: TouchEvent) => void;
   handleTouchEnd: () => void;
+  zoomOverlayProps?: ZoomOverlayProps;
 }
 
 export function GridViewport({
@@ -23,6 +34,7 @@ export function GridViewport({
   handleTouchStart,
   handleTouchMove,
   handleTouchEnd,
+  zoomOverlayProps,
 }: GridViewportProps) {
   const internalRef = useRef<HTMLDivElement>(null);
   const ref = externalRef ?? internalRef;
@@ -31,26 +43,21 @@ export function GridViewport({
 
   const isTransformed = transform.zoom !== 1 || transform.panX !== 0 || transform.panY !== 0;
 
-  // Wheel zoom handler
   useEffect(() => {
     const viewport = ref.current;
     if (!viewport) return;
-
     const onWheel = (e: WheelEvent) => {
       const rect = viewport.getBoundingClientRect();
       handleWheel(e, rect);
     };
-
     // passive: false is required -- handler calls preventDefault() to capture wheel zoom
     viewport.addEventListener('wheel', onWheel, { passive: false });
     return () => viewport.removeEventListener('wheel', onWheel);
   }, [handleWheel, ref]);
 
-  // Middle-mouse and space+drag pan
   useEffect(() => {
     const viewport = ref.current;
     if (!viewport) return;
-
     const onMouseDown = (e: MouseEvent) => {
       if (e.button === 1 || isSpaceHeldRef.current) {
         e.preventDefault();
@@ -59,7 +66,6 @@ export function GridViewport({
         viewport.style.cursor = 'grabbing';
       }
     };
-
     const onMouseMove = (e: MouseEvent) => {
       if (!isPanningRef.current) return;
       const dx = (e.clientX - panStartRef.current.x) / transform.zoom;
@@ -67,18 +73,15 @@ export function GridViewport({
       pan(dx, dy);
       panStartRef.current = { x: e.clientX, y: e.clientY };
     };
-
     const onMouseUp = () => {
       if (isPanningRef.current) {
         isPanningRef.current = false;
         viewport.style.cursor = isSpaceHeldRef.current ? 'grab' : '';
       }
     };
-
     viewport.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
-
     return () => {
       viewport.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mousemove', onMouseMove);
@@ -86,17 +89,14 @@ export function GridViewport({
     };
   }, [pan, transform.zoom, isSpaceHeldRef, ref]);
 
-  // Two-finger pan + zoom touch support
   useEffect(() => {
     const viewport = ref.current;
     if (!viewport) return;
-
     // passive: false required — handlers call preventDefault() to suppress browser scroll/zoom
     viewport.addEventListener('touchstart', handleTouchStart, { passive: false });
     viewport.addEventListener('touchmove', handleTouchMove, { passive: false });
     viewport.addEventListener('touchend', handleTouchEnd);
     viewport.addEventListener('touchcancel', handleTouchEnd);
-
     return () => {
       viewport.removeEventListener('touchstart', handleTouchStart);
       viewport.removeEventListener('touchmove', handleTouchMove);
@@ -120,6 +120,18 @@ export function GridViewport({
       >
         {children}
       </div>
+      {zoomOverlayProps && (
+        <div className="floating-zoom-overlay">
+          <ZoomControls
+            zoom={zoomOverlayProps.zoom}
+            onZoomIn={zoomOverlayProps.onZoomIn}
+            onZoomOut={zoomOverlayProps.onZoomOut}
+            onResetZoom={zoomOverlayProps.onResetZoom}
+            onFitToScreen={zoomOverlayProps.onFitToScreen}
+            showReset={zoomOverlayProps.showResetZoom}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@ interface ZoomControlsProps {
   onZoomOut: () => void;
   onResetZoom: () => void;
   onFitToScreen: () => void;
+  showReset?: boolean;
 }
 
 export function ZoomControls({
@@ -14,6 +15,7 @@ export function ZoomControls({
   onZoomOut,
   onResetZoom,
   onFitToScreen,
+  showReset = true,
 }: ZoomControlsProps) {
   const zoomPercent = Math.round(zoom * 100);
 
@@ -40,14 +42,16 @@ export function ZoomControls({
       >
         +
       </button>
-      <button
-        className="zoom-control-btn"
-        onClick={onResetZoom}
-        aria-label="Reset zoom"
-        title="Reset to 100% (Ctrl+0)"
-      >
-        1:1
-      </button>
+      {showReset && (
+        <button
+          className="zoom-control-btn"
+          onClick={onResetZoom}
+          aria-label="Reset zoom"
+          title="Reset to 100% (Ctrl+0)"
+        >
+          1:1
+        </button>
+      )}
       <button
         className="zoom-control-btn"
         onClick={onFitToScreen}
