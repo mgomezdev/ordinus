@@ -24,7 +24,6 @@ import { useLibraryData } from '../hooks/useLibraryData';
 import { useCategoryData } from '../hooks/useCategoryData';
 import { useRefImagePlacements } from '../hooks/useRefImagePlacements';
 import { useAuth } from './AuthContext';
-import { useWalkthrough, WALKTHROUGH_STEPS } from './WalkthroughContext';
 import {
   useCloneLayoutMutation,
 } from '../hooks/useLayouts';
@@ -35,13 +34,8 @@ import { useGenerationState } from '../hooks/useGenerationState';
 import type { GenerationEntry } from '../hooks/useGenerationState';
 import { requestGenerationApi, generatedImageUrl } from '../api/generation.api';
 import { API_BASE_URL } from '../api/apiClient';
-import { STORAGE_KEYS } from '../utils/storageKeys';
-import type { WalkthroughStep } from './WalkthroughContext';
 import { GridDimensionsContext } from './GridDimensionsContext';
 import { LibraryContext } from './LibraryContext';
-
-// Re-export for convenience
-export type { WalkthroughStep };
 
 // ConfirmDialog props shape returned by useConfirmDialog
 interface ConfirmDialogProps {
@@ -168,14 +162,6 @@ interface WorkspaceContextValue {
   isAdmin: boolean;
   getAccessToken: () => string | null;
 
-  // Walkthrough
-  isWalkthroughActive: boolean;
-  walkthroughCurrentStep: number;
-  walkthroughSteps: WalkthroughStep[];
-  startTour: () => void;
-  nextStep: () => void;
-  dismissTour: () => void;
-
   // Export
   exportPdfError: string | null;
   setExportPdfError: (err: string | null) => void;
@@ -233,19 +219,6 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
   const { isAuthenticated, user, getAccessToken } = useAuth();
   const isAdmin = user?.role === 'admin';
-
-  const { isActive, currentStep, startTour, nextStep, dismissTour } = useWalkthrough();
-
-  // Trigger walkthrough on first auth
-  const prevAuthenticatedRef = useRef(isAuthenticated);
-  useEffect(() => {
-    if (isAuthenticated && !prevAuthenticatedRef.current) {
-      if (!localStorage.getItem(STORAGE_KEYS.WALKTHROUGH_SEEN)) {
-        startTour();
-      }
-    }
-    prevAuthenticatedRef.current = isAuthenticated;
-  }, [isAuthenticated, startTour]);
 
   const cloneLayoutMutation = useCloneLayoutMutation();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmDialog();
@@ -551,14 +524,6 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     user,
     isAdmin,
     getAccessToken,
-
-    // Walkthrough
-    isWalkthroughActive: isActive,
-    walkthroughCurrentStep: currentStep,
-    walkthroughSteps: WALKTHROUGH_STEPS,
-    startTour,
-    nextStep,
-    dismissTour,
 
     // Export
     exportPdfError,

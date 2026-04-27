@@ -5,7 +5,6 @@ import { SaveLayoutDialog } from './components/layouts/SaveLayoutDialog';
 import { RebindImageDialog } from './components/RebindImageDialog';
 import { AdminSubmissionsDialog } from './components/admin/AdminSubmissionsDialog';
 import { ConfirmDialog } from './components/ConfirmDialog';
-import { WalkthroughOverlay } from './components/WalkthroughOverlay';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 import { UserMenu } from './components/auth/UserMenu';
 import { calculateOrderTotal } from './utils/exportOrderSummaryPdf';
@@ -32,11 +31,6 @@ function AppShellInner() {
     spacerConfig,
     handleSaveComplete,
     handleLoadLayout,
-    isWalkthroughActive,
-    walkthroughCurrentStep,
-    walkthroughSteps,
-    nextStep,
-    dismissTour,
   } = useWorkspace();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -189,14 +183,6 @@ function AppShellInner() {
       )}
 
       <ConfirmDialog {...confirmDialogProps} />
-
-      <WalkthroughOverlay
-        isActive={isWalkthroughActive}
-        currentStep={walkthroughCurrentStep}
-        steps={walkthroughSteps}
-        onNext={nextStep}
-        onDismiss={dismissTour}
-      />
     </div>
   );
 }

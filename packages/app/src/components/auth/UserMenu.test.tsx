@@ -24,31 +24,9 @@ vi.mock('../../contexts/AuthContext', () => ({
   }),
 }));
 
-// --- Controllable walkthrough state ---
-const mockStartTour = vi.fn();
-const mockNextStep = vi.fn();
-const mockDismissTour = vi.fn();
-
-interface WalkthroughOverrides {
-  startTour?: () => void;
-}
-
-let walkthroughOverrides: WalkthroughOverrides = {};
-
-vi.mock('../../contexts/WalkthroughContext', () => ({
-  useWalkthrough: () => ({
-    isActive: false,
-    currentStep: 0,
-    startTour: walkthroughOverrides.startTour ?? mockStartTour,
-    nextStep: mockNextStep,
-    dismissTour: mockDismissTour,
-  }),
-}));
-
 // --- Helpers ---
-function renderAuthenticatedUserMenu(overrides: WalkthroughOverrides = {}) {
+function renderAuthenticatedUserMenu() {
   mockIsAuthenticated = true;
-  walkthroughOverrides = overrides;
   return render(<UserMenu />);
 }
 
@@ -62,7 +40,6 @@ describe('UserMenu', () => {
     vi.clearAllMocks();
     mockIsAuthenticated = false;
     mockIsLoading = false;
-    walkthroughOverrides = {};
   });
 
   // ==========================================
@@ -123,31 +100,6 @@ describe('UserMenu', () => {
       openDropdown();
       // Log Out has role="menuitem"
       expect(screen.getByRole('menuitem', { name: /log out/i })).toBeInTheDocument();
-    });
-
-    // ==========================================
-    // Take the tour
-    // ==========================================
-    it('renders Take the tour button', () => {
-      renderAuthenticatedUserMenu();
-      openDropdown();
-      expect(screen.getByRole('menuitem', { name: /take the tour/i })).toBeInTheDocument();
-    });
-
-    it('calls startTour when Take the tour is clicked', () => {
-      const startTour = vi.fn();
-      renderAuthenticatedUserMenu({ startTour });
-      openDropdown();
-      fireEvent.click(screen.getByRole('menuitem', { name: /take the tour/i }));
-      expect(startTour).toHaveBeenCalledTimes(1);
-    });
-
-    it('closes dropdown when Take the tour is clicked', () => {
-      renderAuthenticatedUserMenu();
-      openDropdown();
-      expect(screen.getByRole('menu')).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('menuitem', { name: /take the tour/i }));
-      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     });
 
     it('calls logout when Log Out is clicked', async () => {

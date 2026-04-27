@@ -25,15 +25,9 @@ vi.mock('./contexts/WorkspaceContext', () => ({
     handleSaveComplete: vi.fn(),
     handleLoadLayout: vi.fn(),
     submittedCountQuery: { data: { submitted: 0 } },
-    isWalkthroughActive: false,
-    walkthroughCurrentStep: 0,
-    walkthroughSteps: [],
-    nextStep: vi.fn(),
-    dismissTour: vi.fn(),
     // Additional fields from WorkspaceContextValue
     user: null,
     getAccessToken: vi.fn(),
-    startTour: vi.fn(),
     width: 168,
     setWidth: vi.fn(),
     depth: 168,
@@ -104,7 +98,6 @@ vi.mock('./components/RebindImageDialog', () => ({ RebindImageDialog: () => null
 vi.mock('./components/admin/AdminSubmissionsDialog', () => ({ AdminSubmissionsDialog: () => null }));
 vi.mock('./components/admin/SubmissionsBadge', () => ({ SubmissionsBadge: () => null }));
 vi.mock('./components/ConfirmDialog', () => ({ ConfirmDialog: () => null }));
-vi.mock('./components/WalkthroughOverlay', () => ({ WalkthroughOverlay: () => null }));
 vi.mock('./components/KeyboardShortcutsHelp', () => ({ KeyboardShortcutsHelp: () => null }));
 vi.mock('./components/auth/UserMenu', () => ({ UserMenu: () => null }));
 
