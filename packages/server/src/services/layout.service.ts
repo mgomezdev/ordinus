@@ -6,6 +6,7 @@ import { layouts, placedItems, userStorage, referenceImages, refImages, users } 
 import * as referenceImageService from './referenceImage.service.js';
 import { formatLayout, formatPlacedItem } from './formatters.js';
 import { ensureStorageRow } from './storage.helpers.js';
+import * as layoutThumbnailService from './layoutThumbnail.service.js';
 
 interface CursorData {
   createdAt: string;
@@ -305,6 +306,21 @@ export async function createLayout(
     .set({ layoutCount: sql`${userStorage.layoutCount} + 1` })
     .where(eq(userStorage.userId, userId));
 
+  await layoutThumbnailService.generate(
+    layout.id,
+    data.gridX,
+    data.gridY,
+    insertedItems.map(i => ({
+      libraryId: i.libraryId,
+      itemId: i.itemId,
+      x: i.x,
+      y: i.y,
+      width: i.width,
+      height: i.height,
+      rotation: i.rotation,
+    })),
+  );
+
   return {
     ...formatLayout(layout),
     placedItems: insertedItems.map(formatPlacedItem),
@@ -429,6 +445,21 @@ export async function updateLayout(
     }
   }
 
+  await layoutThumbnailService.generate(
+    layoutId,
+    data.gridX,
+    data.gridY,
+    insertedItems.map(i => ({
+      libraryId: i.libraryId,
+      itemId: i.itemId,
+      x: i.x,
+      y: i.y,
+      width: i.width,
+      height: i.height,
+      rotation: i.rotation,
+    })),
+  );
+
   return {
     ...formatLayout(updatedRows[0]),
     placedItems: insertedItems.map(formatPlacedItem),
@@ -492,6 +523,8 @@ export async function deleteLayout(
   if (existing[0].userId !== userId) {
     throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
   }
+
+  await layoutThumbnailService.deleteThumbnail(layoutId);
 
   // Delete layout (CASCADE will delete placed_items)
   await db.delete(layouts).where(eq(layouts.id, layoutId));
@@ -648,6 +681,21 @@ export async function cloneLayout(
     .update(userStorage)
     .set({ layoutCount: sql`${userStorage.layoutCount} + 1` })
     .where(eq(userStorage.userId, requestingUserId));
+
+  await layoutThumbnailService.generate(
+    newLayout.id,
+    newLayout.gridX,
+    newLayout.gridY,
+    insertedItems.map(i => ({
+      libraryId: i.libraryId,
+      itemId: i.itemId,
+      x: i.x,
+      y: i.y,
+      width: i.width,
+      height: i.height,
+      rotation: i.rotation,
+    })),
+  );
 
   return {
     ...formatLayout(newLayout),
