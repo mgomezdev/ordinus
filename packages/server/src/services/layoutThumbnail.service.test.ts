@@ -58,8 +58,9 @@ afterEach(async () => {
 });
 
 describe('generate', () => {
-  it('writes <layoutId>.svg to THUMBNAIL_DIR', async () => {
-    await generate(42, 4, 4, [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 2, height: 1, rotation: 0 }]);
+  it('writes <layoutId>.svg to THUMBNAIL_DIR and returns the filename', async () => {
+    const result = await generate(42, 4, 4, [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 2, height: 1, rotation: 0 }]);
+    expect(result).toBe('42.svg');
     const filePath = path.join(tmpDir, '42.svg');
     const content = await fs.readFile(filePath, 'utf-8');
     expect(content).toContain('<svg');

@@ -472,7 +472,7 @@ export async function updateLayout(
   }
 
   return {
-    ...formatLayout({ ...updatedRows[0], thumbnailPath: thumbnailFilename ?? null }),
+    ...formatLayout({ ...updatedRows[0], thumbnailPath: thumbnailFilename ?? updatedRows[0].thumbnailPath ?? null }),
     placedItems: insertedItems.map(formatPlacedItem),
     refImagePlacements: refPlacementPlacements,
   };

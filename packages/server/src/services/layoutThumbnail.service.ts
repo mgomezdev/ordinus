@@ -28,13 +28,6 @@ export async function generate(
     }
   }
 
-  const existing = await db
-    .select({ id: layouts.id })
-    .from(layouts)
-    .where(eq(layouts.id, layoutId))
-    .limit(1);
-  if (existing.length === 0) return `${layoutId}.svg`;
-
   const svg = generateThumbnailSvg(gridX, gridY, items, colorMap);
   const filename = `${layoutId}.svg`;
   await fs.writeFile(path.join(config.THUMBNAIL_DIR, filename), svg, 'utf-8');
