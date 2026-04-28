@@ -55,4 +55,12 @@ describe('generateThumbnailSvg', () => {
     const svg = generateThumbnailSvg(4, 4, items, new Map());
     expect(svg).toContain('fill="#3B82F6"');
   });
+
+  it('sanitizes malicious color strings to the default color', () => {
+    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 1, height: 1, rotation: 0 }];
+    const colorMap = new Map([['lib1:item1', '"/><script>alert(1)</script>']]);
+    const svg = generateThumbnailSvg(4, 4, items, colorMap);
+    expect(svg).not.toContain('<script>');
+    expect(svg).toContain(`fill="${'#3B82F6'}"`);
+  });
 });

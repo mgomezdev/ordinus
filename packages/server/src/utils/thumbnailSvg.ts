@@ -2,6 +2,11 @@ const CELL = 8;
 const PAD = 3;
 const DEFAULT_COLOR = '#3B82F6';
 
+const HEX_COLOR_RE = /^#[0-9A-Fa-f]{3,8}$/;
+function safeColor(c: string): string {
+  return HEX_COLOR_RE.test(c) ? c : DEFAULT_COLOR;
+}
+
 export interface ThumbnailPlacedItem {
   libraryId: string;
   itemId: string;
@@ -31,7 +36,7 @@ export function generateThumbnailSvg(
   }
 
   const itemRects = items.map(item => {
-    const color = colorMap.get(`${item.libraryId}:${item.itemId}`) ?? DEFAULT_COLOR;
+    const color = safeColor(colorMap.get(`${item.libraryId}:${item.itemId}`) ?? DEFAULT_COLOR);
     const swapped = item.rotation === 90 || item.rotation === 270;
     const sw = (swapped ? item.height : item.width) * CELL;
     const sh = (swapped ? item.width : item.height) * CELL;
