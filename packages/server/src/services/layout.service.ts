@@ -1,5 +1,6 @@
 import { eq, and, lt, desc, sql, or } from 'drizzle-orm';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
+import { logger } from '../logger.js';
 import type { ApiLayout, ApiLayoutDetail, ApiRefImagePlacement, BinCustomization } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
 import { layouts, placedItems, userStorage, referenceImages, refImages, users } from '../db/schema.js';
@@ -306,23 +307,28 @@ export async function createLayout(
     .set({ layoutCount: sql`${userStorage.layoutCount} + 1` })
     .where(eq(userStorage.userId, userId));
 
-  await layoutThumbnailService.generate(
-    layout.id,
-    data.gridX,
-    data.gridY,
-    insertedItems.map(i => ({
-      libraryId: i.libraryId,
-      itemId: i.itemId,
-      x: i.x,
-      y: i.y,
-      width: i.width,
-      height: i.height,
-      rotation: i.rotation,
-    })),
-  );
+  let thumbnailFilename: string | undefined;
+  try {
+    thumbnailFilename = await layoutThumbnailService.generate(
+      layout.id,
+      data.gridX,
+      data.gridY,
+      insertedItems.map(i => ({
+        libraryId: i.libraryId,
+        itemId: i.itemId,
+        x: i.x,
+        y: i.y,
+        width: i.width,
+        height: i.height,
+        rotation: i.rotation,
+      })),
+    );
+  } catch (err) {
+    logger.warn({ err, layoutId: layout.id }, 'Thumbnail generation failed — layout saved without thumbnail');
+  }
 
   return {
-    ...formatLayout(layout),
+    ...formatLayout({ ...layout, thumbnailPath: thumbnailFilename ?? null }),
     placedItems: insertedItems.map(formatPlacedItem),
     refImagePlacements: refPlacementPlacements,
   };
@@ -445,23 +451,28 @@ export async function updateLayout(
     }
   }
 
-  await layoutThumbnailService.generate(
-    layoutId,
-    data.gridX,
-    data.gridY,
-    insertedItems.map(i => ({
-      libraryId: i.libraryId,
-      itemId: i.itemId,
-      x: i.x,
-      y: i.y,
-      width: i.width,
-      height: i.height,
-      rotation: i.rotation,
-    })),
-  );
+  let thumbnailFilename: string | undefined;
+  try {
+    thumbnailFilename = await layoutThumbnailService.generate(
+      layoutId,
+      data.gridX,
+      data.gridY,
+      insertedItems.map(i => ({
+        libraryId: i.libraryId,
+        itemId: i.itemId,
+        x: i.x,
+        y: i.y,
+        width: i.width,
+        height: i.height,
+        rotation: i.rotation,
+      })),
+    );
+  } catch (err) {
+    logger.warn({ err, layoutId }, 'Thumbnail generation failed — layout saved without thumbnail');
+  }
 
   return {
-    ...formatLayout(updatedRows[0]),
+    ...formatLayout({ ...updatedRows[0], thumbnailPath: thumbnailFilename ?? null }),
     placedItems: insertedItems.map(formatPlacedItem),
     refImagePlacements: refPlacementPlacements,
   };
@@ -682,23 +693,28 @@ export async function cloneLayout(
     .set({ layoutCount: sql`${userStorage.layoutCount} + 1` })
     .where(eq(userStorage.userId, requestingUserId));
 
-  await layoutThumbnailService.generate(
-    newLayout.id,
-    newLayout.gridX,
-    newLayout.gridY,
-    insertedItems.map(i => ({
-      libraryId: i.libraryId,
-      itemId: i.itemId,
-      x: i.x,
-      y: i.y,
-      width: i.width,
-      height: i.height,
-      rotation: i.rotation,
-    })),
-  );
+  let thumbnailFilename: string | undefined;
+  try {
+    thumbnailFilename = await layoutThumbnailService.generate(
+      newLayout.id,
+      newLayout.gridX,
+      newLayout.gridY,
+      insertedItems.map(i => ({
+        libraryId: i.libraryId,
+        itemId: i.itemId,
+        x: i.x,
+        y: i.y,
+        width: i.width,
+        height: i.height,
+        rotation: i.rotation,
+      })),
+    );
+  } catch (err) {
+    logger.warn({ err, layoutId: newLayout.id }, 'Thumbnail generation failed — layout saved without thumbnail');
+  }
 
   return {
-    ...formatLayout(newLayout),
+    ...formatLayout({ ...newLayout, thumbnailPath: thumbnailFilename ?? null }),
     placedItems: insertedItems.map(formatPlacedItem),
     refImagePlacements: refPlacementResults,
   };

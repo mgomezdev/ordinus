@@ -68,6 +68,17 @@ describe('SavedConfigCard', () => {
     expect(svg).not.toBeInTheDocument();
   });
 
+  it('falls back to SVG grid when image fails to load', () => {
+    const { container } = renderCard({ layout: { ...mockLayout, thumbnailUrl: '/thumbnails/1' } });
+    const img = container.querySelector('.saved-config-thumbnail img') as HTMLImageElement;
+    expect(img).not.toBeNull();
+    // Simulate image load failure
+    fireEvent.error(img);
+    // After error, SVG should appear
+    const svg = container.querySelector('.saved-config-thumbnail svg');
+    expect(svg).toBeInTheDocument();
+  });
+
   it('shows Edit and Duplicate buttons', () => {
     renderCard();
     expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument();

@@ -22,14 +22,6 @@ vi.mock('../logger.js', async () => {
 const mockConfig = vi.hoisted(() => ({ THUMBNAIL_DIR: '', JWT_SECRET: 'test-secret' }));
 vi.mock('../config.js', () => ({ config: mockConfig }));
 
-vi.mock('../middleware/auth.js', () => ({
-  requireAuth: (req: express.Request, _res: express.Response, next: express.NextFunction) => {
-    const testUser = (req as unknown as Record<string, unknown>)['_testUser'] as { userId: number; role: string } | undefined;
-    req.user = testUser ?? { userId: 1, role: 'user' };
-    next();
-  },
-}));
-
 vi.mock('../middleware/rateLimiter.js', () => ({
   generalLimiter: (_req: unknown, _res: unknown, next: () => void) => next(),
   authLimiter: (_req: unknown, _res: unknown, next: () => void) => next(),
@@ -42,13 +34,9 @@ import { errorHandler } from '../middleware/errorHandler.js';
 
 let tmpDir: string;
 
-function makeApp(userId = 1, role = 'user') {
+function makeApp() {
   const app = express();
   app.use(express.json());
-  app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
-    (req as unknown as Record<string, unknown>)['_testUser'] = { userId, role };
-    next();
-  });
   app.use('/thumbnails', thumbnailsRoutes);
   app.use(errorHandler);
   return app;
@@ -60,13 +48,13 @@ beforeAll(async () => {
   await runMigrations(testClient);
   await testClient.execute('PRAGMA foreign_keys = OFF');
   const now = new Date().toISOString();
-  // Layout 1 belongs to userId 1, has a thumbnail
+  // Layout 1 has a thumbnail
   await testClient.execute({
     sql: `INSERT INTO layouts (id, user_id, name, grid_x, grid_y, width_mm, depth_mm, thumbnail_path, created_at, updated_at)
           VALUES (1, 1, 'test', 4, 4, 168, 168, '1.svg', ?, ?)`,
     args: [now, now],
   });
-  // Layout 2 belongs to userId 2, has no thumbnail
+  // Layout 2 has no thumbnail
   await testClient.execute({
     sql: `INSERT INTO layouts (id, user_id, name, grid_x, grid_y, width_mm, depth_mm, created_at, updated_at)
           VALUES (2, 2, 'test2', 2, 2, 84, 84, ?, ?)`,
@@ -81,8 +69,8 @@ afterAll(async () => {
 });
 
 describe('GET /thumbnails/:layoutId', () => {
-  it('serves SVG for the layout owner', async () => {
-    const app = makeApp(1, 'user');
+  it('serves SVG without authentication', async () => {
+    const app = makeApp();
     const res = await request(app).get('/thumbnails/1').buffer(true).parse((res, callback) => {
       const chunks: Buffer[] = [];
       res.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -93,26 +81,14 @@ describe('GET /thumbnails/:layoutId', () => {
     expect(res.body as string).toContain('<svg');
   });
 
-  it('returns 403 when user does not own the layout', async () => {
-    const app = makeApp(99, 'user');
-    const res = await request(app).get('/thumbnails/1');
-    expect(res.status).toBe(403);
-  });
-
-  it('allows admin to access any layout thumbnail', async () => {
-    const app = makeApp(99, 'admin');
-    const res = await request(app).get('/thumbnails/1');
-    expect(res.status).toBe(200);
-  });
-
   it('returns 404 when layout has no thumbnail_path', async () => {
-    const app = makeApp(2, 'user');
+    const app = makeApp();
     const res = await request(app).get('/thumbnails/2');
     expect(res.status).toBe(404);
   });
 
   it('returns 404 when layout does not exist', async () => {
-    const app = makeApp(1, 'user');
+    const app = makeApp();
     const res = await request(app).get('/thumbnails/999');
     expect(res.status).toBe(404);
   });
@@ -125,7 +101,7 @@ describe('GET /thumbnails/:layoutId', () => {
             VALUES (99, 1, 'evil', 4, 4, 168, 168, '../evil.svg', ?, ?)`,
       args: [now, now],
     });
-    const app = makeApp(1, 'user');
+    const app = makeApp();
     const res = await request(app).get('/thumbnails/99');
     expect(res.status).toBe(400);
   });

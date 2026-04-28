@@ -11,7 +11,7 @@ export async function generate(
   gridX: number,
   gridY: number,
   items: ThumbnailPlacedItem[],
-): Promise<void> {
+): Promise<string> {
   const colorMap = new Map<string, string>();
 
   if (items.length > 0) {
@@ -33,7 +33,7 @@ export async function generate(
     .from(layouts)
     .where(eq(layouts.id, layoutId))
     .limit(1);
-  if (existing.length === 0) return;
+  if (existing.length === 0) return `${layoutId}.svg`;
 
   const svg = generateThumbnailSvg(gridX, gridY, items, colorMap);
   const filename = `${layoutId}.svg`;
@@ -43,6 +43,8 @@ export async function generate(
     .update(layouts)
     .set({ thumbnailPath: filename })
     .where(eq(layouts.id, layoutId));
+
+  return filename;
 }
 
 export async function deleteThumbnail(layoutId: number): Promise<void> {

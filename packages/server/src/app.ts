@@ -51,6 +51,7 @@ export function createApp(): express.Express {
 
   // Image routes (before rate limiter — read-only static assets, no auth)
   app.use('/api/v1/images', imagesRoutes);
+  app.use('/api/v1/thumbnails', thumbnailsRoutes);
 
   // Rate limiting
   app.use('/api/v1/auth', authLimiter);
@@ -70,7 +71,6 @@ export function createApp(): express.Express {
   app.use('/api/v1/user-stls', userStlsRouter);
   app.use('/api/v1', adminUserStlsRouter);
   app.use('/api/v1/favorites', favoritesRoutes);
-  app.use('/api/v1/thumbnails', thumbnailsRoutes);
 
   // Global error handler (must be last)
   app.use(errorHandler);

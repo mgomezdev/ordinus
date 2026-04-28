@@ -6,13 +6,16 @@ const CELL = 8;
 const PAD = 3;
 
 function LayoutThumbnail({ thumbnailUrl, gridX, gridY }: { thumbnailUrl: string | null; gridX: number; gridY: number }) {
-  if (thumbnailUrl) {
+  const [imgFailed, setImgFailed] = useState(false);
+
+  if (thumbnailUrl && !imgFailed) {
     return (
       <img
         src={`${API_BASE_URL}${thumbnailUrl}`}
         alt=""
         aria-hidden="true"
         style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        onError={() => setImgFailed(true)}
       />
     );
   }
