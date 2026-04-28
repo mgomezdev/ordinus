@@ -116,4 +116,17 @@ describe('GET /thumbnails/:layoutId', () => {
     const res = await request(app).get('/thumbnails/999');
     expect(res.status).toBe(404);
   });
+
+  it('returns 400 when thumbnail_path contains a traversal sequence', async () => {
+    // Insert a layout with a malicious thumbnail_path
+    const now = new Date().toISOString();
+    await testClient.execute({
+      sql: `INSERT INTO layouts (id, user_id, name, grid_x, grid_y, width_mm, depth_mm, thumbnail_path, created_at, updated_at)
+            VALUES (99, 1, 'evil', 4, 4, 168, 168, '../evil.svg', ?, ?)`,
+      args: [now, now],
+    });
+    const app = makeApp(1, 'user');
+    const res = await request(app).get('/thumbnails/99');
+    expect(res.status).toBe(400);
+  });
 });

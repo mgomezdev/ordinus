@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { resolve, normalize } from 'node:path';
+import path, { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import type { Request, Response, NextFunction } from 'express';
 import { eq } from 'drizzle-orm';
@@ -39,12 +39,12 @@ router.get('/:layoutId', requireAuth, async (req: Request, res: Response, next: 
       throw new AppError(ErrorCodes.NOT_FOUND, 'Thumbnail not found');
     }
 
-    // Prevent path traversal
-    const dir = resolve(config.THUMBNAIL_DIR);
-    const filePath = resolve(dir, layout.thumbnailPath);
-    if (!normalize(filePath).startsWith(normalize(dir))) {
+    // Prevent path traversal — thumbnails are always flat filenames like "42.svg"
+    if (!layout.thumbnailPath || path.basename(layout.thumbnailPath) !== layout.thumbnailPath) {
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid path');
     }
+    const dir = resolve(config.THUMBNAIL_DIR);
+    const filePath = resolve(dir, layout.thumbnailPath);
 
     if (!existsSync(filePath)) {
       throw new AppError(ErrorCodes.NOT_FOUND, 'Thumbnail not found');
