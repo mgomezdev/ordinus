@@ -9,7 +9,6 @@ const mockLayout: ApiLayout = {
   userId: 10,
   name: 'My Layout',
   description: 'A test layout',
-  status: 'draft',
   gridX: 4,
   gridY: 4,
   widthMm: 168,
@@ -19,6 +18,7 @@ const mockLayout: ApiLayout = {
   isPublic: false,
   createdAt: '2026-03-01T00:00:00Z',
   updatedAt: '2026-03-01T00:00:00Z',
+  thumbnailUrl: null,
 };
 
 const defaultProps = {
