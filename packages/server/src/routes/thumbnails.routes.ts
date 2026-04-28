@@ -35,7 +35,7 @@ router.get('/:layoutId', async (req: Request, res: Response, next: NextFunction)
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid path');
     }
 
-    const filePath = path.join(config.THUMBNAIL_DIR, layout.thumbnailPath);
+    const filePath = path.resolve(config.THUMBNAIL_DIR, layout.thumbnailPath);
 
     try {
       await fs.access(filePath);
