@@ -56,8 +56,8 @@ describe('SavedConfigCard', () => {
   });
 
   it('renders <img> with correct src when thumbnailUrl is provided', () => {
-    renderCard({ layout: { ...mockLayout, thumbnailUrl: '/thumbnails/1' } });
-    const img = document.querySelector('.saved-config-thumbnail img');
+    const { container } = renderCard({ layout: { ...mockLayout, thumbnailUrl: '/thumbnails/1' } });
+    const img = container.querySelector('.saved-config-thumbnail img');
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute('src', 'http://localhost:3001/api/v1/thumbnails/1');
   });
