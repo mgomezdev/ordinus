@@ -6,7 +6,7 @@ import { DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
 
 const ALL_FIELDS: CustomizableFieldDef[] = [
   { field: 'wallPatternEnabled', label: 'Wall Pattern' },
-  { field: 'wallPattern', label: 'Wall Pattern', options: ['grid', 'hexgrid', 'brick'] },
+  { field: 'wallPattern', label: 'Wall Pattern', options: ['grid', 'hexgrid'] },
   { field: 'lipStyle',    label: 'Lip Style',    options: ['normal', 'reduced', 'minimum', 'none'] },
   { field: 'fingerSlide', label: 'Finger Slide', options: ['none', 'rounded', 'chamfered'] },
   { field: 'wallCutout',  label: 'Wall Cutout' },
@@ -261,11 +261,11 @@ describe('BinCustomizationPanel', () => {
       );
 
       const wallPatternStyleSelect = screen.getByLabelText('Style');
-      fireEvent.change(wallPatternStyleSelect, { target: { value: 'brick' } });
+      fireEvent.change(wallPatternStyleSelect, { target: { value: 'hexgrid' } });
 
       expect(mockOnChange).toHaveBeenCalledWith({
         wallPatternEnabled: true,
-        wallPattern: 'brick',
+        wallPattern: 'hexgrid',
         lipStyle: 'reduced',
         fingerSlide: 'rounded',
         wallCutout: { front: true, back: false, left: false, right: false },
@@ -458,9 +458,9 @@ describe('BinCustomizationPanel', () => {
 
       expect(options).toContain('grid');
       expect(options).toContain('hexgrid');
-      expect(options).toContain('brick');
+      expect(options).not.toContain('brick');
       expect(options).not.toContain('none');
-      expect(options).toHaveLength(3);
+      expect(options).toHaveLength(2);
     });
 
     it('should not show style select when wall pattern is disabled', () => {

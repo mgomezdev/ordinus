@@ -426,7 +426,7 @@ describe('useGridItems', () => {
   describe('addItemWithCustomization', () => {
     const customization: BinCustomization = {
       wallPatternEnabled: true,
-      wallPattern: 'brick',
+      wallPattern: 'hexgrid',
       lipStyle: 'minimum',
       fingerSlide: 'chamfered',
       wallCutout: 'horizontal',
