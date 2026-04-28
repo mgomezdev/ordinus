@@ -97,5 +97,7 @@ describe('deleteThumbnail', () => {
 
   it('is idempotent — no error when file does not exist', async () => {
     await expect(deleteThumbnail(42)).resolves.toBeUndefined();
+    const rows = await testClient.execute('SELECT thumbnail_path FROM layouts WHERE id = 42');
+    expect(rows.rows[0].thumbnail_path).toBeNull();
   });
 });

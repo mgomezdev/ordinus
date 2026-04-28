@@ -1,5 +1,5 @@
-import fs from 'fs/promises';
-import path from 'path';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { eq, inArray, and } from 'drizzle-orm';
 import { db } from '../db/connection.js';
 import { layouts, libraryItems } from '../db/schema.js';
@@ -28,6 +28,13 @@ export async function generate(
     }
   }
 
+  const existing = await db
+    .select({ id: layouts.id })
+    .from(layouts)
+    .where(eq(layouts.id, layoutId))
+    .limit(1);
+  if (existing.length === 0) return;
+
   const svg = generateThumbnailSvg(gridX, gridY, items, colorMap);
   const filename = `${layoutId}.svg`;
   await fs.writeFile(path.join(config.THUMBNAIL_DIR, filename), svg, 'utf-8');
@@ -41,8 +48,8 @@ export async function generate(
 export async function deleteThumbnail(layoutId: number): Promise<void> {
   try {
     await fs.unlink(path.join(config.THUMBNAIL_DIR, `${layoutId}.svg`));
-  } catch {
-    // File may not exist — idempotent
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
   }
   await db
     .update(layouts)
