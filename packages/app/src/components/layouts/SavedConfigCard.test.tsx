@@ -48,8 +48,8 @@ describe('SavedConfigCard', () => {
   });
 
   it('renders SVG fallback when thumbnailUrl is null', () => {
-    renderCard();
-    const svg = document.querySelector('.saved-config-thumbnail svg');
+    const { container } = renderCard();
+    const svg = container.querySelector('.saved-config-thumbnail svg');
     expect(svg).toBeInTheDocument();
     const cells = svg!.querySelectorAll('rect.grid-cell');
     expect(cells).toHaveLength(16); // 4*4
@@ -63,8 +63,8 @@ describe('SavedConfigCard', () => {
   });
 
   it('does not render SVG when thumbnailUrl is provided', () => {
-    renderCard({ layout: { ...mockLayout, thumbnailUrl: '/thumbnails/1' } });
-    const svg = document.querySelector('.saved-config-thumbnail svg');
+    const { container } = renderCard({ layout: { ...mockLayout, thumbnailUrl: '/thumbnails/1' } });
+    const svg = container.querySelector('.saved-config-thumbnail svg');
     expect(svg).not.toBeInTheDocument();
   });
 
