@@ -19,7 +19,7 @@ const binCustomizationSchema = z.preprocess(
   },
   z.object({
     wallPatternEnabled: z.boolean().default(false),
-    wallPattern: z.enum(['grid', 'hexgrid', 'brick', 'voronoi', 'voronoigrid', 'voronoihexgrid']),
+    wallPattern: z.enum(['grid', 'hexgrid', 'voronoi', 'voronoigrid', 'voronoihexgrid']),
     lipStyle: z.enum(['normal', 'reduced', 'minimum', 'none']),
     fingerSlide: z.enum(['none', 'rounded', 'chamfered']),
     wallCutout: z.object({

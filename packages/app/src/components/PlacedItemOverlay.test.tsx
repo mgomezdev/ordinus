@@ -86,7 +86,7 @@ describe('PlacedItemOverlay', () => {
   const mockGetLibraryMeta = vi.fn().mockResolvedValue({
     customizableFields: [
       { field: 'wallPatternEnabled', label: 'Wall Pattern' },
-      { field: 'wallPattern', label: 'Wall Pattern', options: ['grid', 'hexgrid', 'brick'] },
+      { field: 'wallPattern', label: 'Wall Pattern', options: ['grid', 'hexgrid'] },
       { field: 'lipStyle',    label: 'Lip Style',    options: ['normal', 'reduced', 'minimum', 'none'] },
       { field: 'fingerSlide', label: 'Finger Slide', options: ['none', 'rounded', 'chamfered'] },
       { field: 'wallCutout',  label: 'Wall Cutout' },
