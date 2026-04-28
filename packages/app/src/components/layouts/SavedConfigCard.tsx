@@ -1,9 +1,22 @@
 import { useState } from 'react';
 import type { ApiLayout } from '@gridfinity/shared';
+import { API_BASE_URL } from '../../api/apiClient';
 
-function GridThumbnail({ gridX, gridY }: { gridX: number; gridY: number }) {
-  const CELL = 10;
-  const PAD = 4;
+const CELL = 8;
+const PAD = 3;
+
+function LayoutThumbnail({ thumbnailUrl, gridX, gridY }: { thumbnailUrl: string | null; gridX: number; gridY: number }) {
+  if (thumbnailUrl) {
+    return (
+      <img
+        src={`${API_BASE_URL}${thumbnailUrl}`}
+        alt=""
+        aria-hidden="true"
+        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+      />
+    );
+  }
+
   const w = gridX * CELL + PAD * 2;
   const h = gridY * CELL + PAD * 2;
 
@@ -58,7 +71,7 @@ export function SavedConfigCard({
   return (
     <div className="saved-config-card">
       <div className="saved-config-thumbnail">
-        <GridThumbnail gridX={layout.gridX} gridY={layout.gridY} />
+        <LayoutThumbnail thumbnailUrl={layout.thumbnailUrl} gridX={layout.gridX} gridY={layout.gridY} />
       </div>
 
       <div className="saved-config-info">

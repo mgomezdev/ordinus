@@ -4,6 +4,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { SavedConfigCard } from './SavedConfigCard';
 import type { ApiLayout } from '@gridfinity/shared';
 
+vi.mock('../../api/apiClient', () => ({
+  API_BASE_URL: 'http://localhost:3001/api/v1',
+}));
+
 const mockLayout: ApiLayout = {
   id: 1,
   userId: 10,
@@ -43,13 +47,25 @@ describe('SavedConfigCard', () => {
     expect(screen.getByText('My Layout')).toBeInTheDocument();
   });
 
-  it('renders SVG thumbnail with correct cell count (gridX × gridY)', () => {
+  it('renders SVG fallback when thumbnailUrl is null', () => {
     renderCard();
     const svg = document.querySelector('.saved-config-thumbnail svg');
     expect(svg).toBeInTheDocument();
-    // mockLayout has gridX: 4, gridY: 4 → 16 cells
     const cells = svg!.querySelectorAll('rect.grid-cell');
-    expect(cells).toHaveLength(16);
+    expect(cells).toHaveLength(16); // 4*4
+  });
+
+  it('renders <img> with correct src when thumbnailUrl is provided', () => {
+    renderCard({ layout: { ...mockLayout, thumbnailUrl: '/thumbnails/1' } });
+    const img = document.querySelector('.saved-config-thumbnail img');
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute('src', 'http://localhost:3001/api/v1/thumbnails/1');
+  });
+
+  it('does not render SVG when thumbnailUrl is provided', () => {
+    renderCard({ layout: { ...mockLayout, thumbnailUrl: '/thumbnails/1' } });
+    const svg = document.querySelector('.saved-config-thumbnail svg');
+    expect(svg).not.toBeInTheDocument();
   });
 
   it('shows Edit and Duplicate buttons', () => {
