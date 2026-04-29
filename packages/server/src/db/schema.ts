@@ -89,6 +89,7 @@ export const layouts = sqliteTable('layouts', {
   isPublic: integer('is_public', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull().default(''),
   updatedAt: text('updated_at').notNull().default(''),
+  thumbnailPath: text('thumbnail_path'),
 }, (table) => [
   index('idx_layouts_user').on(table.userId),
 ]);

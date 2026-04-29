@@ -21,6 +21,7 @@ async function main(): Promise<void> {
   await fs.mkdir(config.USER_STL_IMAGE_DIR, { recursive: true });
   await fs.mkdir(path.join(config.GENERATED_STL_DIR, 'library'), { recursive: true });
   await fs.mkdir(path.join(config.GENERATED_STL_DIR, 'custom'), { recursive: true });
+  await fs.mkdir(config.THUMBNAIL_DIR, { recursive: true });
 
   // Startup recovery: reset stuck processing/pending rows and re-enqueue
   const stuckIds = await getPendingAndProcessingIds(client);

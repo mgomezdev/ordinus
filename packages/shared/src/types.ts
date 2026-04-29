@@ -237,6 +237,7 @@ export interface ApiLayout {
   isPublic: boolean;
   createdAt: string;
   updatedAt: string;
+  thumbnailUrl: string | null;
   ownerUsername?: string;
   ownerEmail?: string;
 }
