@@ -34,6 +34,7 @@ export function processUpload(
       child.on('close', resolve);
     });
 
+    logger.info({ uploadId }, 'STL processing: started');
     await updateUploadStatus(client, uploadId, 'processing');
 
     const code = await childClosed;
@@ -46,6 +47,7 @@ export function processUpload(
           imageUrl: string;
           perspImageUrls: string[];
         };
+        logger.info({ uploadId, gridX: result.gridX, gridY: result.gridY }, 'STL processing: complete');
         await updateUploadStatus(client, uploadId, 'ready', {
           gridX: result.gridX,
           gridY: result.gridY,

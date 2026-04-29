@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 
 const PYTHON_CMD = process.platform === 'win32' ? 'python' : 'python3';
 
@@ -10,13 +11,18 @@ export type GenerationStatus = 'pending' | 'complete' | 'failed' | 'not-found';
 
 function runPython(args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
+    let stdout = '';
     let stderr = '';
     const child = spawn(PYTHON_CMD, args);
-    child.stdout.on('data', () => {});
+    child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
     child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
     child.on('close', (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`${args[0]} exited ${code}: ${stderr.trim()}`));
+      if (code === 0) {
+        if (stdout.trim()) logger.debug({ script: path.basename(args[0]), output: stdout.trim() }, 'python stdout');
+        resolve();
+      } else {
+        reject(new Error(`${args[0]} exited ${code}: ${stderr.trim()}`));
+      }
     });
     child.on('error', reject);
   });
@@ -138,9 +144,11 @@ export class GenerationPipelineService extends EventEmitter {
     const stlToPngScript = path.join(this.libraryBuilderDir, 'stl_to_png.py');
 
     try {
+      logger.info({ hash, subdir }, 'generation: rendering STL');
       await fs.writeFile(paramsFile, JSON.stringify(params));
       await runPython([generateScript, paramsFile, '--output', stlFile, '--model', baseModelPath]);
 
+      logger.info({ hash, subdir }, 'generation: STL ready, rendering thumbnails');
       const orthoPng = path.join(dir, 'ortho.png');
       await runPython([stlToPngScript, stlFile, '--orthographic', '-o', orthoPng]);
       for (const rotation of [0, 90, 180, 270]) {
@@ -151,9 +159,11 @@ export class GenerationPipelineService extends EventEmitter {
         ]);
       }
 
+      logger.info({ hash, subdir }, 'generation: complete');
       this.emit('generation:complete', { hash });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      logger.error({ hash, subdir, err: msg }, 'generation: failed');
       await fs.writeFile(path.join(dir, 'error.txt'), msg).catch(() => {});
       this.emit('generation:failed', { hash, error: msg });
     }
