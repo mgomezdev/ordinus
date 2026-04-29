@@ -26,7 +26,15 @@
       "Bash(git restore:*)",
       "Bash(echo:*)",
       "Bash(timeout 5 tail:*)",
-      "Bash(exit 0)"
+      "Bash(exit 0)",
+      "Bash(npx vitest *)",
+      "Bash(npx tsc *)",
+      "Bash(git check-ignore *)",
+      "Bash(cd \"C:\\\\\\\\Users\\\\\\\\mgome\\\\\\\\Documents\\\\\\\\projects\\\\\\\\gridfinity-customizer\")",
+      "Bash(git -C \"C:/Users/mgome/Documents/projects/gridfinity-customizer\" diff 3f0210b..2da35bf --stat)",
+      "Bash(git -C \"C:/Users/mgome/Documents/projects/gridfinity-customizer\" diff 3f0210b..2da35bf -- packages/app/src/utils/generatorParams.ts)",
+      "Bash(git -C \"C:/Users/mgome/Documents/projects/gridfinity-customizer\" diff 3f0210b..2da35bf -- packages/app/src/utils/generatorParams.test.ts)",
+      "Bash(git -C \"C:/Users/mgome/Documents/projects/gridfinity-customizer\" log --oneline 3f0210b..2da35bf)"
     ]
   },
   "enableAllProjectMcpServers": true,
