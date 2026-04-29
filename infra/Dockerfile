@@ -92,7 +92,6 @@ ENV NODE_ENV=production \
     IMAGE_DIR=/data/images \
     USER_STL_DIR=/data/user-stls \
     USER_STL_IMAGE_DIR=/data/user-stl-images \
-    LIBRARIES_DIR=/data/libraries \
     CORS_ORIGIN=http://localhost:8080 \
     GRIDFINITY_GENERATOR_DIR=/app/tools/gridfinity-generator \
     LIBRARY_BUILDER_DIR=/app/tools/library-builder \
