@@ -20,6 +20,7 @@ import userStlsRouter from './routes/userStls.routes.js';
 import adminUserStlsRouter from './routes/adminUserStls.routes.js';
 import generationRoutes from './routes/generation.routes.js';
 import favoritesRoutes from './routes/favorites.routes.js';
+import thumbnailsRoutes from './routes/thumbnails.routes.js';
 export function createApp(): express.Express {
   const app = express();
 
@@ -50,6 +51,7 @@ export function createApp(): express.Express {
 
   // Image routes (before rate limiter — read-only static assets, no auth)
   app.use('/api/v1/images', imagesRoutes);
+  app.use('/api/v1/thumbnails', thumbnailsRoutes);
 
   // Rate limiting
   app.use('/api/v1/auth', authLimiter);
