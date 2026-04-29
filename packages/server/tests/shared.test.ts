@@ -19,6 +19,12 @@ vi.mock('../src/logger.js', () => ({
   logger: pino({ level: 'silent' }),
 }));
 
+// Mock thumbnail service so tests don't need a real THUMBNAIL_DIR on disk
+vi.mock('../src/services/layoutThumbnail.service.js', () => ({
+  generate: vi.fn().mockResolvedValue(undefined),
+  deleteThumbnail: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Import after mocks
 const { createApp } = await import('../src/app.js');
 const { client: testClient } = await import('../src/db/connection.js');

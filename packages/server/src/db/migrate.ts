@@ -360,4 +360,11 @@ export async function runMigrations(client: Client): Promise<void> {
   } catch {
     // Column already exists — ignore
   }
+
+  // Add thumbnail_path to layouts if missing
+  try {
+    await client.execute(`ALTER TABLE layouts ADD COLUMN thumbnail_path TEXT;`);
+  } catch {
+    // Column already exists — ignore
+  }
 }

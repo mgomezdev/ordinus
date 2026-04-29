@@ -29,6 +29,7 @@ const MOCK_LAYOUT: ApiLayout = {
   isPublic: true,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
+  thumbnailUrl: null,
 };
 
 function makeAdminAuth(overrides: Record<string, unknown> = {}) {

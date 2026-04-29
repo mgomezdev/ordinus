@@ -20,6 +20,7 @@ const envSchema = z.object({
   PYTHON_SCRIPT_DIR: z.string().default('./scripts/py'),
   GRIDFINITY_GENERATOR_DIR: z.string().default('../../tools/gridfinity-generator'),
   GENERATED_STL_DIR: z.string().default('./data/generated'),
+  THUMBNAIL_DIR: z.string().default('./data/thumbnails'),
   LIBRARY_BUILDER_DIR: z.string().default('../../tools/library-builder'),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production') {

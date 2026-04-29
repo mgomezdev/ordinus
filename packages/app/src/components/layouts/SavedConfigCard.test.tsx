@@ -4,12 +4,15 @@ import { MemoryRouter } from 'react-router-dom';
 import { SavedConfigCard } from './SavedConfigCard';
 import type { ApiLayout } from '@gridfinity/shared';
 
+vi.mock('../../api/apiClient', () => ({
+  API_BASE_URL: 'http://localhost:3001/api/v1',
+}));
+
 const mockLayout: ApiLayout = {
   id: 1,
   userId: 10,
   name: 'My Layout',
   description: 'A test layout',
-  status: 'draft',
   gridX: 4,
   gridY: 4,
   widthMm: 168,
@@ -19,6 +22,7 @@ const mockLayout: ApiLayout = {
   isPublic: false,
   createdAt: '2026-03-01T00:00:00Z',
   updatedAt: '2026-03-01T00:00:00Z',
+  thumbnailUrl: null,
 };
 
 const defaultProps = {
@@ -43,13 +47,36 @@ describe('SavedConfigCard', () => {
     expect(screen.getByText('My Layout')).toBeInTheDocument();
   });
 
-  it('renders SVG thumbnail with correct cell count (gridX × gridY)', () => {
-    renderCard();
-    const svg = document.querySelector('.saved-config-thumbnail svg');
+  it('renders SVG fallback when thumbnailUrl is null', () => {
+    const { container } = renderCard();
+    const svg = container.querySelector('.saved-config-thumbnail svg');
     expect(svg).toBeInTheDocument();
-    // mockLayout has gridX: 4, gridY: 4 → 16 cells
     const cells = svg!.querySelectorAll('rect.grid-cell');
-    expect(cells).toHaveLength(16);
+    expect(cells).toHaveLength(16); // 4*4
+  });
+
+  it('renders <img> with correct src when thumbnailUrl is provided', () => {
+    const { container } = renderCard({ layout: { ...mockLayout, thumbnailUrl: '/thumbnails/1' } });
+    const img = container.querySelector('.saved-config-thumbnail img');
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute('src', 'http://localhost:3001/api/v1/thumbnails/1');
+  });
+
+  it('does not render SVG when thumbnailUrl is provided', () => {
+    const { container } = renderCard({ layout: { ...mockLayout, thumbnailUrl: '/thumbnails/1' } });
+    const svg = container.querySelector('.saved-config-thumbnail svg');
+    expect(svg).not.toBeInTheDocument();
+  });
+
+  it('falls back to SVG grid when image fails to load', () => {
+    const { container } = renderCard({ layout: { ...mockLayout, thumbnailUrl: '/thumbnails/1' } });
+    const img = container.querySelector('.saved-config-thumbnail img') as HTMLImageElement;
+    expect(img).not.toBeNull();
+    // Simulate image load failure
+    fireEvent.error(img);
+    // After error, SVG should appear
+    const svg = container.querySelector('.saved-config-thumbnail svg');
+    expect(svg).toBeInTheDocument();
   });
 
   it('shows Edit and Duplicate buttons', () => {

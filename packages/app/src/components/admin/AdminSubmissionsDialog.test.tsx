@@ -61,10 +61,10 @@ function makeLayout(overrides: Partial<ApiLayout> = {}): ApiLayout {
     depthMm: 168,
     spacerHorizontal: 'none',
     spacerVertical: 'none',
-    status: 'submitted',
     isPublic: false,
     createdAt: '2026-02-19T12:00:00Z',
     updatedAt: '2026-02-19T12:00:00Z',
+    thumbnailUrl: null,
     ...overrides,
   };
 }
