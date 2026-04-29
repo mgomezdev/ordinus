@@ -41,7 +41,8 @@ blob-report/
 
 # Internal planning and development artifacts
 plans/
-!docs/superpowers/plans/
+docs/superpowers/plans/
+docs/superpowers/specs/
 TODOs.txt
 
 # Server build output
@@ -58,7 +59,18 @@ infra/.env
 
 # Gridfinity generator outputs (regenerable)
 tools/gridfinity-generator/bins_*/
-tools/gridfinity-generator/__pycache__/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Legacy pre-monorepo server paths
+server/data/
+server/dist/
 
 # Playwright CLI session data
 .playwright-cli/
