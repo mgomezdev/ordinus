@@ -26,18 +26,18 @@ describe('generateThumbnailSvg', () => {
     expect(svg).toContain('fill="#FF0000"');
   });
 
-  it('swaps width/height for 90° rotation', () => {
-    // item at x=0, y=0, width=2, height=3, rotation=90
-    // occupies height×width = 3×2 cells
+  it('uses stored footprint dimensions for 90° rotation', () => {
+    // Frontend swaps w/h before storing: a natural 2×3 item at 90° is stored as width:3, height:2
     // SVG x = 3, y = 3, w = 3*8=24, h = 2*8=16
-    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 2, height: 3, rotation: 90 }];
+    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 3, height: 2, rotation: 90 }];
     const colorMap = new Map([['lib1:item1', '#FF0000']]);
     const svg = generateThumbnailSvg(4, 4, items, colorMap);
     expect(svg).toContain('x="3" y="3" width="24" height="16"');
   });
 
-  it('swaps width/height for 270° rotation', () => {
-    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 2, height: 3, rotation: 270 }];
+  it('uses stored footprint dimensions for 270° rotation', () => {
+    // Same footprint as 90°: natural 2×3 stored as width:3, height:2
+    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 3, height: 2, rotation: 270 }];
     const colorMap = new Map([['lib1:item1', '#FF0000']]);
     const svg = generateThumbnailSvg(4, 4, items, colorMap);
     expect(svg).toContain('x="3" y="3" width="24" height="16"');

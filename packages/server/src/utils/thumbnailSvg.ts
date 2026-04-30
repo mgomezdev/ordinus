@@ -37,9 +37,8 @@ export function generateThumbnailSvg(
 
   const itemRects = items.map(item => {
     const color = safeColor(colorMap.get(`${item.libraryId}:${item.itemId}`) ?? DEFAULT_COLOR);
-    const swapped = item.rotation === 90 || item.rotation === 270;
-    const sw = (swapped ? item.height : item.width) * CELL;
-    const sh = (swapped ? item.width : item.height) * CELL;
+    const sw = item.width * CELL;
+    const sh = item.height * CELL;
     const sx = PAD + item.x * CELL;
     const sy = PAD + item.y * CELL;
     return `<rect x="${sx}" y="${sy}" width="${sw}" height="${sh}" rx="1" fill="${color}" fill-opacity="0.85" stroke="${color}" stroke-width="1"/>`;

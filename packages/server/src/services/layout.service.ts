@@ -246,7 +246,7 @@ export async function createLayout(
       rotation: item.rotation,
       sortOrder: index,
       customization: item.customization ? JSON.stringify(item.customization) : null,
-      shadowBoxId: libraryId === 'shadowbox' ? itemId : null,
+      shadowBoxId: libraryId === 'bins_shadowbox' ? itemId : null,
     };
   });
 
@@ -396,7 +396,7 @@ export async function updateLayout(
       rotation: item.rotation,
       sortOrder: index,
       customization: item.customization ? JSON.stringify(item.customization) : null,
-      shadowBoxId: libraryId === 'shadowbox' ? itemId : null,
+      shadowBoxId: libraryId === 'bins_shadowbox' ? itemId : null,
     };
   });
 

@@ -40,7 +40,7 @@ export function formatLayout(
     isPublic: row.isPublic,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-    thumbnailUrl: row.thumbnailPath ? `/thumbnails/${row.id}` : null,
+    thumbnailUrl: row.thumbnailPath ? `/thumbnails/${row.id}?v=${encodeURIComponent(row.updatedAt)}` : null,
     ...(ownerUsername !== undefined ? { ownerUsername } : {}),
     ...(ownerEmail !== undefined ? { ownerEmail } : {}),
   };

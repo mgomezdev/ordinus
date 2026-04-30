@@ -22,9 +22,9 @@
       "path": "/libraries/modular-utensil/index.json"
     },
     {
-      "id": "shadowbox",
+      "id": "bins_shadowbox",
       "name": "Shadowbox Bins",
-      "path": "/libraries/shadowbox/index.json"
+      "path": "/libraries/bins_shadowbox/index.json"
     }
   ]
 }
