@@ -462,8 +462,8 @@
   height: var(--status-bar-height);
   background: var(--status-bar-bg);
   color: var(--status-bar-text);
-  padding: 0 20px;
-  gap: 16px;
+  padding: 0 var(--space-xl);
+  gap: var(--space-lg);
   flex-shrink: 0;
   font-size: var(--text-sm);
 }
@@ -536,15 +536,15 @@
 }
 
 .save-toast-success {
-  background: var(--color-success-bg, #1a3a2a);
-  border: 1px solid var(--color-success-border, #2a5a3a);
-  color: var(--color-success-text, #a0e0b0);
+  background: var(--toast-success-bg);
+  border: 1px solid var(--toast-success-border);
+  color: var(--toast-success-text);
 }
 
 .save-toast-error {
-  background: var(--color-error-bg, #3a1a1a);
-  border: 1px solid var(--color-error-border, #5a2a2a);
-  color: var(--color-error-text, #f0a0a0);
+  background: var(--toast-error-bg);
+  border: 1px solid var(--toast-error-border);
+  color: var(--toast-error-text);
 }
 
 .save-toast-dismiss {
@@ -740,8 +740,8 @@
 .library-panel-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px 8px;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg) var(--space-sm);
   flex-shrink: 0;
 }
 
@@ -3832,8 +3832,8 @@
 .sidebar-settings-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding-bottom: 14px;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-md);
   border-bottom: 1px solid var(--border-primary);
 }
 
@@ -3863,10 +3863,10 @@
 
 /* Content pane below the nav */
 .sidebar-content-area {
-  padding: 14px;
+  padding: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-md);
   overflow-y: auto;
   flex: 1;
 }
@@ -3874,24 +3874,24 @@
 .sidebar-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .sidebar-section-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm);
   padding: 0 2px;
   color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
 }
 
 .sidebar-actions {
-  margin-top: 4px;
-  padding-top: 10px;
+  margin-top: var(--space-xs);
+  padding-top: var(--space-sm);
   border-top: 1px solid var(--border-primary);
 }
 

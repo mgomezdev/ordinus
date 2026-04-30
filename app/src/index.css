@@ -88,6 +88,14 @@
   --status-bar-bg: #1e2329;
   --status-bar-text: #e0e6ed;
 
+  /* Toast — dark-surface variants (used on status bar) */
+  --toast-success-bg: #1a3a2a;
+  --toast-success-border: #2a5a3a;
+  --toast-success-text: #a0e0b0;
+  --toast-error-bg: #3a1a1a;
+  --toast-error-border: #5a2a2a;
+  --toast-error-text: #f0a0a0;
+
   /* Favorite / Heart State */
   --heart-primary: #ec4899;
   --heart-bg: #fff1f8;
