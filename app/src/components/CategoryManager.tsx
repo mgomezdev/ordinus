@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Category, LibraryItem } from '../types/gridfinity';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -24,6 +24,7 @@ export function CategoryManager({
   onResetToDefaults,
   getItemsUsingCategory,
 }: CategoryManagerProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [formMode, setFormMode] = useState<FormMode>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Category>>({
@@ -34,6 +35,10 @@ export function CategoryManager({
   });
   const [error, setError] = useState<string | null>(null);
   const { confirm, dialogProps: confirmDialogProps } = useConfirmDialog();
+
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, []);
 
   const handleStartAdd = () => {
     setFormMode('add');
@@ -126,10 +131,18 @@ export function CategoryManager({
   const sortedCategories = [...categories].sort((a, b) => (a.order || 0) - (b.order || 0));
 
   return (
-    <div className="library-manager-overlay" onClick={onClose}>
-      <div className="library-manager" onClick={(e) => e.stopPropagation()}>
+    <div className="library-manager-overlay" onClick={onClose} role="presentation">
+      <div
+        ref={dialogRef}
+        className="library-manager"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="category-manager-title"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="library-manager-header">
-          <h2>Manage Categories</h2>
+          <h2 id="category-manager-title">Manage Categories</h2>
           <button className="close-button" onClick={onClose} aria-label="Close">
             ×
           </button>
