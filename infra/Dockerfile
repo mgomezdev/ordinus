@@ -4,23 +4,23 @@ RUN apk add --no-cache python3 make g++
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-COPY packages/shared/ packages/shared/
-COPY packages/server/ packages/server/
-COPY packages/app/package.json packages/app/
-COPY packages/app/tsconfig.json packages/app/tsconfig.app.json packages/app/tsconfig.node.json packages/app/vite.config.ts packages/app/index.html packages/app/
-COPY packages/app/src/ packages/app/src/
-COPY packages/app/public/ packages/app/public/
+COPY shared/ shared/
+COPY server/ server/
+COPY app/package.json app/
+COPY app/tsconfig.json app/tsconfig.app.json app/tsconfig.node.json app/vite.config.ts app/index.html app/
+COPY app/src/ app/src/
+COPY app/public/ app/public/
 RUN npm ci
 
 # Build shared library
-RUN npm run build --workspace=packages/shared
+RUN npm run build --workspace=shared
 
 # Build frontend
 ENV VITE_API_BASE_URL=/api/v1
-RUN npm run build --workspace=packages/app
+RUN npm run build --workspace=app
 
 # Build backend
-RUN npm run build --workspace=packages/server
+RUN npm run build --workspace=server
 
 # Stage 2: Production image
 # Debian Slim (not Alpine) — AppImages require glibc, not musl
@@ -54,11 +54,11 @@ RUN wget -q https://files.openscad.org/snapshots/OpenSCAD-2026.04.16-x86_64.AppI
     && rm /tmp/openscad.AppImage
 
 # Install Python dependencies for STL processing
-COPY packages/server/scripts/py/requirements.txt /tmp/py-requirements.txt
+COPY server/scripts/py/requirements.txt /tmp/py-requirements.txt
 RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/py-requirements.txt
 
 # Copy built frontend to nginx html dir
-COPY --from=build /app/packages/app/dist /usr/share/nginx/html
+COPY --from=build /app/app/dist /usr/share/nginx/html
 
 # Copy nginx config; remove default site to avoid conflicts
 COPY infra/nginx.conf /etc/nginx/conf.d/default.conf
@@ -67,16 +67,16 @@ RUN rm -f /etc/nginx/sites-enabled/default
 # Copy backend runtime files
 COPY --from=build /app/package.json package.json
 COPY --from=build /app/node_modules node_modules
-COPY --from=build /app/packages/shared packages/shared
-COPY --from=build /app/packages/server/dist packages/server/dist
-COPY --from=build /app/packages/server/package.json packages/server/package.json
-COPY --from=build /app/packages/server/node_modules packages/server/node_modules
+COPY --from=build /app/shared shared
+COPY --from=build /app/server/dist server/dist
+COPY --from=build /app/server/package.json server/package.json
+COPY --from=build /app/server/node_modules server/node_modules
 
 # Copy Python scripts and tools
-COPY packages/server/scripts/ scripts/
+COPY server/scripts/ scripts/
 COPY tools/gridfinity-generator/ tools/gridfinity-generator/
 COPY tools/library-builder/ tools/library-builder/
-COPY packages/app/public/libraries/ packages/app/public/libraries/
+COPY app/public/libraries/ app/public/libraries/
 
 # Entrypoint
 COPY infra/docker-entrypoint.sh /docker-entrypoint.sh

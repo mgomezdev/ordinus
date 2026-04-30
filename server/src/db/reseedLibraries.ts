@@ -62,14 +62,14 @@ export function getCategoryName(id: string): string {
  * Deletes in FK-safe order, then re-inserts from manifest + index files.
  */
 export async function reseedLibraryData(client: Client, logger: Logger): Promise<void> {
-  // From packages/server/src/db or packages/server/dist/db -> 4 levels up = repo root
-  const projectRoot = resolve(__dirname, '..', '..', '..', '..');
-  const publicDir = resolve(projectRoot, 'packages', 'app', 'public');
+  // From server/src/db or server/dist/db -> 3 levels up = repo root
+  const projectRoot = resolve(__dirname, '..', '..', '..');
+  const publicDir = resolve(projectRoot, 'app', 'public');
 
   const librariesDir = process.env.LIBRARIES_DIR ?? resolve(publicDir, 'libraries');
-  const imageDir = process.env.IMAGE_DIR ?? resolve(projectRoot, 'packages', 'server', 'data', 'images');
-  const generatorModelsDir = process.env.GENERATOR_MODELS_DIR ?? resolve(projectRoot, 'packages', 'server', 'data', 'generator-models');
-  const staticStlsDir = process.env.STATIC_STLS_DIR ?? resolve(projectRoot, 'packages', 'server', 'data', 'static-stls');
+  const imageDir = process.env.IMAGE_DIR ?? resolve(projectRoot, 'server', 'data', 'images');
+  const generatorModelsDir = process.env.GENERATOR_MODELS_DIR ?? resolve(projectRoot, 'server', 'data', 'generator-models');
+  const staticStlsDir = process.env.STATIC_STLS_DIR ?? resolve(projectRoot, 'server', 'data', 'static-stls');
 
   mkdirSync(imageDir, { recursive: true });
   mkdirSync(generatorModelsDir, { recursive: true });

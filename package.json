@@ -21,23 +21,23 @@
   "author": "mgomezdev",
   "type": "module",
   "workspaces": [
-    "packages/app",
-    "packages/server",
-    "packages/shared"
+    "app",
+    "server",
+    "shared"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=packages/app",
-    "build": "npm run build --workspace=packages/shared && npm run build --workspace=packages/app && npm run build --workspace=packages/server",
+    "dev": "npm run dev --workspace=app",
+    "build": "npm run build --workspace=shared && npm run build --workspace=app && npm run build --workspace=server",
     "lint": "eslint .",
-    "test:run": "npm run test:run --workspace=packages/app && npm run test --workspace=packages/server",
-    "test:e2e": "playwright test --config=packages/app/playwright.config.ts",
-    "test:e2e:ui": "playwright test --config=packages/app/playwright.config.ts --ui",
-    "test:e2e:debug": "playwright test --config=packages/app/playwright.config.ts --debug",
-    "test:e2e:docker": "TARGET=docker playwright test --config=packages/app/playwright.config.ts",
-    "server:dev": "npm run dev --workspace=packages/server",
-    "server:dev:test": "npm run dev:test --workspace=packages/server",
-    "server:build": "npm run build --workspace=packages/server",
-    "server:seed": "npm run seed --workspace=packages/server"
+    "test:run": "npm run test:run --workspace=app && npm run test --workspace=server",
+    "test:e2e": "playwright test --config=app/playwright.config.ts",
+    "test:e2e:ui": "playwright test --config=app/playwright.config.ts --ui",
+    "test:e2e:debug": "playwright test --config=app/playwright.config.ts --debug",
+    "test:e2e:docker": "TARGET=docker playwright test --config=app/playwright.config.ts",
+    "server:dev": "npm run dev --workspace=server",
+    "server:dev:test": "npm run dev:test --workspace=server",
+    "server:build": "npm run build --workspace=server",
+    "server:seed": "npm run seed --workspace=server"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
