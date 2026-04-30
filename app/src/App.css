@@ -215,7 +215,7 @@
   font-weight: var(--font-semibold);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color, color 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
@@ -301,7 +301,7 @@
   font-weight: var(--font-semibold);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: opacity 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
   margin-top: var(--space-sm);
@@ -365,7 +365,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color, opacity 0.2s;
 }
 
 .user-menu-login-btn:hover {
@@ -393,7 +393,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color 0.2s;
 }
 
 .user-menu-trigger:hover {
@@ -618,7 +618,7 @@
   font-size: var(--text-sm);
   font-family: var(--font-mono);
   font-weight: var(--font-medium);
-  transition: all 0.2s;
+  transition: background-color, border-color, color 0.2s;
 }
 
 .unit-toggle-compact button:first-child,
@@ -1076,7 +1076,7 @@
   font-weight: var(--font-semibold);
   font-family: var(--font-mono);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color, opacity 0.2s;
   min-width: 32px;
   text-align: center;
 }
@@ -1290,7 +1290,7 @@
   font-size: 0.7rem;
   font-family: var(--font-mono);
   font-weight: var(--font-medium);
-  transition: all 0.2s;
+  transition: background-color, border-color, color 0.2s;
   white-space: nowrap;
 }
 
@@ -1415,7 +1415,7 @@
   font-family: var(--font-body);
   font-weight: var(--font-semibold);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color 0.2s;
   display: flex;
   align-items: center;
   gap: var(--space-xs);
@@ -1445,7 +1445,7 @@
   font-family: var(--font-body);
   font-weight: var(--font-semibold);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color 0.2s;
   display: flex;
   align-items: center;
   gap: var(--space-xs);
@@ -1503,7 +1503,7 @@
   font-size: var(--text-sm);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color, color 0.2s;
 }
 
 .filter-chip:hover {
@@ -1528,7 +1528,7 @@
   font-size: var(--text-sm);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, color 0.2s;
   width: 100%;
 }
 
@@ -1582,7 +1582,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color, color 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
@@ -1609,7 +1609,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
@@ -1635,7 +1635,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
@@ -1746,7 +1746,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
@@ -1766,7 +1766,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
@@ -1798,7 +1798,7 @@
   border: 2px solid var(--border-secondary);
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-md);
-  transition: all 0.2s;
+  transition: background-color, border-color 0.2s;
 }
 
 .library-manager-item:hover {
@@ -1860,7 +1860,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
@@ -2041,7 +2041,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
@@ -2311,7 +2311,7 @@
   align-items: center;
   justify-content: center;
   cursor: grab;
-  transition: all 0.2s;
+  transition: border-color, box-shadow 0.2s;
   z-index: 1;
   box-sizing: border-box;
 }
@@ -2979,7 +2979,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
@@ -3142,7 +3142,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color, opacity 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
@@ -3331,7 +3331,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, opacity 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
@@ -3523,7 +3523,7 @@
   border: 2px solid var(--border-secondary);
   border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color 0.2s;
   gap: var(--space-md);
 }
 
@@ -3585,7 +3585,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, color 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
@@ -3618,7 +3618,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: background-color, color, border-color 0.15s ease;
   flex-shrink: 0;
 }
 
@@ -3956,7 +3956,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, border-color, opacity 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
@@ -4043,7 +4043,7 @@
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
   cursor: grab;
-  transition: all 0.15s;
+  transition: background-color, border-color, box-shadow 0.15s;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -4183,7 +4183,7 @@
   border-radius: var(--radius-md);
   background: var(--bg-primary);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color, border-color 0.15s;
   gap: var(--space-xs);
 }
 
@@ -4267,7 +4267,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color, opacity 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
   white-space: nowrap;
@@ -4361,7 +4361,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
@@ -4406,7 +4406,7 @@
   font-weight: var(--font-medium);
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: color, border-color 0.2s;
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
