@@ -52,6 +52,7 @@ export function AuthModal({ isOpen, onClose, initialTab = 'login' }: AuthModalPr
         ref={dialogRef}
         tabIndex={-1}
         role="dialog"
+        aria-modal="true"
         aria-label={activeTab === 'login' ? 'Log in' : 'Create account'}
       >
         <div className="auth-modal-header">

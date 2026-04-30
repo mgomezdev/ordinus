@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type { ApiSharedProject } from '@gridfinity/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { createShareLink, getSharesByLayout, deleteShareLink } from '../../api/shared.api';
@@ -16,6 +16,7 @@ export function ShareDialog({ isOpen, onClose, layoutId }: ShareDialogProps) {
 
 function ShareDialogContent({ onClose, layoutId }: Omit<ShareDialogProps, 'isOpen'>) {
   const { getAccessToken } = useAuth();
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [shares, setShares] = useState<ApiSharedProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -40,6 +41,10 @@ function ShareDialogContent({ onClose, layoutId }: Omit<ShareDialogProps, 'isOpe
   useEffect(() => {
     loadShares();
   }, [loadShares]);
+
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, []);
 
   const handleCreateShare = async () => {
     const token = getAccessToken();
@@ -89,10 +94,18 @@ function ShareDialogContent({ onClose, layoutId }: Omit<ShareDialogProps, 'isOpe
   };
 
   return (
-    <div className="layout-dialog-overlay" onClick={onClose}>
-      <div className="layout-dialog" onClick={e => e.stopPropagation()}>
+    <div className="layout-dialog-overlay" onClick={onClose} role="presentation">
+      <div
+        ref={dialogRef}
+        className="layout-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="share-dialog-title"
+        tabIndex={-1}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="layout-dialog-header">
-          <h2>Share Layout</h2>
+          <h2 id="share-dialog-title">Share Layout</h2>
           <button className="layout-dialog-close" onClick={onClose} aria-label="Close">x</button>
         </div>
         <div className="layout-dialog-body">

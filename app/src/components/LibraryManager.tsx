@@ -188,13 +188,13 @@ export function LibraryManager({
         ref={dialogRef}
         className="library-manager"
         role="dialog"
-        aria-label="Manage Library"
+        aria-labelledby="library-manager-title"
         aria-modal="true"
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="library-manager-header">
-          <h2>Manage Library</h2>
+          <h2 id="library-manager-title">Manage Library</h2>
           <button className="close-button" onClick={onClose} aria-label="Close">
             ×
           </button>

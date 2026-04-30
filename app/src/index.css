@@ -55,7 +55,9 @@
   /* Valid State */
   --valid-primary: #10B981;
   --valid-secondary: #059669;
+  --valid-dark: #047857;
   --valid-bg: #ECFDF5;
+  --valid-border: #A7F3D0;
   --valid-alpha-40: rgba(16, 185, 129, 0.15);
 
   /* Invalid State */
@@ -75,12 +77,37 @@
   --snap-valid-primary: #3b82f6;
   --snap-valid-bg: rgba(59, 130, 246, 0.2);
 
+  /* Warning State */
+  --warning-primary: #f59e0b;
+  --warning-glow: rgba(245, 158, 11, 0.6);
+  --warning-text: #92400e;
+  --warning-bg: #451a03;
+  --warning-border: #78350f;
+
+  /* Status Bar — dark canvas */
+  --status-bar-bg: #1e2329;
+  --status-bar-text: #e0e6ed;
+
+  /* Toast — dark-surface variants (used on status bar) */
+  --toast-success-bg: #1a3a2a;
+  --toast-success-border: #2a5a3a;
+  --toast-success-text: #a0e0b0;
+  --toast-error-bg: #3a1a1a;
+  --toast-error-border: #5a2a2a;
+  --toast-error-text: #f0a0a0;
+
+  /* Favorite / Heart State */
+  --heart-primary: #ec4899;
+  --heart-bg: #fff1f8;
+  --heart-border: #f9a8d4;
+  --heart-inactive: #d1d5db;
+
   /* Surfaces */
   --surface-overlay: rgba(0, 0, 0, 0.4);
   --surface-modal: #FFFFFF;
 
   /* Font Sizes */
-  --text-xs: 0.625rem;
+  --text-xs: 0.6875rem;
   --text-sm: 0.75rem;
   --text-base: 0.875rem;
   --text-lg: 1rem;
@@ -93,7 +120,7 @@
   --font-medium: 500;
   --font-semibold: 600;
   --font-bold: 700;
-  --font-black: 700;
+  --font-black: 800;
 
   /* Line Heights */
   --leading-tight: 1.25;
@@ -183,6 +210,7 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-body);
+  font-size: var(--text-base);
   line-height: var(--leading-normal);
 }
 
@@ -373,4 +401,13 @@ input[type='number']::-webkit-inner-spin-button {
 .error-fallback-stack {
   max-height: 200px;
   overflow-y: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
