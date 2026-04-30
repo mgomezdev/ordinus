@@ -60,6 +60,11 @@ infra/.env
 # Gridfinity generator outputs (regenerable)
 tools/gridfinity-generator/bins_*/
 
+# Parameterized library generated assets (bins_standard, bins_labeled, bins_shadowbox)
+# These are generated on server boot — only index.json and *.scad belong in git
+packages/app/public/libraries/bins_*/**.stl
+packages/app/public/libraries/bins_*/**.png
+
 # Python cache files
 __pycache__/
 *.pyc
