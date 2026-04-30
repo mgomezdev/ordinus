@@ -74,7 +74,7 @@ COPY --from=build /app/server/node_modules server/node_modules
 
 # Copy Python scripts and tools
 COPY server/scripts/ scripts/
-COPY tools/gridfinity-generator/ tools/gridfinity-generator/
+COPY generator/ generator/
 COPY tools/library-builder/ tools/library-builder/
 COPY app/public/libraries/ app/public/libraries/
 
@@ -93,12 +93,12 @@ ENV NODE_ENV=production \
     USER_STL_DIR=/data/user-stls \
     USER_STL_IMAGE_DIR=/data/user-stl-images \
     CORS_ORIGIN=http://localhost:8080 \
-    GRIDFINITY_GENERATOR_DIR=/app/tools/gridfinity-generator \
+    GRIDFINITY_GENERATOR_DIR=/app/generator \
     LIBRARY_BUILDER_DIR=/app/tools/library-builder \
     GENERATED_STL_DIR=/data/generated \
     OPENSCAD_PATH=/app/openscad/AppRun \
     OPENSCAD_BACKEND=Manifold \
-    SCAD_FILE=/app/tools/gridfinity-generator/gridfinity_basic_cup.scad
+    SCAD_FILE=/app/generator/gridfinity_basic_cup.scad
 
 EXPOSE 80
 
