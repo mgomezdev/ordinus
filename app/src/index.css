@@ -55,7 +55,9 @@
   /* Valid State */
   --valid-primary: #10B981;
   --valid-secondary: #059669;
+  --valid-dark: #047857;
   --valid-bg: #ECFDF5;
+  --valid-border: #A7F3D0;
   --valid-alpha-40: rgba(16, 185, 129, 0.15);
 
   /* Invalid State */
@@ -74,6 +76,23 @@
   /* Snap Preview Valid State (blue-500 per Tailwind) */
   --snap-valid-primary: #3b82f6;
   --snap-valid-bg: rgba(59, 130, 246, 0.2);
+
+  /* Warning State */
+  --warning-primary: #f59e0b;
+  --warning-glow: rgba(245, 158, 11, 0.6);
+  --warning-text: #92400e;
+  --warning-bg: #451a03;
+  --warning-border: #78350f;
+
+  /* Status Bar — dark canvas */
+  --status-bar-bg: #1e2329;
+  --status-bar-text: #e0e6ed;
+
+  /* Favorite / Heart State */
+  --heart-primary: #ec4899;
+  --heart-bg: #fff1f8;
+  --heart-border: #f9a8d4;
+  --heart-inactive: #d1d5db;
 
   /* Surfaces */
   --surface-overlay: rgba(0, 0, 0, 0.4);
