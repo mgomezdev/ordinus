@@ -5,7 +5,7 @@ set -e
 mkdir -p /config /data/libraries /data/images /data/user-stls /data/user-stl-images /data/generated
 
 # Start the Node.js backend in the background
-node packages/server/dist/index.js &
+node server/dist/index.js &
 
 # Start nginx in the foreground
 exec nginx -g 'daemon off;'
