@@ -3267,14 +3267,14 @@
   }
 
   .placed-item-toolbar-btn {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     font-size: 18px;
   }
 
   .reference-image-overlay__toolbar-btn {
-    min-width: 36px;
-    min-height: 36px;
+    min-width: 44px;
+    min-height: 44px;
     padding: 6px 10px;
     font-size: 14px;
   }
@@ -3292,6 +3292,34 @@
   .library-item-card {
     min-width: 72px;
     padding: var(--space-md);
+  }
+
+  .keyboard-help-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .placed-item-customize-popover-close {
+    width: 44px;
+    height: 44px;
+  }
+
+  .zoom-control-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .filter-chip,
+  .unit-toggle-compact button,
+  .format-toggle-compact button,
+  .spacer-button-group button,
+  .layout-action-btn,
+  .layout-delete-btn,
+  .auth-tab,
+  .user-menu-login-btn,
+  .user-menu-register-btn,
+  .user-menu-trigger {
+    min-height: 44px;
   }
 }
 
@@ -3764,7 +3792,6 @@
   padding: 0 16px;
   background: none;
   border: none;
-  border-left: 3px solid transparent;
   border-radius: 0;
   cursor: pointer;
   font-size: var(--text-xs);
@@ -3773,7 +3800,7 @@
   letter-spacing: var(--tracking-widest);
   text-transform: uppercase;
   text-align: left;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .sidebar-nav-row:hover {
@@ -3783,15 +3810,13 @@
 
 .sidebar-nav-row.active {
   color: var(--accent-primary);
-  border-left-color: var(--accent-primary);
-  background: color-mix(in srgb, var(--accent-primary) 6%, transparent);
+  background: var(--accent-alpha-10);
 }
 
 .sidebar-nav-row.sidebar-nav-heading {
   cursor: default;
   color: var(--text-primary);
-  border-left-color: var(--accent-primary);
-  background: color-mix(in srgb, var(--accent-primary) 6%, transparent);
+  background: var(--accent-alpha-10);
   pointer-events: none;
 }
 
