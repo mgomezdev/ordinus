@@ -6,6 +6,7 @@ Usage:
 
 manifest.json: [{"filename": "bin_2x3x8.stl", "widthUnits": 2, "heightUnits": 3, "qty": 4, "customization": {...}}]
 """
+import io
 import json
 import os
 import struct
@@ -13,6 +14,11 @@ import sys
 import textwrap
 import zipfile
 from io import StringIO
+
+import matplotlib
+matplotlib.use('Agg')  # headless backend — must precede pyplot import
+import matplotlib.pyplot as plt
+import numpy as np
 
 GRIDFINITY_UNIT_MM = 42.0
 ITEM_GAP_MM = 2.0
@@ -133,6 +139,10 @@ def _mesh_to_xml(object_id: int, vertices: list, triangles: list) -> str:
     return buf.getvalue()
 
 
+# TODO: expose PLATE_WIDTH_MM / PLATE_DEPTH_MM as CLI arguments (and eventually a UI input)
+# so users can target different build volumes without editing source.
+
+
 def _component_to_xml(wrapper_id: int, mesh_id: int) -> str:
     """Render a component-wrapper <object> that references a shared mesh object.
 
@@ -202,6 +212,120 @@ def autoarrange_plates(instances: list) -> list:
 
     commit_plate()
     return plates
+
+
+THUMBNAIL_PX = 512
+_BG_COLOR = '#0d0d14'
+_PLATE_COLOR = '#1a1a28'
+_GRID_COLOR = '#2a2a3c'
+_BIN_COLOR = '#3B82F6'
+
+
+def generate_plate_thumbnail(
+    plate_items: list,
+    mesh_by_filename: dict,
+    plate_width_mm: float = PLATE_WIDTH_MM,
+    plate_depth_mm: float = PLATE_DEPTH_MM,
+) -> bytes:
+    """Render a perspective PNG thumbnail of one plate using actual STL geometry.
+
+    plate_items: placed items from autoarrange_plates (each has x, y, filename)
+    mesh_by_filename: filename → (object_id, vertices, triangles) from parse_binary_stl
+    Returns raw PNG bytes for embedding in the 3MF ZIP.
+    """
+    fig = plt.figure(figsize=(THUMBNAIL_PX / 100, THUMBNAIL_PX / 100), dpi=100)
+    fig.patch.set_facecolor(_BG_COLOR)
+    ax = fig.add_axes([0, 0, 1, 1], projection='3d')
+    ax.patch.set_facecolor(_BG_COLOR)
+
+    # Plate surface
+    px = np.array([[0, plate_width_mm], [0, plate_width_mm]])
+    py = np.array([[0, 0], [plate_depth_mm, plate_depth_mm]])
+    ax.plot_surface(px, py, np.zeros_like(px), color=_PLATE_COLOR, linewidth=0, zorder=0)
+
+    # Gridfinity unit grid lines on the plate floor
+    for gx in np.arange(GRIDFINITY_UNIT_MM, plate_width_mm, GRIDFINITY_UNIT_MM):
+        ax.plot([gx, gx], [0, plate_depth_mm], [0, 0], color=_GRID_COLOR, linewidth=0.5, zorder=1)
+    for gy in np.arange(GRIDFINITY_UNIT_MM, plate_depth_mm, GRIDFINITY_UNIT_MM):
+        ax.plot([0, plate_width_mm], [gy, gy], [0, 0], color=_GRID_COLOR, linewidth=0.5, zorder=1)
+
+    max_z = 10.0
+    for item in plate_items:
+        _, vertices, triangles = mesh_by_filename[item['filename']]
+        verts = np.array(vertices, dtype=np.float64)
+        tris = np.array(triangles, dtype=np.int32)
+        verts[:, 0] += item['x']
+        verts[:, 1] += item['y']
+        max_z = max(max_z, float(verts[:, 2].max()))
+        ax.plot_trisurf(
+            verts[:, 0], verts[:, 1], verts[:, 2],
+            triangles=tris,
+            color=_BIN_COLOR,
+            shade=True,
+            linewidth=0,
+            antialiased=False,
+            zorder=2,
+        )
+
+    ax.set_xlim(0, plate_width_mm)
+    ax.set_ylim(0, plate_depth_mm)
+    ax.set_zlim(0, max_z)
+    # Compress Z so bins don't dominate — keep plate footprint prominent
+    ax.set_box_aspect([plate_width_mm, plate_depth_mm, max_z * 1.2])
+    ax.view_init(elev=35, azim=-50)
+    ax.set_axis_off()
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', facecolor=_BG_COLOR, edgecolor='none',
+                bbox_inches='tight', dpi=100)
+    plt.close(fig)
+    return buf.getvalue()
+
+
+def build_model_settings_xml(plate_obj_ids: list, plate_thumbnails: list | None = None) -> str:
+    """Build OrcaSlicer-compatible Metadata/model_settings.config XML.
+
+    plate_obj_ids: list of plates; each plate is a list of wrapper object IDs
+    (the XML `id` attribute of the component-wrapper <object> elements that
+    appear as <item> entries in <build>).
+
+    OrcaSlicer identifies plate membership via <model_instance> children, each
+    carrying three <metadata> elements:
+      - object_id:   the wrapper's XML object ID from 3dmodel.model
+      - instance_id: 0-based instance index within that object (always 0 here
+                     since every wrapper is instantiated exactly once in <build>)
+      - identify_id: stable unique identifier (we reuse the object ID)
+
+    See: OrcaSlicer src/libslic3r/Format/bbs_3mf.cpp (INSTANCE_TAG, PLATERID_ATTR)
+    """
+    plate_sections: list = []
+    for plate_idx, obj_ids in enumerate(plate_obj_ids, start=1):
+        thumb_path = (plate_thumbnails or [])[plate_idx - 1] if plate_thumbnails else None
+        thumb_line = f'  <metadata key="thumbnail_file" value="{thumb_path}"/>\n' if thumb_path else ''
+        instance_lines = []
+        for oid in obj_ids:
+            instance_lines.append(
+                f'  <model_instance>\n'
+                f'    <metadata key="object_id" value="{oid}"/>\n'
+                f'    <metadata key="instance_id" value="0"/>\n'
+                f'    <metadata key="identify_id" value="{oid}"/>\n'
+                f'  </model_instance>'
+            )
+        plate_sections.append(
+            f'<plate>\n'
+            f'  <metadata key="plater_id" value="{plate_idx}"/>\n'
+            f'  <metadata key="plater_name" value="Plate {plate_idx}"/>\n'
+            f'  <metadata key="locked" value="false"/>\n'
+            + thumb_line
+            + '\n'.join(instance_lines) + '\n'
+            + '</plate>'
+        )
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<config>\n'
+        + '\n'.join(plate_sections) + '\n'
+        '</config>\n'
+    )
 
 
 def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
@@ -277,24 +401,15 @@ def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
         '</model>\n'
     )
 
-    # ── 5. Build OrcaSlicer plate-assignment metadata ─────────────────────────
-    plate_sections: list = []
-    for plate_idx, obj_ids in enumerate(plate_obj_ids, start=1):
-        id_lines = '\n'.join(f'      <id value="{oid}"/>' for oid in obj_ids)
-        plate_sections.append(
-            f'  <plate>\n'
-            f'    <id value="{plate_idx}"/>\n'
-            f'    <objects_id>\n'
-            f'{id_lines}\n'
-            f'    </objects_id>\n'
-            f'  </plate>'
-        )
-    model_settings_xml = (
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<config>\n'
-        + '\n'.join(plate_sections) + '\n'
-        '</config>\n'
-    )
+    # ── 5. Generate plate thumbnails and build metadata ───────────────────────
+    plate_thumbnail_paths: list = []
+    plate_thumbnail_bytes: list = []
+    for plate_idx, plate_items in enumerate(plates, start=1):
+        thumb_path = f'Metadata/plate_{plate_idx}.png'
+        plate_thumbnail_paths.append(thumb_path)
+        plate_thumbnail_bytes.append(generate_plate_thumbnail(plate_items, mesh_by_filename))
+
+    model_settings_xml = build_model_settings_xml(plate_obj_ids, plate_thumbnail_paths)
 
     # ── 6. Write ZIP ──────────────────────────────────────────────────────────
     content_types = textwrap.dedent("""\
@@ -305,7 +420,9 @@ def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
           <Default Extension="model"
             ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>
           <Default Extension="config"
-            ContentType="application/octet-stream"/>
+            ContentType="application/xml"/>
+          <Default Extension="png"
+            ContentType="image/png"/>
         </Types>
         """)
 
@@ -334,6 +451,8 @@ def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
         zf.writestr('3D/model.model', model_xml)
         zf.writestr('3D/_rels/model.model.rels', model_rels)
         zf.writestr('Metadata/model_settings.config', model_settings_xml)
+        for thumb_path, thumb_bytes in zip(plate_thumbnail_paths, plate_thumbnail_bytes):
+            zf.writestr(thumb_path, thumb_bytes)
 
 
 if __name__ == '__main__':

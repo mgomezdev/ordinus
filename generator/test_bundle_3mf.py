@@ -6,7 +6,45 @@ import traceback
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from bundle_3mf import autoarrange_plates, PLATE_WIDTH_MM, PLATE_DEPTH_MM, ITEM_GAP_MM, GRIDFINITY_UNIT_MM
+import io
+import xml.etree.ElementTree as ET
+from PIL import Image
+
+from bundle_3mf import (
+    autoarrange_plates,
+    build_model_settings_xml,
+    generate_plate_thumbnail,
+    PLATE_WIDTH_MM, PLATE_DEPTH_MM, ITEM_GAP_MM, GRIDFINITY_UNIT_MM, THUMBNAIL_PX,
+)
+
+
+def _make_box_mesh(w: float, d: float, h: float = 42.0):
+    """Minimal axis-aligned box mesh (8 verts, 12 tris) for use in tests."""
+    verts = [
+        (0, 0, 0), (w, 0, 0), (w, d, 0), (0, d, 0),
+        (0, 0, h), (w, 0, h), (w, d, h), (0, d, h),
+    ]
+    tris = [
+        (0, 1, 2), (0, 2, 3),  # bottom
+        (4, 5, 6), (4, 6, 7),  # top
+        (0, 1, 5), (0, 5, 4),  # front
+        (2, 3, 7), (2, 7, 6),  # back
+        (1, 2, 6), (1, 6, 5),  # right
+        (0, 3, 7), (0, 7, 4),  # left
+    ]
+    return verts, tris
+
+
+def _mesh_by_filename(plate_items: list) -> dict:
+    """Build a mock mesh_by_filename dict for a list of placed items."""
+    result = {}
+    oid = 1
+    for item in plate_items:
+        fname = item['filename']
+        if fname not in result:
+            result[fname] = (oid, *_make_box_mesh(item['width_mm'], item['depth_mm']))
+            oid += 1
+    return result
 
 
 def _item(filename, w, d):
@@ -114,6 +152,123 @@ def test_single_shelf_width_boundary():
     assert all(p['y'] == 0.0 for p in plates[0])  # all on same shelf
 
 
+def _parse_config(xml_str: str):
+    """Parse model_settings.config XML and return the ElementTree root."""
+    return ET.fromstring(xml_str.split('\n', 1)[1])  # skip <?xml?> declaration
+
+
+def test_model_settings_empty_plates():
+    xml = build_model_settings_xml([])
+    root = ET.fromstring(xml.split('\n', 1)[1])
+    assert root.tag == 'config'
+    assert list(root) == []
+
+
+def test_model_settings_single_plate_single_object():
+    xml = build_model_settings_xml([[5]])
+    root = ET.fromstring(xml.split('\n', 1)[1])
+    plates = root.findall('plate')
+    assert len(plates) == 1
+    plate = plates[0]
+    # plater_id must be 1
+    plater_id = next(m for m in plate.findall('metadata') if m.get('key') == 'plater_id')
+    assert plater_id.get('value') == '1'
+    # one model_instance
+    instances = plate.findall('model_instance')
+    assert len(instances) == 1
+    meta = {m.get('key'): m.get('value') for m in instances[0].findall('metadata')}
+    assert meta['object_id'] == '5'
+    assert meta['instance_id'] == '0'
+    assert meta['identify_id'] == '5'
+
+
+def test_model_settings_two_plates():
+    xml = build_model_settings_xml([[2, 3], [4]])
+    root = ET.fromstring(xml.split('\n', 1)[1])
+    plates = root.findall('plate')
+    assert len(plates) == 2
+    # plate 1 has two instances, plate 2 has one
+    assert len(plates[0].findall('model_instance')) == 2
+    assert len(plates[1].findall('model_instance')) == 1
+    # plater_id values are 1 and 2
+    def plater_id(plate): return next(m for m in plate.findall('metadata') if m.get('key') == 'plater_id').get('value')
+    assert plater_id(plates[0]) == '1'
+    assert plater_id(plates[1]) == '2'
+
+
+def test_model_settings_object_ids_preserved():
+    obj_ids = [10, 11, 12]
+    xml = build_model_settings_xml([obj_ids])
+    root = ET.fromstring(xml.split('\n', 1)[1])
+    instances = root.find('plate').findall('model_instance')
+    found_ids = [next(m for m in inst.findall('metadata') if m.get('key') == 'object_id').get('value')
+                 for inst in instances]
+    assert found_ids == ['10', '11', '12']
+
+
+def test_model_settings_no_objects_id_element():
+    """Ensure the old <objects_id> format is not present."""
+    xml = build_model_settings_xml([[1, 2]])
+    assert '<objects_id>' not in xml
+    assert '<id value=' not in xml
+
+
+def test_model_settings_locked_false():
+    xml = build_model_settings_xml([[1]])
+    root = ET.fromstring(xml.split('\n', 1)[1])
+    locked = next(m for m in root.find('plate').findall('metadata') if m.get('key') == 'locked')
+    assert locked.get('value') == 'false'
+
+
+def test_model_settings_thumbnail_file_included():
+    xml = build_model_settings_xml([[1]], plate_thumbnails=['Metadata/plate_1.png'])
+    root = ET.fromstring(xml.split('\n', 1)[1])
+    thumb = next(m for m in root.find('plate').findall('metadata') if m.get('key') == 'thumbnail_file')
+    assert thumb.get('value') == 'Metadata/plate_1.png'
+
+
+def test_model_settings_thumbnail_omitted_when_not_provided():
+    xml = build_model_settings_xml([[1]])
+    assert 'thumbnail_file' not in xml
+
+
+def test_model_settings_thumbnail_per_plate():
+    xml = build_model_settings_xml([[1], [2]], plate_thumbnails=['Metadata/plate_1.png', 'Metadata/plate_2.png'])
+    root = ET.fromstring(xml.split('\n', 1)[1])
+    plates = root.findall('plate')
+    for i, plate in enumerate(plates, start=1):
+        thumb = next(m for m in plate.findall('metadata') if m.get('key') == 'thumbnail_file')
+        assert thumb.get('value') == f'Metadata/plate_{i}.png'
+
+
+def test_generate_plate_thumbnail_returns_valid_png():
+    items = [{'x': 0.0, 'y': 0.0, 'width_mm': 84.0, 'depth_mm': 42.0, 'filename': 'a.stl'}]
+    png_bytes = generate_plate_thumbnail(items, _mesh_by_filename(items))
+    img = Image.open(io.BytesIO(png_bytes))
+    assert img.format == 'PNG'
+    assert img.size[0] > 100 and img.size[1] > 100
+
+
+def test_generate_plate_thumbnail_empty_plate():
+    # Empty plate has no meshes to look up — passes an empty mesh dict
+    png_bytes = generate_plate_thumbnail([], {})
+    img = Image.open(io.BytesIO(png_bytes))
+    assert img.format == 'PNG'
+    assert img.size[0] > 100 and img.size[1] > 100
+
+
+def test_generate_plate_thumbnail_multiple_items():
+    items = [
+        {'x': 0.0,  'y': 0.0,  'width_mm': 84.0,  'depth_mm': 42.0,  'filename': 'a.stl'},
+        {'x': 86.0, 'y': 0.0,  'width_mm': 42.0,  'depth_mm': 42.0,  'filename': 'b.stl'},
+        {'x': 0.0,  'y': 44.0, 'width_mm': 126.0, 'depth_mm': 84.0,  'filename': 'c.stl'},
+    ]
+    png_bytes = generate_plate_thumbnail(items, _mesh_by_filename(items))
+    img = Image.open(io.BytesIO(png_bytes))
+    assert img.format == 'PNG'
+    assert img.size[0] > 100 and img.size[1] > 100
+
+
 if __name__ == '__main__':
     tests = [
         test_empty_manifest,
@@ -127,6 +282,18 @@ if __name__ == '__main__':
         test_all_items_have_filename_preserved,
         test_positions_are_non_negative,
         test_single_shelf_width_boundary,
+        test_model_settings_empty_plates,
+        test_model_settings_single_plate_single_object,
+        test_model_settings_two_plates,
+        test_model_settings_object_ids_preserved,
+        test_model_settings_no_objects_id_element,
+        test_model_settings_locked_false,
+        test_model_settings_thumbnail_file_included,
+        test_model_settings_thumbnail_omitted_when_not_provided,
+        test_model_settings_thumbnail_per_plate,
+        test_generate_plate_thumbnail_returns_valid_png,
+        test_generate_plate_thumbnail_empty_plate,
+        test_generate_plate_thumbnail_multiple_items,
     ]
     failed = 0
     for test in tests:
