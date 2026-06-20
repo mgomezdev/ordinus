@@ -19,6 +19,7 @@ import matplotlib
 matplotlib.use('Agg')  # headless backend — must precede pyplot import
 import matplotlib.pyplot as plt
 import numpy as np
+from rectpack import newPacker, PackingMode, PackingBin, SORT_LSIDE
 
 GRIDFINITY_UNIT_MM = 42.0
 ITEM_GAP_MM = 2.0
@@ -159,59 +160,37 @@ def _component_to_xml(wrapper_id: int, mesh_id: int) -> str:
 
 
 def autoarrange_plates(instances: list) -> list:
-    """Pack instances into PLATE_WIDTH_MM × PLATE_DEPTH_MM plates.
+    """Pack instances onto PLATE_WIDTH_MM × PLATE_DEPTH_MM plates using rectpack.
 
-    Uses a shelf-packing algorithm (First Fit Decreasing Height):
-    items are sorted by depth descending so taller items seed new shelves,
-    and shorter items fill the remaining height on existing shelves.
-
-    instances: list of {'filename': str, 'width_mm': float, 'depth_mm': float}
-    Returns: list of plates; each plate is a list of dicts adding 'x' and 'y'
-             (the bottom-left corner position of the item on the plate).
+    Each item is padded by ITEM_GAP_MM on all sides so parts never touch.
+    Returns list of plates; each plate is a list of dicts adding 'x' and 'y'
+    (the bottom-left corner of the item, gap already stripped out).
     """
-    sorted_items = sorted(instances, key=lambda it: (-it['depth_mm'], -it['width_mm']))
+    if not instances:
+        return []
 
-    plates: list = []
-    current_items: list = []
-    # Each shelf: {'y': float, 'height': float, 'x_cursor': float}
-    shelves: list = []
+    pad = ITEM_GAP_MM
+    total_area = sum((i['width_mm'] + pad) * (i['depth_mm'] + pad) for i in instances)
+    plate_area = PLATE_WIDTH_MM * PLATE_DEPTH_MM
+    max_bins = max(int(total_area / plate_area) + 2, len(instances))
 
-    def commit_plate() -> None:
-        nonlocal current_items, shelves
-        if current_items:
-            plates.append(current_items)
-        current_items = []
-        shelves = []
+    packer = newPacker(mode=PackingMode.Offline, bin_algo=PackingBin.BFF,
+                       sort_algo=SORT_LSIDE, rotation=False)
+    for _ in range(max_bins):
+        packer.add_bin(PLATE_WIDTH_MM, PLATE_DEPTH_MM)
+    for i, inst in enumerate(instances):
+        packer.add_rect(inst['width_mm'] + pad, inst['depth_mm'] + pad, rid=i)
+    packer.pack()
 
-    for item in sorted_items:
-        w, d = item['width_mm'], item['depth_mm']
-        placed = False
+    plates_dict: dict = {}
+    for rect in packer.rect_list():
+        bin_idx, x, y, _w, _h, rid = rect
+        inst = instances[rid]
+        if bin_idx not in plates_dict:
+            plates_dict[bin_idx] = []
+        plates_dict[bin_idx].append({**inst, 'x': x + pad / 2, 'y': y + pad / 2})
 
-        # Try to add to an existing shelf (item must fit in remaining width and shelf height)
-        for shelf in shelves:
-            remaining = PLATE_WIDTH_MM - shelf['x_cursor']
-            if w <= remaining and d <= shelf['height']:
-                current_items.append({**item, 'x': shelf['x_cursor'], 'y': shelf['y']})
-                shelf['x_cursor'] += w + ITEM_GAP_MM
-                placed = True
-                break
-
-        if not placed:
-            # Try starting a new shelf on the current plate
-            y_new = shelves[-1]['y'] + shelves[-1]['height'] + ITEM_GAP_MM if shelves else 0.0
-            if y_new + d <= PLATE_DEPTH_MM and w <= PLATE_WIDTH_MM:
-                shelves.append({'y': y_new, 'height': d, 'x_cursor': w + ITEM_GAP_MM})
-                current_items.append({**item, 'x': 0.0, 'y': y_new})
-                placed = True
-
-        if not placed:
-            # Start a new plate (force-place even if item exceeds plate dimensions)
-            commit_plate()
-            shelves.append({'y': 0.0, 'height': d, 'x_cursor': w + ITEM_GAP_MM})
-            current_items.append({**item, 'x': 0.0, 'y': 0.0})
-
-    commit_plate()
-    return plates
+    return [plates_dict[i] for i in sorted(plates_dict.keys())]
 
 
 THUMBNAIL_PX = 512
@@ -254,7 +233,10 @@ def generate_plate_thumbnail(
         _, vertices, triangles = mesh_by_filename[item['filename']]
         verts = np.array(vertices, dtype=np.float64)
         tris = np.array(triangles, dtype=np.int32)
-        # Mesh is centred at local origin; shift to left/front edge position
+        # Centre mesh at local XY origin and rest on Z=0, then shift to plate position
+        verts[:, 0] -= (verts[:, 0].min() + verts[:, 0].max()) / 2
+        verts[:, 1] -= (verts[:, 1].min() + verts[:, 1].max()) / 2
+        verts[:, 2] -= verts[:, 2].min()
         verts[:, 0] += item['x'] + item['width_mm'] / 2
         verts[:, 1] += item['y'] + item['depth_mm'] / 2
         max_z = max(max_z, float(verts[:, 2].max()))
@@ -356,8 +338,16 @@ def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
     instances: list = []
     for entry in manifest:
         fname = entry['filename']
-        w_mm = entry['widthUnits'] * GRIDFINITY_UNIT_MM
-        d_mm = entry['heightUnits'] * GRIDFINITY_UNIT_MM
+        # Static library items have widthUnits=0 — derive footprint from mesh extents.
+        if entry.get('widthUnits', 0) > 0:
+            w_mm = entry['widthUnits'] * GRIDFINITY_UNIT_MM
+            d_mm = entry['heightUnits'] * GRIDFINITY_UNIT_MM
+        else:
+            _, verts, _ = mesh_by_filename[fname]
+            xs = [v[0] for v in verts]
+            ys = [v[1] for v in verts]
+            w_mm = max(xs) - min(xs)
+            d_mm = max(ys) - min(ys)
         for _ in range(entry['qty']):
             instances.append({'filename': fname, 'width_mm': w_mm, 'depth_mm': d_mm})
 
@@ -381,13 +371,16 @@ def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
             mesh_id = mesh_by_filename[placed['filename']][0]
             objects_xml.append(_component_to_xml(wrapper_id, mesh_id))
 
-            # Gridfinity STL meshes are generated with position="center" (the OpenSCAD
-            # library default), so the mesh is centred at its local origin. autoarrange
-            # returns left/front edge coordinates, so shift by half-dimensions to align
-            # the mesh centre with the intended plate position.
+            # OrcaSlicer centres a component-wrapper's mesh at the local origin before
+            # applying the build-item transform. To land the bottom face at world Z=0:
+            #   tz = (max_z - min_z) / 2
+            # XY: autoarrange returns left/front edge, so shift by half-footprint.
             tx = placed['x'] + placed['width_mm'] / 2
             ty = placed['y'] + placed['depth_mm'] / 2
-            transform = f'1 0 0 0 1 0 0 0 1 {tx:.3f} {ty:.3f} 0'
+            _, verts, _ = mesh_by_filename[placed['filename']]
+            zs = [v[2] for v in verts]
+            tz = (max(zs) - min(zs)) / 2
+            transform = f'1 0 0 0 1 0 0 0 1 {tx:.3f} {ty:.3f} {tz:.3f}'
             items_xml.append(f'    <item objectid="{wrapper_id}" transform="{transform}"/>')
 
             ids_this_plate.append(wrapper_id)
