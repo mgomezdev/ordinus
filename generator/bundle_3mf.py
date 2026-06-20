@@ -24,8 +24,8 @@ import numpy as np
 
 GRIDFINITY_UNIT_MM = 42.0
 ITEM_GAP_MM = 2.0
-PLATE_WIDTH_MM = 250.0
-PLATE_DEPTH_MM = 250.0
+PLATE_WIDTH_MM = 255.0
+PLATE_DEPTH_MM = 255.0
 
 ORCA_SLICER_PATH = os.environ.get(
     'ORCA_SLICER_PATH',
@@ -336,11 +336,19 @@ def build_model_settings_xml(plate_obj_ids: list, plate_thumbnails: list | None 
     )
 
 
-def _write_flat_3mf(manifest: list, stl_dir: str, output_path: str) -> None:
+def _write_flat_3mf(
+    manifest: list,
+    stl_dir: str,
+    output_path: str,
+    plate_width_mm: float = PLATE_WIDTH_MM,
+    plate_depth_mm: float = PLATE_DEPTH_MM,
+) -> None:
     """Write a minimal 3MF with all instances at the origin (no arrangement).
 
     Used as input to OrcaSlicer's --arrange CLI: each unique shape becomes one
     shared mesh object; each instance becomes a component-wrapper at (0,0,0).
+    A Metadata/project_settings.config is embedded so OrcaSlicer uses the
+    correct plate dimensions instead of the user's last-selected machine.
     OrcaSlicer restructures the file during arrangement and exports the result.
     """
     mesh_by_filename: dict = {}
@@ -401,16 +409,28 @@ def _write_flat_3mf(manifest: list, stl_dir: str, output_path: str) -> None:
         </Relationships>
         """)
 
+    # OrcaSlicer reads Metadata/project_settings.config by convention when loading
+    # a 3MF; embedding it here overrides the user's last-selected machine so the
+    # --arrange pass uses our target plate size, not whatever the GUI had open.
+    w, d = int(plate_width_mm), int(plate_depth_mm)
+    project_settings = json.dumps({
+        'printable_area': [f'0x0', f'{w}x0', f'{w}x{d}', f'0x{d}'],
+        'printable_height': 260,
+    }, indent=2)
+
     with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         zf.writestr('[Content_Types].xml', content_types)
         zf.writestr('_rels/.rels', rels)
         zf.writestr('3D/model.model', model_xml)
+        zf.writestr('Metadata/project_settings.config', project_settings)
 
 
 def arrange_with_orca(flat_3mf: str, output_path: str) -> None:
     """Call OrcaSlicer CLI to auto-arrange a flat 3MF and export the result.
 
-    flat_3mf:    path to the input 3MF with all items at origin
+    flat_3mf:    path to the input 3MF with all items at origin; must include
+                 Metadata/project_settings.config with the target printable_area
+                 so OrcaSlicer uses the correct bed size during arrangement.
     output_path: path where OrcaSlicer writes the arranged 3MF
 
     OrcaSlicer handles plate splitting, transforms, model_settings.config,
