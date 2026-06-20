@@ -539,7 +539,11 @@ def _bundle_legacy(manifest: list, stl_dir: str, output_path: str) -> None:
             # the mesh centre with the intended plate position.
             tx = placed['x'] + placed['width_mm'] / 2
             ty = placed['y'] + placed['depth_mm'] / 2
-            transform = f'1 0 0 0 1 0 0 0 1 {tx:.3f} {ty:.3f} 0'
+            # Lift by the magnitude of the lowest vertex so the bin rests on Z=0.
+            # Gridfinity base tabs extend below Z=0 in the mesh (~−3.25 mm).
+            _, verts, _ = mesh_by_filename[placed['filename']]
+            tz = -min(v[2] for v in verts)
+            transform = f'1 0 0 0 1 0 0 0 1 {tx:.3f} {ty:.3f} {tz:.3f}'
             items_xml.append(f'    <item objectid="{wrapper_id}" transform="{transform}"/>')
 
             ids_this_plate.append(wrapper_id)
