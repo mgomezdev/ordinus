@@ -1,6 +1,6 @@
 import type { Client } from '@libsql/client';
 import type { Logger } from 'pino';
-import { readFileSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
 import { resolve, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { computeParamHash } from '../utils/generationParams.js';
@@ -117,7 +117,12 @@ export async function reseedLibraryData(client: Client, logger: Logger): Promise
         const destScadDir = resolve(generatorModelsDir, lib.id);
         mkdirSync(destScadDir, { recursive: true });
         const destScad = resolve(destScadDir, libIndex.baseModel);
-        copyFileSync(srcScad, destScad);
+        // Strip UTF-8 BOM if present — OpenSCAD fails to parse files with BOM
+        const scadBytes = readFileSync(srcScad);
+        const stripped = scadBytes[0] === 0xef && scadBytes[1] === 0xbb && scadBytes[2] === 0xbf
+          ? scadBytes.subarray(3)
+          : scadBytes;
+        writeFileSync(destScad, stripped);
         baseModelPath = destScad;
         logger.info({ srcScad, destScad }, 'Copied base model');
       } else {

@@ -12,6 +12,7 @@ import os
 import struct
 import sys
 import textwrap
+import uuid
 import zipfile
 from io import StringIO
 
@@ -122,13 +123,32 @@ def build_generate_params(item: dict) -> dict:
     return params
 
 
-def _mesh_to_xml(object_id: int, vertices: list, triangles: list) -> str:
-    """Render one <object> element (mesh definition) for 3MF model XML."""
+def _mesh_to_external_model(vertices: list, triangles: list) -> str:
+    """Render a standalone 3MF model XML file for one mesh, centered at origin.
+
+    Each external file always uses object id="1" (local scope).  The calling
+    wrapper references it via p:path + objectid="1".
+    """
+    xs = [v[0] for v in vertices]
+    ys = [v[1] for v in vertices]
+    zs = [v[2] for v in vertices]
+    cx = (min(xs) + max(xs)) / 2
+    cy = (min(ys) + max(ys)) / 2
+    cz = (min(zs) + max(zs)) / 2
+    centered = [(v[0] - cx, v[1] - cy, v[2] - cz) for v in vertices]
+
     buf = StringIO()
-    buf.write(f'    <object id="{object_id}" type="model">\n')
+    buf.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+    buf.write('<model unit="millimeter" xml:lang="en-US"\n')
+    buf.write('    xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"\n')
+    buf.write('    xmlns:BambuStudio="http://schemas.bambulab.com/package/2021"\n')
+    buf.write('    xmlns:p="http://schemas.microsoft.com/3dmanufacturing/production/2015/06"\n')
+    buf.write('    requiredextensions="p">\n')
+    buf.write('  <resources>\n')
+    buf.write(f'    <object id="1" p:UUID="{uuid.uuid4()}" type="model">\n')
     buf.write('      <mesh>\n')
     buf.write('        <vertices>\n')
-    for x, y, z in vertices:
+    for x, y, z in centered:
         buf.write(f'          <vertex x="{x:.6f}" y="{y:.6f}" z="{z:.6f}"/>\n')
     buf.write('        </vertices>\n')
     buf.write('        <triangles>\n')
@@ -137,6 +157,9 @@ def _mesh_to_xml(object_id: int, vertices: list, triangles: list) -> str:
     buf.write('        </triangles>\n')
     buf.write('      </mesh>\n')
     buf.write('    </object>\n')
+    buf.write('  </resources>\n')
+    buf.write('  <build/>\n')
+    buf.write('</model>\n')
     return buf.getvalue()
 
 
@@ -144,16 +167,13 @@ def _mesh_to_xml(object_id: int, vertices: list, triangles: list) -> str:
 # so users can target different build volumes without editing source.
 
 
-def _component_to_xml(wrapper_id: int, mesh_id: int) -> str:
-    """Render a component-wrapper <object> that references a shared mesh object.
-
-    Using components avoids duplicating mesh data for items with the same shape.
-    Each wrapper gets a unique object ID so OrcaSlicer can assign it to a plate.
-    """
+def _component_wrapper_xml(wrapper_id: int, safe_name: str) -> str:
+    """Render a component-wrapper <object> that references an external mesh file via p:path."""
     return (
-        f'    <object id="{wrapper_id}" type="model">\n'
+        f'    <object id="{wrapper_id}" p:UUID="{uuid.uuid4()}" type="model">\n'
         f'      <components>\n'
-        f'        <component objectid="{mesh_id}"/>\n'
+        f'        <component p:path="/3D/Objects/{safe_name}.model" objectid="1"'
+        f' p:UUID="{uuid.uuid4()}" transform="1 0 0 0 1 0 0 0 1 0 0 0"/>\n'
         f'      </components>\n'
         f'    </object>\n'
     )
@@ -175,7 +195,7 @@ def autoarrange_plates(instances: list) -> list:
     max_bins = max(int(total_area / plate_area) + 2, len(instances))
 
     packer = newPacker(mode=PackingMode.Offline, bin_algo=PackingBin.BFF,
-                       sort_algo=SORT_LSIDE, rotation=False)
+                       sort_algo=SORT_LSIDE, rotation=True)
     for _ in range(max_bins):
         packer.add_bin(PLATE_WIDTH_MM, PLATE_DEPTH_MM)
     for i, inst in enumerate(instances):
@@ -184,11 +204,21 @@ def autoarrange_plates(instances: list) -> list:
 
     plates_dict: dict = {}
     for rect in packer.rect_list():
-        bin_idx, x, y, _w, _h, rid = rect
+        bin_idx, x, y, packed_w, packed_h, rid = rect
         inst = instances[rid]
         if bin_idx not in plates_dict:
             plates_dict[bin_idx] = []
-        plates_dict[bin_idx].append({**inst, 'x': x + pad / 2, 'y': y + pad / 2})
+        # packed_w/packed_h are the ACTUAL placed dimensions (may be rotated vs original).
+        # Use them for center calculation so items that were rotated 90° don't overlap.
+        placed_w = packed_w - pad
+        placed_h = packed_h - pad
+        plates_dict[bin_idx].append({
+            **inst,
+            'x': x + pad / 2,
+            'y': y + pad / 2,
+            'width_mm': placed_w,
+            'depth_mm': placed_h,
+        })
 
     return [plates_dict[i] for i in sorted(plates_dict.keys())]
 
@@ -265,22 +295,34 @@ def generate_plate_thumbnail(
     return buf.getvalue()
 
 
-def build_model_settings_xml(plate_obj_ids: list, plate_thumbnails: list | None = None) -> str:
+def build_model_settings_xml(
+    plate_obj_ids: list,
+    plate_thumbnails: list | None = None,
+    wrapper_to_part_id: dict | None = None,
+) -> str:
     """Build OrcaSlicer-compatible Metadata/model_settings.config XML.
 
-    plate_obj_ids: list of plates; each plate is a list of wrapper object IDs
-    (the XML `id` attribute of the component-wrapper <object> elements that
-    appear as <item> entries in <build>).
-
-    OrcaSlicer identifies plate membership via <model_instance> children, each
-    carrying three <metadata> elements:
-      - object_id:   the wrapper's XML object ID from 3dmodel.model
-      - instance_id: 0-based instance index within that object (always 0 here
-                     since every wrapper is instantiated exactly once in <build>)
-      - identify_id: stable unique identifier (we reuse the object ID)
-
-    See: OrcaSlicer src/libslic3r/Format/bbs_3mf.cpp (INSTANCE_TAG, PLATERID_ATTR)
+    wrapper_to_part_id: maps wrapper_id → part_id (component_id from the paired
+    OrcaSlicer ID scheme).  OrcaSlicer requires per-instance <object> sections
+    before <plate> sections, and the part_id must match its internal volume ID.
     """
+    wtp = wrapper_to_part_id or {}
+    object_sections: list = []
+    for wrapper_id, part_id in wtp.items():
+        name = f'Object_{wrapper_id}'
+        object_sections.append(
+            f'<object id="{wrapper_id}">\n'
+            f'  <metadata key="name" value="{name}"/>\n'
+            f'  <metadata key="extruder" value="1"/>\n'
+            f'  <part id="{part_id}" subtype="normal_part">\n'
+            f'    <metadata key="name" value="{name}"/>\n'
+            f'    <metadata key="matrix" value="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"/>\n'
+            f'    <mesh_stat edges_fixed="0" degenerate_facets="0" '
+            f'facets_removed="0" facets_reversed="0" backwards_edges="0"/>\n'
+            f'  </part>\n'
+            f'</object>'
+        )
+
     plate_sections: list = []
     for plate_idx, obj_ids in enumerate(plate_obj_ids, start=1):
         thumb_path = (plate_thumbnails or [])[plate_idx - 1] if plate_thumbnails else None
@@ -297,15 +339,18 @@ def build_model_settings_xml(plate_obj_ids: list, plate_thumbnails: list | None 
         plate_sections.append(
             f'<plate>\n'
             f'  <metadata key="plater_id" value="{plate_idx}"/>\n'
-            f'  <metadata key="plater_name" value="Plate {plate_idx}"/>\n'
+            f'  <metadata key="plater_name" value=""/>\n'
             f'  <metadata key="locked" value="false"/>\n'
+            f'  <metadata key="filament_map_mode" value="Auto For Flush"/>\n'
             + thumb_line
             + '\n'.join(instance_lines) + '\n'
             + '</plate>'
         )
+
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<config>\n'
+        + ('\n'.join(object_sections) + '\n' if object_sections else '')
         + '\n'.join(plate_sections) + '\n'
         '</config>\n'
     )
@@ -323,16 +368,19 @@ def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
     manifest: list of {filename, widthUnits, heightUnits, qty, customization}
     """
     # ── 1. Load each unique STL mesh once ────────────────────────────────────
-    mesh_by_filename: dict = {}  # filename → (mesh_obj_id, vertices, triangles)
-    next_mesh_id = 1
+    # mesh_by_filename: filename → (safe_name, vertices, triangles)
+    # safe_name becomes the external file stem: 3D/Objects/{safe_name}.model
+    mesh_by_filename: dict = {}
+    mesh_idx = 0
 
     for entry in manifest:
         fname = entry['filename']
         if fname not in mesh_by_filename:
             stl_path = os.path.join(stl_dir, fname)
             verts, tris = parse_binary_stl(stl_path)
-            mesh_by_filename[fname] = (next_mesh_id, verts, tris)
-            next_mesh_id += 1
+            safe_name = f'Object_{mesh_idx}_{mesh_idx}'
+            mesh_by_filename[fname] = (safe_name, verts, tris)
+            mesh_idx += 1
 
     # ── 2. Expand manifest → flat instance list ───────────────────────────────
     instances: list = []
@@ -343,7 +391,7 @@ def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
             w_mm = entry['widthUnits'] * GRIDFINITY_UNIT_MM
             d_mm = entry['heightUnits'] * GRIDFINITY_UNIT_MM
         else:
-            _, verts, _ = mesh_by_filename[fname]
+            _safe, verts, _ = mesh_by_filename[fname]
             xs = [v[0] for v in verts]
             ys = [v[1] for v in verts]
             w_mm = max(xs) - min(xs)
@@ -355,46 +403,66 @@ def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
     plates = autoarrange_plates(instances)
 
     # ── 4. Build 3MF XML ──────────────────────────────────────────────────────
+    # Use OrcaSlicer's paired ID scheme: one global counter allocates IDs for
+    # both mesh components and wrappers.  Each UNIQUE shape consumes two IDs
+    # (component_id, then wrapper_id); repeated shapes skip the component_id
+    # allocation and reuse the existing one.  Part_id in model_settings.config
+    # = component_id (the lower of the pair), matching OrcaSlicer's own saves.
     objects_xml: list = []
     items_xml: list = []
-    plate_obj_ids: list = []  # [[ids on plate 1], [ids on plate 2], ...]
+    plate_obj_ids: list = []
+    all_wrapper_ids: list = []
+    wrapper_to_part_id: dict = {}   # wrapper_id → part_id (= component_id)
+    fname_to_component_id: dict = {}  # filename → component_id (for shared meshes)
 
-    # Mesh-definition objects
-    for _fname, (mesh_id, verts, tris) in mesh_by_filename.items():
-        objects_xml.append(_mesh_to_xml(mesh_id, verts, tris))
-
-    # Component-wrapper objects (one per instance) and build items
-    wrapper_id = next_mesh_id
-    for plate_items in plates:
+    id_counter = 1
+    for plate_idx, plate_items in enumerate(plates):
+        plate_offset_x = plate_idx * (PLATE_WIDTH_MM + ITEM_GAP_MM)
         ids_this_plate: list = []
         for placed in plate_items:
-            mesh_id = mesh_by_filename[placed['filename']][0]
-            objects_xml.append(_component_to_xml(wrapper_id, mesh_id))
+            fname = placed['filename']
+            safe_name, verts, _ = mesh_by_filename[fname]
 
-            # OrcaSlicer centres a component-wrapper's mesh at the local origin before
-            # applying the build-item transform. To land the bottom face at world Z=0:
-            #   tz = (max_z - min_z) / 2
-            # XY: autoarrange returns left/front edge, so shift by half-footprint.
-            tx = placed['x'] + placed['width_mm'] / 2
-            ty = placed['y'] + placed['depth_mm'] / 2
-            _, verts, _ = mesh_by_filename[placed['filename']]
+            # Allocate component_id only for first occurrence of this shape
+            if fname not in fname_to_component_id:
+                fname_to_component_id[fname] = id_counter
+                id_counter += 1
+            component_id = fname_to_component_id[fname]
+
+            wrapper_id = id_counter
+            id_counter += 1
+
+            objects_xml.append(_component_wrapper_xml(wrapper_id, safe_name))
+            wrapper_to_part_id[wrapper_id] = component_id
+
+            # External mesh is centered at origin (z from -half_h to +half_h).
+            # tz = half_h places the bottom face at world Z=0.
             zs = [v[2] for v in verts]
             tz = (max(zs) - min(zs)) / 2
+            tx = plate_offset_x + placed['x'] + placed['width_mm'] / 2
+            ty = placed['y'] + placed['depth_mm'] / 2
             transform = f'1 0 0 0 1 0 0 0 1 {tx:.3f} {ty:.3f} {tz:.3f}'
-            items_xml.append(f'    <item objectid="{wrapper_id}" transform="{transform}"/>')
+            items_xml.append(
+                f'    <item objectid="{wrapper_id}" p:UUID="{uuid.uuid4()}"'
+                f' transform="{transform}" printable="1"/>'
+            )
 
             ids_this_plate.append(wrapper_id)
-            wrapper_id += 1
+            all_wrapper_ids.append(wrapper_id)
         plate_obj_ids.append(ids_this_plate)
 
+    build_uuid = uuid.uuid4()
     model_xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<model unit="millimeter" xml:lang="en-US"\n'
-        '      xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">\n'
+        '    xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"\n'
+        '    xmlns:BambuStudio="http://schemas.bambulab.com/package/2021"\n'
+        '    xmlns:p="http://schemas.microsoft.com/3dmanufacturing/production/2015/06"\n'
+        '    requiredextensions="p">\n'
         '  <resources>\n'
         + ''.join(objects_xml)
         + '  </resources>\n'
-        '  <build>\n'
+        f'  <build p:UUID="{build_uuid}">\n'
         + '\n'.join(items_xml) + '\n'
         '  </build>\n'
         '</model>\n'
@@ -408,7 +476,7 @@ def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
         plate_thumbnail_paths.append(thumb_path)
         plate_thumbnail_bytes.append(generate_plate_thumbnail(plate_items, mesh_by_filename))
 
-    model_settings_xml = build_model_settings_xml(plate_obj_ids, plate_thumbnail_paths)
+    model_settings_xml = build_model_settings_xml(plate_obj_ids, plate_thumbnail_paths, wrapper_to_part_id)
 
     # ── 6. Write ZIP ──────────────────────────────────────────────────────────
     content_types = textwrap.dedent("""\
@@ -430,25 +498,32 @@ def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
         <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
           <Relationship
             Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"
-            Target="/3D/model.model" Id="rel0"/>
+            Target="/3D/3dmodel.model" Id="rel0"/>
         </Relationships>
         """)
 
-    # Links model.model to the OrcaSlicer plate-config sidecar
-    model_rels = textwrap.dedent("""\
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-          <Relationship
-            Type="http://schemas.bambulab.com/package/2021/model-settings"
-            Target="/Metadata/model_settings.config" Id="rel1"/>
-        </Relationships>
-        """)
+    # 3dmodel.model.rels: one entry per unique external mesh file.
+    rel_entries: list = []
+    for i, (safe_name, _, __) in enumerate(mesh_by_filename.values(), start=1):
+        rel_entries.append(
+            f'  <Relationship Target="/3D/Objects/{safe_name}.model" Id="rel{i}"\n'
+            f'    Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>'
+        )
+    model_rels = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n'
+        + '\n'.join(rel_entries) + '\n'
+        '</Relationships>\n'
+    )
 
     with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         zf.writestr('[Content_Types].xml', content_types)
         zf.writestr('_rels/.rels', rels)
-        zf.writestr('3D/model.model', model_xml)
-        zf.writestr('3D/_rels/model.model.rels', model_rels)
+        zf.writestr('3D/3dmodel.model', model_xml)
+        for fname, (safe_name, verts, tris) in mesh_by_filename.items():
+            zf.writestr(f'3D/Objects/{safe_name}.model',
+                        _mesh_to_external_model(verts, tris))
+        zf.writestr('3D/_rels/3dmodel.model.rels', model_rels)
         zf.writestr('Metadata/model_settings.config', model_settings_xml)
         for thumb_path, thumb_bytes in zip(plate_thumbnail_paths, plate_thumbnail_bytes):
             zf.writestr(thumb_path, thumb_bytes)
