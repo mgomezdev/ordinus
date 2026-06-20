@@ -19,10 +19,15 @@ from bundle_3mf import (
 
 
 def _make_box_mesh(w: float, d: float, h: float = 42.0):
-    """Minimal axis-aligned box mesh (8 verts, 12 tris) for use in tests."""
+    """Minimal centred box mesh (8 verts, 12 tris) mirroring real STL behaviour.
+
+    Gridfinity bins are generated with position="center" so the mesh origin is at
+    the centre of the XY footprint (Z goes from 0 to h).
+    """
+    hw, hd = w / 2, d / 2
     verts = [
-        (0, 0, 0), (w, 0, 0), (w, d, 0), (0, d, 0),
-        (0, 0, h), (w, 0, h), (w, d, h), (0, d, h),
+        (-hw, -hd, 0), (hw, -hd, 0), (hw, hd, 0), (-hw, hd, 0),
+        (-hw, -hd, h), (hw, -hd, h), (hw, hd, h), (-hw, hd, h),
     ]
     tris = [
         (0, 1, 2), (0, 2, 3),  # bottom

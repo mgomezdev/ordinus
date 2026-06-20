@@ -254,8 +254,9 @@ def generate_plate_thumbnail(
         _, vertices, triangles = mesh_by_filename[item['filename']]
         verts = np.array(vertices, dtype=np.float64)
         tris = np.array(triangles, dtype=np.int32)
-        verts[:, 0] += item['x']
-        verts[:, 1] += item['y']
+        # Mesh is centred at local origin; shift to left/front edge position
+        verts[:, 0] += item['x'] + item['width_mm'] / 2
+        verts[:, 1] += item['y'] + item['depth_mm'] / 2
         max_z = max(max_z, float(verts[:, 2].max()))
         ax.plot_trisurf(
             verts[:, 0], verts[:, 1], verts[:, 2],
@@ -380,8 +381,13 @@ def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
             mesh_id = mesh_by_filename[placed['filename']][0]
             objects_xml.append(_component_to_xml(wrapper_id, mesh_id))
 
-            x, y = placed['x'], placed['y']
-            transform = f'1 0 0 0 1 0 0 0 1 {x:.3f} {y:.3f} 0'
+            # Gridfinity STL meshes are generated with position="center" (the OpenSCAD
+            # library default), so the mesh is centred at its local origin. autoarrange
+            # returns left/front edge coordinates, so shift by half-dimensions to align
+            # the mesh centre with the intended plate position.
+            tx = placed['x'] + placed['width_mm'] / 2
+            ty = placed['y'] + placed['depth_mm'] / 2
+            transform = f'1 0 0 0 1 0 0 0 1 {tx:.3f} {ty:.3f} 0'
             items_xml.append(f'    <item objectid="{wrapper_id}" transform="{transform}"/>')
 
             ids_this_plate.append(wrapper_id)
