@@ -3,19 +3,35 @@
 import sys
 import os
 import traceback
+import tempfile
+import xml.etree.ElementTree as ET
+import zipfile
 
 sys.path.insert(0, os.path.dirname(__file__))
 
 import io
-import xml.etree.ElementTree as ET
 from PIL import Image
 
 from bundle_3mf import (
     autoarrange_plates,
     build_model_settings_xml,
     generate_plate_thumbnail,
+    _write_flat_3mf,
+    arrange_with_orca,
+    ORCA_SLICER_PATH,
     PLATE_WIDTH_MM, PLATE_DEPTH_MM, ITEM_GAP_MM, GRIDFINITY_UNIT_MM, THUMBNAIL_PX,
 )
+
+_ORCA_AVAILABLE = os.path.isfile(ORCA_SLICER_PATH)
+
+# Minimal real STL for integration tests (1x1 blank from static library)
+_TEST_STL_DIR = os.path.join(
+    os.path.dirname(__file__), '..', 'server', 'data', 'static-stls', 'modular-utensil'
+)
+_TEST_STL_MANIFEST = [
+    {'filename': '1x1-blank.stl', 'widthUnits': 1, 'heightUnits': 1, 'qty': 2},
+    {'filename': '2x2-blank.stl', 'widthUnits': 2, 'heightUnits': 2, 'qty': 1},
+]
 
 
 def _make_box_mesh(w: float, d: float, h: float = 42.0):
@@ -274,6 +290,97 @@ def test_generate_plate_thumbnail_multiple_items():
     assert img.size[0] > 100 and img.size[1] > 100
 
 
+def test_write_flat_3mf_is_valid_zip():
+    """_write_flat_3mf produces a valid ZIP containing the required 3MF entries."""
+    stl_dir = _TEST_STL_DIR
+    if not os.path.isdir(stl_dir):
+        print('SKIP test_write_flat_3mf_is_valid_zip (STL dir not found)')
+        return
+    with tempfile.NamedTemporaryFile(suffix='.3mf', delete=False) as f:
+        out = f.name
+    try:
+        _write_flat_3mf(_TEST_STL_MANIFEST, stl_dir, out)
+        assert zipfile.is_zipfile(out), 'Output is not a valid ZIP'
+        with zipfile.ZipFile(out) as zf:
+            names = zf.namelist()
+        assert '[Content_Types].xml' in names
+        assert '_rels/.rels' in names
+        assert '3D/model.model' in names
+    finally:
+        os.unlink(out)
+
+
+def test_write_flat_3mf_all_items_at_origin():
+    """All <item> transforms in the flat 3MF should be the identity (0 0 0)."""
+    stl_dir = _TEST_STL_DIR
+    if not os.path.isdir(stl_dir):
+        print('SKIP test_write_flat_3mf_all_items_at_origin (STL dir not found)')
+        return
+    with tempfile.NamedTemporaryFile(suffix='.3mf', delete=False) as f:
+        out = f.name
+    try:
+        _write_flat_3mf(_TEST_STL_MANIFEST, stl_dir, out)
+        with zipfile.ZipFile(out) as zf:
+            model = zf.read('3D/model.model').decode()
+        root = ET.fromstring(model)
+        ns = {'m': 'http://schemas.microsoft.com/3dmanufacturing/core/2015/02'}
+        items = root.findall('.//m:build/m:item', ns)
+        total_qty = sum(e['qty'] for e in _TEST_STL_MANIFEST)
+        assert len(items) == total_qty, f'Expected {total_qty} items, got {len(items)}'
+        for item in items:
+            assert item.get('transform') == '1 0 0 0 1 0 0 0 1 0 0 0', \
+                f'Item {item.get("objectid")} has non-identity transform'
+    finally:
+        os.unlink(out)
+
+
+def test_arrange_with_orca_raises_when_not_found():
+    """arrange_with_orca raises FileNotFoundError when the binary is missing."""
+    import bundle_3mf as bm
+    original = bm.ORCA_SLICER_PATH
+    try:
+        bm.ORCA_SLICER_PATH = '/nonexistent/orca-slicer'
+        raised = False
+        try:
+            arrange_with_orca('/tmp/fake.3mf', '/tmp/out.3mf')
+        except FileNotFoundError:
+            raised = True
+        assert raised, 'Expected FileNotFoundError'
+    finally:
+        bm.ORCA_SLICER_PATH = original
+
+
+def test_arrange_with_orca_produces_valid_3mf():
+    """Integration: OrcaSlicer arranges a flat 3MF and writes a valid output."""
+    if not _ORCA_AVAILABLE:
+        print('SKIP test_arrange_with_orca_produces_valid_3mf (OrcaSlicer not found)')
+        return
+    stl_dir = _TEST_STL_DIR
+    if not os.path.isdir(stl_dir):
+        print('SKIP test_arrange_with_orca_produces_valid_3mf (STL dir not found)')
+        return
+    with tempfile.NamedTemporaryFile(suffix='.3mf', delete=False) as f:
+        flat = f.name
+    with tempfile.NamedTemporaryFile(suffix='.3mf', delete=False) as f:
+        out = f.name
+    try:
+        _write_flat_3mf(_TEST_STL_MANIFEST, stl_dir, flat)
+        arrange_with_orca(flat, out)
+        assert os.path.isfile(out) and os.path.getsize(out) > 1000, \
+            'OrcaSlicer output missing or too small'
+        assert zipfile.is_zipfile(out), 'OrcaSlicer output is not a valid ZIP'
+        with zipfile.ZipFile(out) as zf:
+            names = zf.namelist()
+        assert any('model_settings.config' in n for n in names), \
+            'model_settings.config missing from OrcaSlicer output'
+        assert any('plate_1.png' in n for n in names), \
+            'plate thumbnail missing from OrcaSlicer output'
+    finally:
+        for path in (flat, out):
+            if os.path.exists(path):
+                os.unlink(path)
+
+
 if __name__ == '__main__':
     tests = [
         test_empty_manifest,
@@ -299,6 +406,10 @@ if __name__ == '__main__':
         test_generate_plate_thumbnail_returns_valid_png,
         test_generate_plate_thumbnail_empty_plate,
         test_generate_plate_thumbnail_multiple_items,
+        test_write_flat_3mf_is_valid_zip,
+        test_write_flat_3mf_all_items_at_origin,
+        test_arrange_with_orca_raises_when_not_found,
+        test_arrange_with_orca_produces_valid_3mf,
     ]
     failed = 0
     for test in tests:

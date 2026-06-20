@@ -10,7 +10,9 @@ import io
 import json
 import os
 import struct
+import subprocess
 import sys
+import tempfile
 import textwrap
 import zipfile
 from io import StringIO
@@ -22,8 +24,13 @@ import numpy as np
 
 GRIDFINITY_UNIT_MM = 42.0
 ITEM_GAP_MM = 2.0
-PLATE_WIDTH_MM = 250.0
-PLATE_DEPTH_MM = 250.0
+PLATE_WIDTH_MM = 255.0
+PLATE_DEPTH_MM = 255.0
+
+ORCA_SLICER_PATH = os.environ.get(
+    'ORCA_SLICER_PATH',
+    r'C:\Program Files\OrcaSlicer\orca-slicer.exe',
+)
 DEFAULT_HEIGHT = 8
 DEFAULT_CUSTOMIZATION = {
     'height': DEFAULT_HEIGHT,
@@ -329,16 +336,161 @@ def build_model_settings_xml(plate_obj_ids: list, plate_thumbnails: list | None 
     )
 
 
+def _write_flat_3mf(
+    manifest: list,
+    stl_dir: str,
+    output_path: str,
+    plate_width_mm: float = PLATE_WIDTH_MM,
+    plate_depth_mm: float = PLATE_DEPTH_MM,
+) -> None:
+    """Write a minimal 3MF with all instances at the origin (no arrangement).
+
+    Used as input to OrcaSlicer's --arrange CLI: each unique shape becomes one
+    shared mesh object; each instance becomes a component-wrapper at (0,0,0).
+    A Metadata/project_settings.config is embedded so OrcaSlicer uses the
+    correct plate dimensions instead of the user's last-selected machine.
+    OrcaSlicer restructures the file during arrangement and exports the result.
+    """
+    mesh_by_filename: dict = {}
+    next_id = 1
+
+    for entry in manifest:
+        fname = entry['filename']
+        if fname not in mesh_by_filename:
+            verts, tris = parse_binary_stl(os.path.join(stl_dir, fname))
+            mesh_by_filename[fname] = (next_id, verts, tris)
+            next_id += 1
+
+    objects_xml: list = []
+    items_xml: list = []
+
+    for _fname, (mesh_id, verts, tris) in mesh_by_filename.items():
+        objects_xml.append(_mesh_to_xml(mesh_id, verts, tris))
+
+    wrapper_id = next_id
+    for entry in manifest:
+        mesh_id = mesh_by_filename[entry['filename']][0]
+        for _ in range(entry['qty']):
+            objects_xml.append(_component_to_xml(wrapper_id, mesh_id))
+            items_xml.append(
+                f'    <item objectid="{wrapper_id}" transform="1 0 0 0 1 0 0 0 1 0 0 0"/>'
+            )
+            wrapper_id += 1
+
+    model_xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<model unit="millimeter" xml:lang="en-US"\n'
+        '      xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">\n'
+        '  <resources>\n'
+        + ''.join(objects_xml)
+        + '  </resources>\n'
+        '  <build>\n'
+        + '\n'.join(items_xml) + '\n'
+        '  </build>\n'
+        '</model>\n'
+    )
+
+    content_types = textwrap.dedent("""\
+        <?xml version="1.0" encoding="UTF-8"?>
+        <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+          <Default Extension="rels"
+            ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+          <Default Extension="model"
+            ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>
+        </Types>
+        """)
+
+    rels = textwrap.dedent("""\
+        <?xml version="1.0" encoding="UTF-8"?>
+        <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+          <Relationship
+            Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"
+            Target="/3D/model.model" Id="rel0"/>
+        </Relationships>
+        """)
+
+    # OrcaSlicer reads Metadata/project_settings.config by convention when loading
+    # a 3MF; embedding it here overrides the user's last-selected machine so the
+    # --arrange pass uses our target plate size, not whatever the GUI had open.
+    w, d = int(plate_width_mm), int(plate_depth_mm)
+    project_settings = json.dumps({
+        'printable_area': [f'0x0', f'{w}x0', f'{w}x{d}', f'0x{d}'],
+        'printable_height': 260,
+    }, indent=2)
+
+    with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr('[Content_Types].xml', content_types)
+        zf.writestr('_rels/.rels', rels)
+        zf.writestr('3D/model.model', model_xml)
+        zf.writestr('Metadata/project_settings.config', project_settings)
+
+
+def arrange_with_orca(flat_3mf: str, output_path: str) -> None:
+    """Call OrcaSlicer CLI to auto-arrange a flat 3MF and export the result.
+
+    flat_3mf:    path to the input 3MF with all items at origin; must include
+                 Metadata/project_settings.config with the target printable_area
+                 so OrcaSlicer uses the correct bed size during arrangement.
+    output_path: path where OrcaSlicer writes the arranged 3MF
+
+    OrcaSlicer handles plate splitting, transforms, model_settings.config,
+    and per-plate PNG thumbnails — we get all of that for free.
+
+    Raises FileNotFoundError if ORCA_SLICER_PATH doesn't exist.
+    Raises RuntimeError if OrcaSlicer exits non-zero or produces no output.
+    """
+    if not os.path.isfile(ORCA_SLICER_PATH):
+        raise FileNotFoundError(
+            f'OrcaSlicer not found at {ORCA_SLICER_PATH}. '
+            f'Set the ORCA_SLICER_PATH env var to override.'
+        )
+
+    result = subprocess.run(
+        [ORCA_SLICER_PATH, '--arrange', '1', '--ensure-on-bed',
+         '--export-3mf', output_path, flat_3mf],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+
+    if result.returncode != 0 or not os.path.isfile(output_path):
+        raise RuntimeError(
+            f'OrcaSlicer arrangement failed (exit {result.returncode}):\n{result.stderr}'
+        )
+
+
 def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
     """Bundle STL files from stl_dir into output_path (.3mf) per manifest.
+
+    When ORCA_SLICER_PATH points to a valid OrcaSlicer binary, delegates plate
+    arrangement, thumbnail generation, and model_settings.config to OrcaSlicer
+    via its --arrange CLI.  Falls back to the internal shelf-packing algorithm
+    when OrcaSlicer is unavailable (e.g. in CI or Docker without OrcaSlicer).
+
+    manifest: list of {filename, widthUnits, heightUnits, qty, customization}
+    """
+    if os.path.isfile(ORCA_SLICER_PATH):
+        with tempfile.NamedTemporaryFile(suffix='.3mf', delete=False) as tmp:
+            flat_path = tmp.name
+        try:
+            _write_flat_3mf(manifest, stl_dir, flat_path)
+            arrange_with_orca(flat_path, output_path)
+        finally:
+            if os.path.exists(flat_path):
+                os.unlink(flat_path)
+        return
+
+    _bundle_legacy(manifest, stl_dir, output_path)
+
+
+def _bundle_legacy(manifest: list, stl_dir: str, output_path: str) -> None:
+    """Shelf-packing fallback used when OrcaSlicer is not available.
 
     Creates an OrcaSlicer-compatible 3MF with:
     - Shared mesh definitions (one per unique STL shape)
     - Per-instance component-wrapper objects so each copy has a unique object ID
     - Metadata/model_settings.config assigning objects to plates
     - Items arranged on 250×250 mm plates via shelf packing
-
-    manifest: list of {filename, widthUnits, heightUnits, qty, customization}
     """
     # ── 1. Load each unique STL mesh once ────────────────────────────────────
     mesh_by_filename: dict = {}  # filename → (mesh_obj_id, vertices, triangles)
