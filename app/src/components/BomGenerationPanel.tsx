@@ -4,11 +4,12 @@ import { triggerBomGeneration, getBomGeneration, getFileDownloadUrl } from '../a
 
 interface BomGenerationPanelProps {
   layoutId: number | null;
+  layoutTitle: string;
   bomItems: BOMItem[];
   accessToken: string | null;
 }
 
-export function BomGenerationPanel({ layoutId, bomItems, accessToken }: BomGenerationPanelProps) {
+export function BomGenerationPanel({ layoutId, layoutTitle, bomItems, accessToken }: BomGenerationPanelProps) {
   const [generation, setGeneration] = useState<ApiBomGeneration | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,9 +84,10 @@ export function BomGenerationPanel({ layoutId, bomItems, accessToken }: BomGener
       }
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
+      const safeTitle = layoutTitle.replace(/[^a-zA-Z0-9_\- ]/g, '').trim() || 'layout';
       const a = document.createElement('a');
       a.href = url;
-      a.download = threeMfFilename;
+      a.download = `${safeTitle}.3mf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
