@@ -215,16 +215,20 @@ def autoarrange_plates(instances: list) -> list:
         inst = instances[rid]
         if bin_idx not in plates_dict:
             plates_dict[bin_idx] = []
-        # packed_w/packed_h are the ACTUAL placed dimensions (may be rotated vs original).
-        # Use them for center calculation so items that were rotated 90° don't overlap.
-        placed_w = packed_w - pad
-        placed_h = packed_h - pad
+        # Detect if rectpack rotated the item 90° (dimensions are swapped vs original).
+        # When rotated, the placed footprint uses depth as width and width as depth.
+        # We record this so _bundle_legacy can apply a matching world-space rotation
+        # to the mesh, keeping geometry aligned with the packing footprint.
+        was_rotated = abs(packed_w - (inst['depth_mm'] + pad)) < 0.01
+        placed_w = inst['depth_mm'] if was_rotated else inst['width_mm']
+        placed_h = inst['width_mm'] if was_rotated else inst['depth_mm']
         plates_dict[bin_idx].append({
             **inst,
             'x': x + pad / 2,
             'y': y + pad / 2,
             'width_mm': placed_w,
             'depth_mm': placed_h,
+            'rotated': was_rotated,
         })
 
     return [plates_dict[i] for i in sorted(plates_dict.keys())]
@@ -567,8 +571,22 @@ def _bundle_legacy(manifest: list, stl_dir: str, output_path: str) -> None:
     wrapper_to_part_id: dict = {}   # wrapper_id → part_id (= component_id)
     fname_to_component_id: dict = {}  # filename → component_id (for shared meshes)
 
+    # OrcaSlicer identifies plate membership by world-space position, not solely by
+    # model_settings.config.  Plates are laid out in a 2-column grid:
+    #   col = plate_idx % 2,  row = plate_idx // 2
+    #   x_offset = col * PLATE_WIDTH_MM
+    #   y_offset = -row * PLATE_DEPTH_MM   (rows extend downward / negative Y)
+    # This matches the coordinate layout OrcaSlicer uses when it saves a multi-plate
+    # project (verified against the reference 3MF in docs/reference 3mf/).
+    PLATE_COLS = 2
+
     id_counter = 1
-    for plate_items in plates:
+    for plate_idx, plate_items in enumerate(plates):
+        col = plate_idx % PLATE_COLS
+        row = plate_idx // PLATE_COLS
+        plate_offset_x = col * PLATE_WIDTH_MM
+        plate_offset_y = -row * PLATE_DEPTH_MM
+
         ids_this_plate: list = []
         for placed in plate_items:
             fname = placed['filename']
@@ -586,14 +604,15 @@ def _bundle_legacy(manifest: list, stl_dir: str, output_path: str) -> None:
             objects_xml.append(_component_wrapper_xml(wrapper_id, safe_name))
             wrapper_to_part_id[wrapper_id] = component_id
 
-            # Each plate is its own coordinate system starting at (0,0).
-            # Do NOT add a plate offset — OrcaSlicer maps each plate's items
-            # into [0, PLATE_WIDTH_MM] x [0, PLATE_DEPTH_MM] independently.
             zs = [v[2] for v in verts]
             tz = (max(zs) - min(zs)) / 2
-            tx = placed['x'] + placed['width_mm'] / 2
-            ty = placed['y'] + placed['depth_mm'] / 2
-            transform = f'1 0 0 0 1 0 0 0 1 {tx:.3f} {ty:.3f} {tz:.3f}'
+            tx = plate_offset_x + placed['x'] + placed['width_mm'] / 2
+            ty = plate_offset_y + placed['y'] + placed['depth_mm'] / 2
+            # When the packer rotated the item 90° CCW, apply a matching world-space
+            # rotation so the external mesh (which is axis-aligned) appears rotated.
+            # CCW 90° around Z: (x,y) → (y,−x), matrix row-major: 0 1 0 −1 0 0 0 0 1
+            rot = '0 1 0 -1 0 0 0 0 1' if placed.get('rotated') else '1 0 0 0 1 0 0 0 1'
+            transform = f'{rot} {tx:.3f} {ty:.3f} {tz:.3f}'
             items_xml.append(
                 f'    <item objectid="{wrapper_id}" p:UUID="{uuid.uuid4()}"'
                 f' transform="{transform}" printable="1"/>'
