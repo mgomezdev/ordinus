@@ -568,8 +568,7 @@ def _bundle_legacy(manifest: list, stl_dir: str, output_path: str) -> None:
     fname_to_component_id: dict = {}  # filename → component_id (for shared meshes)
 
     id_counter = 1
-    for plate_idx, plate_items in enumerate(plates):
-        plate_offset_x = plate_idx * (PLATE_WIDTH_MM + ITEM_GAP_MM)
+    for plate_items in plates:
         ids_this_plate: list = []
         for placed in plate_items:
             fname = placed['filename']
@@ -587,11 +586,12 @@ def _bundle_legacy(manifest: list, stl_dir: str, output_path: str) -> None:
             objects_xml.append(_component_wrapper_xml(wrapper_id, safe_name))
             wrapper_to_part_id[wrapper_id] = component_id
 
-            # External mesh is centered at origin (z from -half_h to +half_h).
-            # tz = half_h places the bottom face at world Z=0.
+            # Each plate is its own coordinate system starting at (0,0).
+            # Do NOT add a plate offset — OrcaSlicer maps each plate's items
+            # into [0, PLATE_WIDTH_MM] x [0, PLATE_DEPTH_MM] independently.
             zs = [v[2] for v in verts]
             tz = (max(zs) - min(zs)) / 2
-            tx = plate_offset_x + placed['x'] + placed['width_mm'] / 2
+            tx = placed['x'] + placed['width_mm'] / 2
             ty = placed['y'] + placed['depth_mm'] / 2
             transform = f'1 0 0 0 1 0 0 0 1 {tx:.3f} {ty:.3f} {tz:.3f}'
             items_xml.append(
