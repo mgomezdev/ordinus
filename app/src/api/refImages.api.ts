@@ -12,35 +12,18 @@ export async function fetchRefImages(
   return result.data;
 }
 
-export async function uploadRefImage(
-  accessToken: string,
-  file: File,
-): Promise<ApiRefImage> {
+async function uploadToEndpoint(endpoint: string, accessToken: string, file: File): Promise<ApiRefImage> {
   const formData = new FormData();
   formData.append('image', file);
-
-  const result = await apiFetch<ApiResponse<ApiRefImage>>(
-    '/ref-images',
-    { method: 'POST', body: formData },
-    accessToken,
-  );
+  const result = await apiFetch<ApiResponse<ApiRefImage>>(endpoint, { method: 'POST', body: formData }, accessToken);
   return result.data;
 }
 
-export async function uploadGlobalRefImage(
-  accessToken: string,
-  file: File,
-): Promise<ApiRefImage> {
-  const formData = new FormData();
-  formData.append('image', file);
+export const uploadRefImage = (accessToken: string, file: File) =>
+  uploadToEndpoint('/ref-images', accessToken, file);
 
-  const result = await apiFetch<ApiResponse<ApiRefImage>>(
-    '/ref-images/global',
-    { method: 'POST', body: formData },
-    accessToken,
-  );
-  return result.data;
-}
+export const uploadGlobalRefImage = (accessToken: string, file: File) =>
+  uploadToEndpoint('/ref-images/global', accessToken, file);
 
 export async function renameRefImage(
   accessToken: string,
