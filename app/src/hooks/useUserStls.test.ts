@@ -25,6 +25,7 @@ vi.mock('../api/userStls.api.js', () => ({
   replaceUserStlFile: vi.fn(),
   fetchAdminUserStls: vi.fn(),
   promoteUserStl: vi.fn(),
+  fetchPublicUserStls: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('../contexts/AuthContext.js', () => ({
@@ -181,7 +182,7 @@ describe('useUploadUserStlMutation', () => {
     result.current.mutate({ file, name: 'My Bin' });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(vi.mocked(uploadUserStl)).toHaveBeenCalledWith(file, 'My Bin', 'test-token');
+    expect(vi.mocked(uploadUserStl)).toHaveBeenCalledWith(file, 'My Bin', 'test-token', undefined);
   });
 });
 

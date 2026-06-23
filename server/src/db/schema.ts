@@ -129,6 +129,8 @@ export const userStlUploads = sqliteTable('user_stl_uploads', {
   perspImageUrls: text('persp_image_urls'), // JSON array string
   gridX: integer('grid_x'),
   gridY: integer('grid_y'),
+  gridZ: integer('grid_z'),
+  visibility: text('visibility').notNull().default('private'),
   status: text('status').notNull().default('pending'), // 'pending'|'processing'|'ready'|'error'
   errorMessage: text('error_message'),
   createdAt: text('created_at').notNull().default(''),

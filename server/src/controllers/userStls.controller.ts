@@ -8,11 +8,13 @@ import {
   createUpload,
   getUploadById,
   listByUser,
+  listPublic,
   updateUploadMeta,
   deleteUpload,
   resetToPending,
   checkQuota,
 } from '../services/userStls.service.js';
+import { validateStlDimensions } from '../services/stlDimensions.js';
 import { processUpload, getImageOutputDir } from '../services/stlProcessing.service.js';
 import type { ApiUserStl } from '@gridfinity/shared';
 import type { UploadRow } from '../services/userStls.service.js';
@@ -23,6 +25,8 @@ function toApiUserStl(row: UploadRow): ApiUserStl {
     name: row.name,
     gridX: row.gridX,
     gridY: row.gridY,
+    gridZ: row.gridZ,
+    visibility: (row.visibility ?? 'private') as 'private' | 'public',
     imageUrl: row.imageUrl,
     perspImageUrls: row.perspImageUrls ? JSON.parse(row.perspImageUrls) as string[] : [],
     status: row.status as ApiUserStl['status'],
@@ -42,8 +46,37 @@ function checkOwnership(row: UploadRow, req: Request, res: Response): boolean {
 export async function uploadHandler(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.file) return res.status(400).json({ error: 'File required' });
-    const name: string = ((req.body as Record<string, string>).name) || req.file.originalname.replace(/\.[^.]+$/, '');
-    if (!name.trim()) return res.status(400).json({ error: 'Name required' });
+
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    if (ext !== '.stl') {
+      await fs.unlink(req.file.path).catch(() => {});
+      return res.status(400).json({ error: 'Only .stl files are supported for community library uploads.' });
+    }
+
+    const body = req.body as Record<string, string>;
+    const name: string = body.name || req.file.originalname.replace(/\.[^.]+$/, '');
+    if (!name.trim()) {
+      await fs.unlink(req.file.path).catch(() => {});
+      return res.status(400).json({ error: 'Name required' });
+    }
+
+    const gridX = body.gridX ? parseInt(body.gridX, 10) : undefined;
+    const gridY = body.gridY ? parseInt(body.gridY, 10) : undefined;
+    const gridZ = body.gridZ ? parseInt(body.gridZ, 10) : undefined;
+    const visibility = body.visibility === 'public' ? 'public' : 'private';
+
+    if (gridX != null && gridY != null && gridZ != null) {
+      if (gridX < 1 || gridY < 1 || gridZ < 1) {
+        await fs.unlink(req.file.path).catch(() => {});
+        return res.status(400).json({ error: 'Grid dimensions must be at least 1.' });
+      }
+      const buf = await fs.readFile(req.file.path);
+      const dimError = validateStlDimensions(buf, gridX, gridY, gridZ);
+      if (dimError) {
+        await fs.unlink(req.file.path).catch(() => {});
+        return res.status(422).json({ error: dimError });
+      }
+    }
 
     const exceeded = await checkQuota(client, req.user!.userId);
     if (exceeded) {
@@ -51,12 +84,10 @@ export async function uploadHandler(req: Request, res: Response, next: NextFunct
       return res.status(409).json({ error: 'Upload quota exceeded' });
     }
 
-    // Generate upload ID and move file to user subdirectory with final name
     const uploadId = randomUUID();
     const userDir = path.join(config.USER_STL_DIR, String(req.user!.userId));
     await fs.mkdir(userDir, { recursive: true });
-    const ext = path.extname(req.file.originalname).toLowerCase();
-    const destPath = path.join(userDir, `${uploadId}${ext}`);
+    const destPath = path.join(userDir, `${uploadId}.stl`);
     await fs.rename(req.file.path, destPath);
 
     await createUpload(client, {
@@ -65,9 +96,12 @@ export async function uploadHandler(req: Request, res: Response, next: NextFunct
       name: name.trim(),
       originalFilename: req.file.originalname,
       filePath: destPath,
+      gridX,
+      gridY,
+      gridZ,
+      visibility,
     });
 
-    // Fire-and-forget processing
     const imageDir = getImageOutputDir(req.user!.userId);
     void processUpload(uploadId, destPath, imageDir, req.user!.userId);
 
@@ -81,6 +115,15 @@ export async function uploadHandler(req: Request, res: Response, next: NextFunct
 export async function listHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const rows = await listByUser(client, req.user!.userId);
+    return res.json(rows.map(toApiUserStl));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listPublicHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const rows = await listPublic(client);
     return res.json(rows.map(toApiUserStl));
   } catch (err) {
     next(err);
@@ -104,11 +147,13 @@ export async function updateMetaHandler(req: Request, res: Response, next: NextF
     if (!row) return res.status(404).json({ error: 'Not found' });
     if (!checkOwnership(row, req, res)) return;
 
-    const body = req.body as { name?: string; gridX?: number; gridY?: number };
+    const body = req.body as { name?: string; gridX?: number; gridY?: number; gridZ?: number; visibility?: string };
     await updateUploadMeta(client, req.params.id as string, {
       name: body.name,
       gridX: body.gridX,
       gridY: body.gridY,
+      gridZ: body.gridZ,
+      visibility: body.visibility,
     });
 
     const updated = await getUploadById(client, req.params.id as string);
@@ -209,7 +254,7 @@ export async function serveImageHandler(req: Request, res: Response, next: NextF
   try {
     const row = await getUploadById(client, req.params.id as string);
     if (!row) return res.status(404).json({ error: 'Not found' });
-    if (!checkOwnership(row, req, res)) return;
+    if (row.visibility !== 'public' && !checkOwnership(row, req, res)) return;
 
     const filename = req.params.filename as string;
     if (filename.includes('..') || filename.includes('/') || filename.includes('\0')) {

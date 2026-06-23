@@ -4,7 +4,7 @@ import type { LibraryItem, LibraryMeta } from '../types/gridfinity';
 import type { ApiUserStl } from '@gridfinity/shared';
 import { useDataSource } from '../contexts/DataSourceContext';
 import { prefixItemId } from '../utils/libraryHelpers';
-import { useUserStlsQuery } from './useUserStls';
+import { useUserStlsQuery, usePublicUserStlsQuery } from './useUserStls';
 import { getUserStlImageUrl } from '../api/userStls.api';
 
 function userStlToLibraryItem(item: ApiUserStl): LibraryItem {
@@ -71,10 +71,18 @@ export function useLibraryData(
     [userStls]
   );
 
-  // Combine results from all queries
+  const { data: publicStls = [] } = usePublicUserStlsQuery();
+  const publicStlItems = useMemo(
+    () => publicStls.filter((s) => s.status === 'ready').map(userStlToLibraryItem),
+    [publicStls]
+  );
+
+  // Combine results from all queries; own items take priority over community items
   const items = useMemo(() => {
-    return [...queries.flatMap((q) => q.data ?? []), ...userStlItems];
-  }, [queries, userStlItems]);
+    const ownIds = new Set(userStlItems.map((i) => i.id));
+    const communityItems = publicStlItems.filter((i) => !ownIds.has(i.id));
+    return [...queries.flatMap((q) => q.data ?? []), ...userStlItems, ...communityItems];
+  }, [queries, userStlItems, publicStlItems]);
 
   const isLoading = queries.some((q) => q.isLoading);
 

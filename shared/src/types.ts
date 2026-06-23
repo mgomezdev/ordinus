@@ -419,6 +419,8 @@ export interface ApiUserStl {
   name: string;
   gridX: number | null;
   gridY: number | null;
+  gridZ?: number | null;
+  visibility?: 'private' | 'public';
   imageUrl: string | null;
   perspImageUrls: string[];
   status: 'pending' | 'processing' | 'ready' | 'error';

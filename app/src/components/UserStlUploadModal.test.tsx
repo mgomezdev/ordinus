@@ -59,7 +59,42 @@ describe('UserStlUploadModal', () => {
     Object.defineProperty(input, 'files', { value: [file], configurable: true });
     fireEvent.change(input);
     fireEvent.click(screen.getByRole('button', { name: /^upload$/i }));
-    await waitFor(() => expect(mockMutateAsync).toHaveBeenCalledWith({ file, name: 'widget' }));
+    await waitFor(() => expect(mockMutateAsync).toHaveBeenCalledWith({
+      file,
+      name: 'widget',
+      opts: { gridX: 1, gridY: 1, gridZ: 3, visibility: 'private' },
+    }));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('shows grid dimension inputs for Width, Depth, and Height', () => {
+    render(<UserStlUploadModal onClose={vi.fn()} />, { wrapper });
+    expect(screen.getByText(/width/i)).toBeInTheDocument();
+    expect(screen.getByText(/depth/i)).toBeInTheDocument();
+    expect(screen.getByText(/height/i)).toBeInTheDocument();
+  });
+
+  it('shows Private and Public visibility radio buttons', () => {
+    render(<UserStlUploadModal onClose={vi.fn()} />, { wrapper });
+    expect(screen.getByRole('radio', { name: /private/i })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /public/i })).toBeInTheDocument();
+  });
+
+  it('shows hint text when Public visibility is selected', () => {
+    render(<UserStlUploadModal onClose={vi.fn()} />, { wrapper });
+    expect(screen.queryByText(/dimensions will be verified/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: /public/i }));
+    expect(screen.getByText(/dimensions will be verified/i)).toBeInTheDocument();
+  });
+
+  it('rejects non-.stl files with an error message', async () => {
+    render(<UserStlUploadModal onClose={vi.fn()} />, { wrapper });
+    const file = new File(['data'], 'model.obj', { type: 'application/octet-stream' });
+    const input = screen.getByLabelText(/file/i);
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+    fireEvent.change(input);
+    fireEvent.click(screen.getByRole('button', { name: /^upload$/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/stl/i);
+    expect(mockMutateAsync).not.toHaveBeenCalled();
   });
 });
