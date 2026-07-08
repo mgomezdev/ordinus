@@ -408,6 +408,7 @@ export interface ApiBomGeneration {
   threeMfPath: string | null;
   generatedAt: string | null;
   errorMessage: string | null;
+  themisProjectId: number | null;
 }
 
 // ============================================================

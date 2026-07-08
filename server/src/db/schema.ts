@@ -200,6 +200,7 @@ export const bomGenerations = sqliteTable('bom_generations', {
   threeMfPath: text('three_mf_path'),
   generatedAt: text('generated_at'),
   errorMessage: text('error_message'),
+  themisProjectId: integer('themis_project_id'),
 });
 
 export const favorites = sqliteTable('favorites', {

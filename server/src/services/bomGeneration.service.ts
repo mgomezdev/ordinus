@@ -151,7 +151,7 @@ export async function resolveItemSources(bomItems: BOMItem[]): Promise<{
 
 type RawGenRow = Pick<
   typeof bomGenerations.$inferSelect,
-  'id' | 'layoutId' | 'status' | 'fileManifest' | 'threeMfPath' | 'generatedAt' | 'errorMessage'
+  'id' | 'layoutId' | 'status' | 'fileManifest' | 'threeMfPath' | 'generatedAt' | 'errorMessage' | 'themisProjectId'
 >;
 
 export function formatBomGeneration(row: RawGenRow): ApiBomGeneration {
@@ -163,6 +163,7 @@ export function formatBomGeneration(row: RawGenRow): ApiBomGeneration {
     threeMfPath: row.threeMfPath,
     generatedAt: row.generatedAt,
     errorMessage: row.errorMessage,
+    themisProjectId: row.themisProjectId ?? null,
   };
 }
 

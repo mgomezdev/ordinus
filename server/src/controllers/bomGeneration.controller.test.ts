@@ -59,6 +59,7 @@ describe('generateHandler', () => {
       threeMfPath: null,
       generatedAt: null,
       errorMessage: null,
+      themisProjectId: null,
     };
     vi.mocked(bomGenerationService.triggerGeneration).mockResolvedValueOnce(mockGeneration);
     await setupDbMock(1);
@@ -125,6 +126,7 @@ describe('getGenerationHandler', () => {
       threeMfPath: null,
       generatedAt: null,
       errorMessage: null,
+      themisProjectId: null,
     };
     vi.mocked(bomGenerationService.getGeneration).mockResolvedValueOnce(mockGeneration);
     await setupDbMock(1);

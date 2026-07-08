@@ -381,4 +381,11 @@ export async function runMigrations(client: Client): Promise<void> {
   } catch {
     // Column already exists — ignore
   }
+
+  // Add themis_project_id to bom_generations if missing
+  try {
+    await client.execute(`ALTER TABLE bom_generations ADD COLUMN themis_project_id INTEGER;`);
+  } catch {
+    // Column already exists — ignore
+  }
 }
