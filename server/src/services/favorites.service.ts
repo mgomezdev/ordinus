@@ -1,12 +1,12 @@
 import { nanoid } from 'nanoid';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { BinCustomization } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
 import { favorites } from '../db/schema.js';
 
 export interface FavoriteRow {
   id: string;
-  userId: number;
+  userId: number | null;
   name: string;
   libraryId: string;
   libraryItemId: string;
@@ -41,19 +41,23 @@ export interface CreateFavoriteData {
   customization: BinCustomization;
 }
 
-export async function listFavorites(userId: number): Promise<FavoriteRow[]> {
-  return db.select().from(favorites).where(eq(favorites.userId, userId));
+export async function listAllFavorites(): Promise<FavoriteRow[]> {
+  return db.select().from(favorites).orderBy(favorites.createdAt);
+}
+
+// Backward compat alias
+export async function listFavorites(_userId?: number): Promise<FavoriteRow[]> {
+  return listAllFavorites();
 }
 
 export async function createFavorite(
-  userId: number,
   data: CreateFavoriteData,
 ): Promise<FavoriteRow> {
   const id = nanoid();
   const createdAt = Date.now();
   const row = {
     id,
-    userId,
+    userId: null as number | null,
     name: data.name,
     libraryId: data.libraryId,
     libraryItemId: data.libraryItemId,
@@ -76,12 +80,11 @@ export async function createFavorite(
 
 export async function deleteFavorite(
   favoriteId: string,
-  userId: number,
 ): Promise<boolean> {
   const existing = await db
     .select({ id: favorites.id })
     .from(favorites)
-    .where(and(eq(favorites.id, favoriteId), eq(favorites.userId, userId)))
+    .where(eq(favorites.id, favoriteId))
     .limit(1);
   if (existing.length === 0) return false;
   await db.delete(favorites).where(eq(favorites.id, favoriteId));
@@ -90,13 +93,12 @@ export async function deleteFavorite(
 
 export async function renameFavorite(
   favoriteId: string,
-  userId: number,
   name: string,
 ): Promise<boolean> {
   const existing = await db
     .select({ id: favorites.id })
     .from(favorites)
-    .where(and(eq(favorites.id, favoriteId), eq(favorites.userId, userId)))
+    .where(eq(favorites.id, favoriteId))
     .limit(1);
   if (existing.length === 0) return false;
   await db.update(favorites).set({ name }).where(eq(favorites.id, favoriteId));

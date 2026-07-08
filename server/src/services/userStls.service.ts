@@ -3,7 +3,7 @@ import type { Client } from '@libsql/client';
 
 export interface CreateUploadParams {
   id?: string;           // optional — if omitted, a UUID is generated
-  userId: number;
+  userId?: number | null;  // optional — parts are global
   name: string;
   originalFilename: string;
   filePath: string;
@@ -15,7 +15,7 @@ export interface CreateUploadParams {
 
 export interface UploadRow {
   id: string;
-  userId: number;
+  userId: number | null;
   name: string;
   originalFilename: string;
   filePath: string;
@@ -38,7 +38,7 @@ export async function createUpload(client: Client, params: CreateUploadParams): 
     sql: `INSERT INTO user_stl_uploads
       (id, user_id, name, original_filename, file_path, grid_x, grid_y, grid_z, visibility, status, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
-    args: [id, params.userId, params.name, params.originalFilename, params.filePath,
+    args: [id, params.userId ?? null, params.name, params.originalFilename, params.filePath,
            params.gridX ?? null, params.gridY ?? null, params.gridZ ?? null,
            params.visibility ?? 'private', now, now],
   });
@@ -56,14 +56,38 @@ export async function getUploadById(client: Client, id: string): Promise<UploadR
   return rowToUpload(result.rows[0]);
 }
 
-export async function listByUser(client: Client, userId: number): Promise<UploadRow[]> {
+/**
+ * List all parts — implement visibility filter for customer context.
+ * Parts with NO customer association → visible everywhere
+ * Parts with ONE OR MORE customer associations → only visible in those customers' contexts
+ * When customerId is provided, filter accordingly.
+ */
+export async function listAll(client: Client): Promise<UploadRow[]> {
   const result = await client.execute({
     sql: `SELECT id, user_id, name, original_filename, file_path, image_url,
                  persp_image_urls, grid_x, grid_y, grid_z, visibility, status, error_message, created_at, updated_at
-          FROM user_stl_uploads WHERE user_id = ? ORDER BY created_at DESC`,
-    args: [userId],
+          FROM user_stl_uploads ORDER BY created_at DESC`,
+    args: [],
   });
   return result.rows.map(rowToUpload);
+}
+
+export async function listByCustomer(client: Client, customerId: number): Promise<UploadRow[]> {
+  const result = await client.execute({
+    sql: `SELECT p.id, p.user_id, p.name, p.original_filename, p.file_path, p.image_url,
+                 p.persp_image_urls, p.grid_x, p.grid_y, p.grid_z, p.visibility, p.status, p.error_message, p.created_at, p.updated_at
+          FROM user_stl_uploads p
+          WHERE NOT EXISTS (SELECT 1 FROM customer_parts cp WHERE cp.part_id = p.id)
+             OR EXISTS (SELECT 1 FROM customer_parts cp WHERE cp.part_id = p.id AND cp.customer_id = ?)
+          ORDER BY p.created_at DESC`,
+    args: [customerId],
+  });
+  return result.rows.map(rowToUpload);
+}
+
+// Keep for backward compat — now just calls listAll
+export async function listByUser(client: Client, _userId: number): Promise<UploadRow[]> {
+  return listAll(client);
 }
 
 export async function listPublic(client: Client): Promise<UploadRow[]> {
@@ -74,19 +98,6 @@ export async function listPublic(client: Client): Promise<UploadRow[]> {
     args: [],
   });
   return result.rows.map(rowToUpload);
-}
-
-export async function listAllForAdmin(client: Client): Promise<(UploadRow & { userName: string })[]> {
-  const result = await client.execute({
-    sql: `SELECT u.id, u.user_id, u.name, u.original_filename, u.file_path, u.image_url,
-                 u.persp_image_urls, u.grid_x, u.grid_y, u.grid_z, u.visibility, u.status, u.error_message,
-                 u.created_at, u.updated_at, us.username as user_name
-          FROM user_stl_uploads u
-          JOIN users us ON us.id = u.user_id
-          ORDER BY u.updated_at DESC`,
-    args: [],
-  });
-  return result.rows.map((row) => ({ ...rowToUpload(row), userName: String(row.user_name) }));
 }
 
 export async function updateUploadStatus(
@@ -165,28 +176,15 @@ export async function getPendingAndProcessingIds(client: Client): Promise<string
   return result.rows.map((r) => String(r.id));
 }
 
-export async function checkQuota(client: Client, userId: number): Promise<boolean> {
-  const countResult = await client.execute({
-    sql: `SELECT COUNT(*) as cnt FROM user_stl_uploads WHERE user_id = ?`,
-    args: [userId],
-  });
-  const count = Number(countResult.rows[0].cnt);
-
-  const storageResult = await client.execute({
-    sql: `SELECT max_user_stls FROM user_storage WHERE user_id = ?`,
-    args: [userId],
-  });
-  const maxUserStls = storageResult.rows.length > 0
-    ? Number(storageResult.rows[0].max_user_stls)
-    : 50;
-
-  return count >= maxUserStls;
+// No longer needed — no quota tracking without users
+export async function checkQuota(_client: Client, _userId: number | null): Promise<boolean> {
+  return false;
 }
 
 function rowToUpload(row: Record<string, unknown>): UploadRow {
   return {
     id: String(row.id),
-    userId: Number(row.user_id),
+    userId: row.user_id != null ? Number(row.user_id) : null,
     name: String(row.name),
     originalFilename: String(row.original_filename),
     filePath: String(row.file_path),

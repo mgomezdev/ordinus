@@ -6,7 +6,7 @@ import { normalize } from 'node:path';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
 import type { BinCustomization } from '@gridfinity/shared';
 import type { Request, Response, NextFunction } from 'express';
-import { requireAuth } from '../middleware/auth.js';
+
 import { db } from '../db/connection.js';
 import { libraryItems, libraries } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
@@ -35,7 +35,7 @@ const VALID_IMAGE_FILENAMES = new Set([
 ]);
 
 // POST /generation/generate — enqueue for a library item + optional customization
-router.post('/generate', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+router.post('/generate', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { libraryId, itemId, customization } = req.body as {
       libraryId?: string;
@@ -154,7 +154,7 @@ router.get('/image/:hash/:filename', async (req: Request, res: Response, next: N
 });
 
 // GET /generation/stl/:hash — serve STL
-router.get('/stl/:hash', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+router.get('/stl/:hash', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const hash = req.params['hash'] as string;
     if (hash.includes('..') || hash.includes('/') || hash.includes('\\')) {

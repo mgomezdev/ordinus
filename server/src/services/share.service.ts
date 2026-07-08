@@ -1,9 +1,9 @@
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
 import type { ApiSharedProject, ApiSharedLayoutView } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
-import { sharedProjects, layouts, placedItems, users } from '../db/schema.js';
+import { sharedProjects, layouts, placedItems } from '../db/schema.js';
 import { formatLayout, formatPlacedItem } from './formatters.js';
 
 function formatSharedProject(row: typeof sharedProjects.$inferSelect): ApiSharedProject {
@@ -11,7 +11,7 @@ function formatSharedProject(row: typeof sharedProjects.$inferSelect): ApiShared
     id: row.id,
     layoutId: row.layoutId,
     slug: row.slug,
-    createdBy: row.createdBy,
+    createdBy: row.createdBy ?? 0,
     expiresAt: row.expiresAt,
     viewCount: row.viewCount,
     createdAt: row.createdAt,
@@ -22,10 +22,9 @@ const MAX_SLUG_RETRIES = 3;
 
 export async function createShare(
   layoutId: number,
-  userId: number,
   expiresInDays?: number,
 ): Promise<ApiSharedProject> {
-  // Verify layout exists and user owns it
+  // Verify layout exists
   const layoutRows = await db
     .select()
     .from(layouts)
@@ -34,10 +33,6 @@ export async function createShare(
 
   if (layoutRows.length === 0) {
     throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
-  }
-
-  if (layoutRows[0].userId !== userId) {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
   }
 
   const now = new Date().toISOString();
@@ -57,7 +52,7 @@ export async function createShare(
         .values({
           layoutId,
           slug,
-          createdBy: userId,
+          createdBy: null,
           expiresAt,
           viewCount: 0,
           createdAt: now,
@@ -118,15 +113,6 @@ export async function getSharedLayout(slug: string): Promise<ApiSharedLayoutView
     .where(eq(placedItems.layoutId, share.layoutId))
     .orderBy(placedItems.sortOrder);
 
-  // Get creator username
-  const userRows = await db
-    .select({ username: users.username })
-    .from(users)
-    .where(eq(users.id, share.createdBy))
-    .limit(1);
-
-  const sharedBy = userRows.length > 0 ? userRows[0].username : 'Unknown';
-
   // Increment view count
   await db
     .update(sharedProjects)
@@ -136,14 +122,11 @@ export async function getSharedLayout(slug: string): Promise<ApiSharedLayoutView
   return {
     layout: formatLayout(layoutRows[0]),
     placedItems: itemRows.map(formatPlacedItem),
-    sharedBy,
+    sharedBy: 'Shared',
   };
 }
 
-export async function deleteShare(
-  shareId: number,
-  userId: number,
-): Promise<void> {
+export async function deleteShare(shareId: number): Promise<void> {
   const shareRows = await db
     .select()
     .from(sharedProjects)
@@ -154,18 +137,11 @@ export async function deleteShare(
     throw new AppError(ErrorCodes.NOT_FOUND, 'Share link not found');
   }
 
-  if (shareRows[0].createdBy !== userId) {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
-  }
-
   await db.delete(sharedProjects).where(eq(sharedProjects.id, shareId));
 }
 
-export async function getSharesByLayout(
-  layoutId: number,
-  userId: number,
-): Promise<ApiSharedProject[]> {
-  // Verify layout ownership
+export async function getSharesByLayout(layoutId: number): Promise<ApiSharedProject[]> {
+  // Verify layout exists
   const layoutRows = await db
     .select()
     .from(layouts)
@@ -176,14 +152,10 @@ export async function getSharesByLayout(
     throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
   }
 
-  if (layoutRows[0].userId !== userId) {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
-  }
-
   const rows = await db
     .select()
     .from(sharedProjects)
-    .where(and(eq(sharedProjects.layoutId, layoutId), eq(sharedProjects.createdBy, userId)));
+    .where(eq(sharedProjects.layoutId, layoutId));
 
   return rows.map(formatSharedProject);
 }

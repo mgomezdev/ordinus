@@ -11,7 +11,7 @@ export function processUpload(
   filePath: string,
   imageOutputDir: string,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _userId: number,
+  _userId: number | null,
 ): Promise<void> {
   return stlQueue.enqueue(async () => {
     // Spawn and register all event handlers synchronously before any await,
@@ -68,6 +68,6 @@ export function processUpload(
   });
 }
 
-export function getImageOutputDir(userId: number): string {
-  return path.join(config.USER_STL_IMAGE_DIR, String(userId));
+export function getImageOutputDir(_userId: number | null): string {
+  return path.join(config.USER_STL_IMAGE_DIR, 'global');
 }

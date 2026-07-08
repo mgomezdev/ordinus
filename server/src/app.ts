@@ -4,10 +4,8 @@ import pinoHttp from 'pino-http';
 import { logger } from './logger.js';
 import { requestIdMiddleware } from './middleware/requestId.js';
 import { corsMiddleware } from './middleware/cors.js';
-import { authLimiter, generalLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import healthRoutes from './routes/health.routes.js';
-import authRoutes from './routes/auth.routes.js';
 import librariesRoutes from './routes/libraries.routes.js';
 import categoriesRoutes from './routes/categories.routes.js';
 import imagesRoutes from './routes/images.routes.js';
@@ -15,12 +13,12 @@ import layoutsRoutes from './routes/layouts.routes.js';
 import sharedRoutes from './routes/shared.routes.js';
 import bomRoutes from './routes/bom.routes.js';
 import refImagesRoutes from './routes/refImages.routes.js';
-import adminRoutes from './routes/admin.routes.js';
 import userStlsRouter from './routes/userStls.routes.js';
-import adminUserStlsRouter from './routes/adminUserStls.routes.js';
 import generationRoutes from './routes/generation.routes.js';
 import favoritesRoutes from './routes/favorites.routes.js';
 import thumbnailsRoutes from './routes/thumbnails.routes.js';
+import customersRoutes from './routes/customers.routes.js';
+
 export function createApp(): express.Express {
   const app = express();
 
@@ -53,13 +51,8 @@ export function createApp(): express.Express {
   app.use('/api/v1/images', imagesRoutes);
   app.use('/api/v1/thumbnails', thumbnailsRoutes);
 
-  // Rate limiting
-  app.use('/api/v1/auth', authLimiter);
-  app.use('/api/v1', generalLimiter);
-
   // Routes
   app.use('/api/v1', healthRoutes);
-  app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1/libraries', librariesRoutes);
   app.use('/api/v1/categories', categoriesRoutes);
   app.use('/api/v1/layouts', layoutsRoutes);
@@ -67,10 +60,9 @@ export function createApp(): express.Express {
   app.use('/api/v1/bom', bomRoutes);
   app.use('/api/v1/generation', generationRoutes);
   app.use('/api/v1/ref-images', refImagesRoutes);
-  app.use('/api/v1', adminRoutes);
   app.use('/api/v1/user-stls', userStlsRouter);
-  app.use('/api/v1', adminUserStlsRouter);
   app.use('/api/v1/favorites', favoritesRoutes);
+  app.use('/api/v1/customers', customersRoutes);
 
   // Global error handler (must be last)
   app.use(errorHandler);
