@@ -22,9 +22,9 @@ const DEFAULT_CUSTOMIZATION: BinCustomization = {
 // ── Pure extraction helpers ───────────────────────────────────────────────────
 
 function customizationKey(item: BOMItem): string {
-  const c = item.customization;
+  const c = item.customization ?? DEFAULT_CUSTOMIZATION;
   if (!c) return 'default';
-  const wc = c.wallCutout;
+  const wc = c.wallCutout ?? DEFAULT_CUSTOMIZATION.wallCutout;
   const noWallCutout = !wc.front && !wc.back && !wc.left && !wc.right;
   const isDefault =
     !c.wallPatternEnabled && c.lipStyle === 'normal' &&

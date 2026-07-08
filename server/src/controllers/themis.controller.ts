@@ -10,9 +10,6 @@ import { config } from '../config.js';
 import { uploadStlToThemis, createThemisProject, addThemisProjectItem } from '../services/themis.service.js';
 import { logger } from '../logger.js';
 
-function slugify(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
-}
 
 export async function sendToThemisHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -49,7 +46,9 @@ export async function sendToThemisHandler(req: Request, res: Response, next: Nex
       : [];
 
     const outDir = path.resolve(config.GENERATED_STL_DIR, `bom-layout-${layoutId}`);
-    const folder = `/Gridfinity/${slugify(layout.name)}`;
+    // All Ordinus STLs share one Themis folder so the content-hash dedup works
+    // across layouts that use the same bin model.
+    const folder = '/Gridfinity';
 
     // Upload unique STL files; collect filename → Themis file id mapping.
     const fileIdMap = new Map<string, number>();
