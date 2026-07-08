@@ -16,7 +16,7 @@ export async function uploadStlToThemis(
   folder: string,
 ): Promise<number> {
   const form = new FormData();
-  form.append('file', new Blob([bytes], { type: 'application/octet-stream' }), filename);
+  form.append('file', new Blob([new Uint8Array(bytes)], { type: 'application/octet-stream' }), filename);
   form.append('folder', folder);
   const resp = await fetch(`${themisUrl}/api/v1/files/upload`, { method: 'POST', body: form });
   if (!resp.ok) throw new Error(`Themis ${resp.status}: upload ${filename}`);
