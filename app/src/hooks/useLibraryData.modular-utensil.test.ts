@@ -7,6 +7,7 @@ import { createTestWrapper } from '../test/testWrapper';
 
 vi.mock('./useUserStls.js', () => ({
   useUserStlsQuery: () => ({ data: [], isLoading: false }),
+  usePublicUserStlsQuery: () => ({ data: [], isLoading: false }),
 }));
 
 describe('useLibraryData - Modular Utensil Library', () => {

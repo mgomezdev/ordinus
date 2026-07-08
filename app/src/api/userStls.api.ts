@@ -25,12 +25,26 @@ export async function fetchUserStls(token: string): Promise<ApiUserStl[]> {
   return res.json() as Promise<ApiUserStl[]>;
 }
 
-export async function uploadUserStl(file: File, name: string, token: string): Promise<ApiUserStl> {
+export async function uploadUserStl(
+  file: File,
+  name: string,
+  token: string,
+  opts?: { gridX?: number; gridY?: number; gridZ?: number; visibility?: string },
+): Promise<ApiUserStl> {
   const form = new FormData();
   form.append('file', file);
   form.append('name', name);
+  if (opts?.gridX != null) form.append('gridX', String(opts.gridX));
+  if (opts?.gridY != null) form.append('gridY', String(opts.gridY));
+  if (opts?.gridZ != null) form.append('gridZ', String(opts.gridZ));
+  if (opts?.visibility) form.append('visibility', opts.visibility);
   const res = await userStlFetch(API_BASE, token, { method: 'POST', body: form });
   return res.json() as Promise<ApiUserStl>;
+}
+
+export async function fetchPublicUserStls(token: string): Promise<ApiUserStl[]> {
+  const res = await userStlFetch(`${API_BASE}/public`, token);
+  return res.json() as Promise<ApiUserStl[]>;
 }
 
 export async function updateUserStl(

@@ -12,6 +12,7 @@ import * as bomApi from '../api/bomGeneration.api';
 
 const baseProps = {
   layoutId: 1,
+  layoutTitle: 'My Layout',
   bomItems: [],
   accessToken: 'tok',
 };

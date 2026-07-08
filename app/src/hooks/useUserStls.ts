@@ -9,10 +9,12 @@ import {
   replaceUserStlFile,
   fetchAdminUserStls,
   promoteUserStl,
+  fetchPublicUserStls,
 } from '../api/userStls.api';
 import type { ApiUserStl } from '@gridfinity/shared';
 
 export const USER_STLS_QUERY_KEY = ['user-stls'] as const;
+export const PUBLIC_USER_STLS_QUERY_KEY = ['public-user-stls'] as const;
 export const ADMIN_USER_STLS_QUERY_KEY = ['admin-user-stls'] as const;
 
 const POLL_INTERVAL_MS = 3000;
@@ -42,14 +44,28 @@ export function useUploadUserStlMutation() {
   const { getAccessToken } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ file, name }: { file: File; name: string }) => {
+    mutationFn: ({ file, name, opts }: { file: File; name: string; opts?: { gridX?: number; gridY?: number; gridZ?: number; visibility?: string } }) => {
       const token = getAccessToken();
       if (!token) throw new Error('Not authenticated');
-      return uploadUserStl(file, name, token);
+      return uploadUserStl(file, name, token, opts);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: USER_STLS_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: PUBLIC_USER_STLS_QUERY_KEY });
     },
+  });
+}
+
+export function usePublicUserStlsQuery() {
+  const { getAccessToken, isAuthenticated } = useAuth();
+  return useQuery({
+    queryKey: PUBLIC_USER_STLS_QUERY_KEY,
+    queryFn: () => {
+      const token = getAccessToken();
+      if (!token) throw new Error('Not authenticated');
+      return fetchPublicUserStls(token);
+    },
+    enabled: isAuthenticated,
   });
 }
 

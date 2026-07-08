@@ -3,11 +3,11 @@
 import sys
 import os
 import traceback
+import xml.etree.ElementTree as ET
 
 sys.path.insert(0, os.path.dirname(__file__))
 
 import io
-import xml.etree.ElementTree as ET
 from PIL import Image
 
 from bundle_3mf import (

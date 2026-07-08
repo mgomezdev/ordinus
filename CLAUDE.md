@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Gridfinity Customizer is a web application for customizing Gridfinity modular storage system components. Users can configure bin dimensions, drag-and-drop library items, manage reference images, generate a bill of materials, and export designs for 3D printing. The app supports user accounts, saved layouts, favorites, and on-demand STL generation.
+Ordinus is a web application for customizing Gridfinity modular storage system components. Users can configure bin dimensions, drag-and-drop library items, manage reference images, generate a bill of materials, and export designs for 3D printing. The app supports user accounts, saved layouts, favorites, and on-demand STL generation.
 
 ## Tech Stack
 

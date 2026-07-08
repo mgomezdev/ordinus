@@ -7,6 +7,7 @@ import { createTestWrapper, createTestWrapperWithAdapter } from '../test/testWra
 
 vi.mock('./useUserStls.js', () => ({
   useUserStlsQuery: () => ({ data: [], isLoading: false }),
+  usePublicUserStlsQuery: () => ({ data: [], isLoading: false }),
 }));
 
 describe('useLibraryData', () => {

@@ -29,3 +29,19 @@ export async function getBomGeneration(layoutId: number, accessToken: string): P
 export function getFileDownloadUrl(layoutId: number, filename: string): string {
   return `${API_BASE_URL}/bom/generation/${layoutId}/files/${encodeURIComponent(filename)}`;
 }
+
+export interface SendToThemisResponse {
+  projectUrl: string;
+}
+
+export async function sendToThemis(
+  layoutId: number,
+  accessToken: string,
+): Promise<SendToThemisResponse> {
+  const result = await apiFetch<ApiResponse<SendToThemisResponse>>(
+    `/bom/send-to-themis/${layoutId}`,
+    { method: 'POST', headers: JSON_HEADERS },
+    accessToken,
+  );
+  return result.data;
+}

@@ -7,6 +7,10 @@ export interface CreateUploadParams {
   name: string;
   originalFilename: string;
   filePath: string;
+  gridX?: number;
+  gridY?: number;
+  gridZ?: number;
+  visibility?: string;
 }
 
 export interface UploadRow {
@@ -19,6 +23,8 @@ export interface UploadRow {
   perspImageUrls: string | null; // raw JSON string
   gridX: number | null;
   gridY: number | null;
+  gridZ: number | null;
+  visibility: string;
   status: string;
   errorMessage: string | null;
   createdAt: string;
@@ -30,9 +36,11 @@ export async function createUpload(client: Client, params: CreateUploadParams): 
   const now = new Date().toISOString();
   await client.execute({
     sql: `INSERT INTO user_stl_uploads
-      (id, user_id, name, original_filename, file_path, status, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)`,
-    args: [id, params.userId, params.name, params.originalFilename, params.filePath, now, now],
+      (id, user_id, name, original_filename, file_path, grid_x, grid_y, grid_z, visibility, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+    args: [id, params.userId, params.name, params.originalFilename, params.filePath,
+           params.gridX ?? null, params.gridY ?? null, params.gridZ ?? null,
+           params.visibility ?? 'private', now, now],
   });
   return id;
 }
@@ -40,7 +48,7 @@ export async function createUpload(client: Client, params: CreateUploadParams): 
 export async function getUploadById(client: Client, id: string): Promise<UploadRow | null> {
   const result = await client.execute({
     sql: `SELECT id, user_id, name, original_filename, file_path, image_url,
-                 persp_image_urls, grid_x, grid_y, status, error_message, created_at, updated_at
+                 persp_image_urls, grid_x, grid_y, grid_z, visibility, status, error_message, created_at, updated_at
           FROM user_stl_uploads WHERE id = ?`,
     args: [id],
   });
@@ -51,9 +59,19 @@ export async function getUploadById(client: Client, id: string): Promise<UploadR
 export async function listByUser(client: Client, userId: number): Promise<UploadRow[]> {
   const result = await client.execute({
     sql: `SELECT id, user_id, name, original_filename, file_path, image_url,
-                 persp_image_urls, grid_x, grid_y, status, error_message, created_at, updated_at
+                 persp_image_urls, grid_x, grid_y, grid_z, visibility, status, error_message, created_at, updated_at
           FROM user_stl_uploads WHERE user_id = ? ORDER BY created_at DESC`,
     args: [userId],
+  });
+  return result.rows.map(rowToUpload);
+}
+
+export async function listPublic(client: Client): Promise<UploadRow[]> {
+  const result = await client.execute({
+    sql: `SELECT id, user_id, name, original_filename, file_path, image_url,
+                 persp_image_urls, grid_x, grid_y, grid_z, visibility, status, error_message, created_at, updated_at
+          FROM user_stl_uploads WHERE visibility = 'public' AND status = 'ready' ORDER BY created_at DESC`,
+    args: [],
   });
   return result.rows.map(rowToUpload);
 }
@@ -61,7 +79,7 @@ export async function listByUser(client: Client, userId: number): Promise<Upload
 export async function listAllForAdmin(client: Client): Promise<(UploadRow & { userName: string })[]> {
   const result = await client.execute({
     sql: `SELECT u.id, u.user_id, u.name, u.original_filename, u.file_path, u.image_url,
-                 u.persp_image_urls, u.grid_x, u.grid_y, u.status, u.error_message,
+                 u.persp_image_urls, u.grid_x, u.grid_y, u.grid_z, u.visibility, u.status, u.error_message,
                  u.created_at, u.updated_at, us.username as user_name
           FROM user_stl_uploads u
           JOIN users us ON us.id = u.user_id
@@ -110,7 +128,7 @@ export async function updateUploadStatus(
 export async function updateUploadMeta(
   client: Client,
   id: string,
-  params: { name?: string; gridX?: number | null; gridY?: number | null },
+  params: { name?: string; gridX?: number | null; gridY?: number | null; gridZ?: number | null; visibility?: string },
 ): Promise<void> {
   const now = new Date().toISOString();
   await client.execute({
@@ -118,9 +136,12 @@ export async function updateUploadMeta(
             name = COALESCE(?, name),
             grid_x = ?,
             grid_y = ?,
+            grid_z = ?,
+            visibility = COALESCE(?, visibility),
             updated_at = ?
           WHERE id = ?`,
-    args: [params.name ?? null, params.gridX ?? null, params.gridY ?? null, now, id],
+    args: [params.name ?? null, params.gridX ?? null, params.gridY ?? null,
+           params.gridZ ?? null, params.visibility ?? null, now, id],
   });
 }
 
@@ -173,6 +194,8 @@ function rowToUpload(row: Record<string, unknown>): UploadRow {
     perspImageUrls: row.persp_image_urls ? String(row.persp_image_urls) : null,
     gridX: row.grid_x != null ? Number(row.grid_x) : null,
     gridY: row.grid_y != null ? Number(row.grid_y) : null,
+    gridZ: row.grid_z != null ? Number(row.grid_z) : null,
+    visibility: row.visibility ? String(row.visibility) : 'private',
     status: String(row.status),
     errorMessage: row.error_message ? String(row.error_message) : null,
     createdAt: String(row.created_at),

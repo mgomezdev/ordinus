@@ -37,6 +37,7 @@ vi.mock('node:fs', () => ({
   existsSync: vi.fn(() => true),
   mkdirSync: vi.fn(),
   copyFileSync: vi.fn(),
+  writeFileSync: vi.fn(),
 }));
 
 vi.mock('../src/logger.js', async () => {

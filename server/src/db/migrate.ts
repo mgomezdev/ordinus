@@ -367,4 +367,25 @@ export async function runMigrations(client: Client): Promise<void> {
   } catch {
     // Column already exists — ignore
   }
+
+  // Add visibility to user_stl_uploads if missing
+  try {
+    await client.execute(`ALTER TABLE user_stl_uploads ADD COLUMN visibility TEXT NOT NULL DEFAULT 'private';`);
+  } catch {
+    // Column already exists — ignore
+  }
+
+  // Add grid_z to user_stl_uploads if missing
+  try {
+    await client.execute(`ALTER TABLE user_stl_uploads ADD COLUMN grid_z INTEGER;`);
+  } catch {
+    // Column already exists — ignore
+  }
+
+  // Add themis_project_id to bom_generations if missing
+  try {
+    await client.execute(`ALTER TABLE bom_generations ADD COLUMN themis_project_id INTEGER;`);
+  } catch {
+    // Column already exists — ignore
+  }
 }

@@ -12,6 +12,7 @@ import os
 import struct
 import sys
 import textwrap
+import uuid
 import zipfile
 from io import StringIO
 
@@ -19,11 +20,13 @@ import matplotlib
 matplotlib.use('Agg')  # headless backend — must precede pyplot import
 import matplotlib.pyplot as plt
 import numpy as np
+from rectpack import newPacker, PackingMode, PackingBin, SORT_LSIDE
 
 GRIDFINITY_UNIT_MM = 42.0
 ITEM_GAP_MM = 2.0
-PLATE_WIDTH_MM = 250.0
-PLATE_DEPTH_MM = 250.0
+PLATE_WIDTH_MM = 255.0
+PLATE_DEPTH_MM = 255.0
+
 DEFAULT_HEIGHT = 8
 DEFAULT_CUSTOMIZATION = {
     'height': DEFAULT_HEIGHT,
@@ -121,13 +124,32 @@ def build_generate_params(item: dict) -> dict:
     return params
 
 
-def _mesh_to_xml(object_id: int, vertices: list, triangles: list) -> str:
-    """Render one <object> element (mesh definition) for 3MF model XML."""
+def _mesh_to_external_model(vertices: list, triangles: list) -> str:
+    """Render a standalone 3MF model XML file for one mesh, centered at origin.
+
+    Each external file always uses object id="1" (local scope).  The calling
+    wrapper references it via p:path + objectid="1".
+    """
+    xs = [v[0] for v in vertices]
+    ys = [v[1] for v in vertices]
+    zs = [v[2] for v in vertices]
+    cx = (min(xs) + max(xs)) / 2
+    cy = (min(ys) + max(ys)) / 2
+    cz = (min(zs) + max(zs)) / 2
+    centered = [(v[0] - cx, v[1] - cy, v[2] - cz) for v in vertices]
+
     buf = StringIO()
-    buf.write(f'    <object id="{object_id}" type="model">\n')
+    buf.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+    buf.write('<model unit="millimeter" xml:lang="en-US"\n')
+    buf.write('    xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"\n')
+    buf.write('    xmlns:BambuStudio="http://schemas.bambulab.com/package/2021"\n')
+    buf.write('    xmlns:p="http://schemas.microsoft.com/3dmanufacturing/production/2015/06"\n')
+    buf.write('    requiredextensions="p">\n')
+    buf.write('  <resources>\n')
+    buf.write(f'    <object id="1" p:UUID="{uuid.uuid4()}" type="model">\n')
     buf.write('      <mesh>\n')
     buf.write('        <vertices>\n')
-    for x, y, z in vertices:
+    for x, y, z in centered:
         buf.write(f'          <vertex x="{x:.6f}" y="{y:.6f}" z="{z:.6f}"/>\n')
     buf.write('        </vertices>\n')
     buf.write('        <triangles>\n')
@@ -136,6 +158,9 @@ def _mesh_to_xml(object_id: int, vertices: list, triangles: list) -> str:
     buf.write('        </triangles>\n')
     buf.write('      </mesh>\n')
     buf.write('    </object>\n')
+    buf.write('  </resources>\n')
+    buf.write('  <build/>\n')
+    buf.write('</model>\n')
     return buf.getvalue()
 
 
@@ -143,75 +168,64 @@ def _mesh_to_xml(object_id: int, vertices: list, triangles: list) -> str:
 # so users can target different build volumes without editing source.
 
 
-def _component_to_xml(wrapper_id: int, mesh_id: int) -> str:
-    """Render a component-wrapper <object> that references a shared mesh object.
-
-    Using components avoids duplicating mesh data for items with the same shape.
-    Each wrapper gets a unique object ID so OrcaSlicer can assign it to a plate.
-    """
+def _component_wrapper_xml(wrapper_id: int, safe_name: str) -> str:
+    """Render a component-wrapper <object> that references an external mesh file via p:path."""
     return (
-        f'    <object id="{wrapper_id}" type="model">\n'
+        f'    <object id="{wrapper_id}" p:UUID="{uuid.uuid4()}" type="model">\n'
         f'      <components>\n'
-        f'        <component objectid="{mesh_id}"/>\n'
+        f'        <component p:path="/3D/Objects/{safe_name}.model" objectid="1"'
+        f' p:UUID="{uuid.uuid4()}" transform="1 0 0 0 1 0 0 0 1 0 0 0"/>\n'
         f'      </components>\n'
         f'    </object>\n'
     )
 
 
 def autoarrange_plates(instances: list) -> list:
-    """Pack instances into PLATE_WIDTH_MM × PLATE_DEPTH_MM plates.
+    """Pack instances onto PLATE_WIDTH_MM × PLATE_DEPTH_MM plates using rectpack.
 
-    Uses a shelf-packing algorithm (First Fit Decreasing Height):
-    items are sorted by depth descending so taller items seed new shelves,
-    and shorter items fill the remaining height on existing shelves.
-
-    instances: list of {'filename': str, 'width_mm': float, 'depth_mm': float}
-    Returns: list of plates; each plate is a list of dicts adding 'x' and 'y'
-             (the bottom-left corner position of the item on the plate).
+    Each item is padded by ITEM_GAP_MM on all sides so parts never touch.
+    Returns list of plates; each plate is a list of dicts adding 'x' and 'y'
+    (the bottom-left corner of the item, gap already stripped out).
     """
-    sorted_items = sorted(instances, key=lambda it: (-it['depth_mm'], -it['width_mm']))
+    if not instances:
+        return []
 
-    plates: list = []
-    current_items: list = []
-    # Each shelf: {'y': float, 'height': float, 'x_cursor': float}
-    shelves: list = []
+    pad = ITEM_GAP_MM
+    total_area = sum((i['width_mm'] + pad) * (i['depth_mm'] + pad) for i in instances)
+    plate_area = PLATE_WIDTH_MM * PLATE_DEPTH_MM
+    max_bins = max(int(total_area / plate_area) + 2, len(instances))
 
-    def commit_plate() -> None:
-        nonlocal current_items, shelves
-        if current_items:
-            plates.append(current_items)
-        current_items = []
-        shelves = []
+    packer = newPacker(mode=PackingMode.Offline, bin_algo=PackingBin.BFF,
+                       sort_algo=SORT_LSIDE, rotation=True)
+    for _ in range(max_bins):
+        packer.add_bin(PLATE_WIDTH_MM, PLATE_DEPTH_MM)
+    for i, inst in enumerate(instances):
+        packer.add_rect(inst['width_mm'] + pad, inst['depth_mm'] + pad, rid=i)
+    packer.pack()
 
-    for item in sorted_items:
-        w, d = item['width_mm'], item['depth_mm']
-        placed = False
+    plates_dict: dict = {}
+    for rect in packer.rect_list():
+        bin_idx, x, y, packed_w, packed_h, rid = rect
+        inst = instances[rid]
+        if bin_idx not in plates_dict:
+            plates_dict[bin_idx] = []
+        # Detect if rectpack rotated the item 90° (dimensions are swapped vs original).
+        # When rotated, the placed footprint uses depth as width and width as depth.
+        # We record this so _bundle_legacy can apply a matching world-space rotation
+        # to the mesh, keeping geometry aligned with the packing footprint.
+        was_rotated = abs(packed_w - (inst['depth_mm'] + pad)) < 0.01
+        placed_w = inst['depth_mm'] if was_rotated else inst['width_mm']
+        placed_h = inst['width_mm'] if was_rotated else inst['depth_mm']
+        plates_dict[bin_idx].append({
+            **inst,
+            'x': x + pad / 2,
+            'y': y + pad / 2,
+            'width_mm': placed_w,
+            'depth_mm': placed_h,
+            'rotated': was_rotated,
+        })
 
-        # Try to add to an existing shelf (item must fit in remaining width and shelf height)
-        for shelf in shelves:
-            remaining = PLATE_WIDTH_MM - shelf['x_cursor']
-            if w <= remaining and d <= shelf['height']:
-                current_items.append({**item, 'x': shelf['x_cursor'], 'y': shelf['y']})
-                shelf['x_cursor'] += w + ITEM_GAP_MM
-                placed = True
-                break
-
-        if not placed:
-            # Try starting a new shelf on the current plate
-            y_new = shelves[-1]['y'] + shelves[-1]['height'] + ITEM_GAP_MM if shelves else 0.0
-            if y_new + d <= PLATE_DEPTH_MM and w <= PLATE_WIDTH_MM:
-                shelves.append({'y': y_new, 'height': d, 'x_cursor': w + ITEM_GAP_MM})
-                current_items.append({**item, 'x': 0.0, 'y': y_new})
-                placed = True
-
-        if not placed:
-            # Start a new plate (force-place even if item exceeds plate dimensions)
-            commit_plate()
-            shelves.append({'y': 0.0, 'height': d, 'x_cursor': w + ITEM_GAP_MM})
-            current_items.append({**item, 'x': 0.0, 'y': 0.0})
-
-    commit_plate()
-    return plates
+    return [plates_dict[i] for i in sorted(plates_dict.keys())]
 
 
 THUMBNAIL_PX = 512
@@ -254,7 +268,10 @@ def generate_plate_thumbnail(
         _, vertices, triangles = mesh_by_filename[item['filename']]
         verts = np.array(vertices, dtype=np.float64)
         tris = np.array(triangles, dtype=np.int32)
-        # Mesh is centred at local origin; shift to left/front edge position
+        # Centre mesh at local XY origin and rest on Z=0, then shift to plate position
+        verts[:, 0] -= (verts[:, 0].min() + verts[:, 0].max()) / 2
+        verts[:, 1] -= (verts[:, 1].min() + verts[:, 1].max()) / 2
+        verts[:, 2] -= verts[:, 2].min()
         verts[:, 0] += item['x'] + item['width_mm'] / 2
         verts[:, 1] += item['y'] + item['depth_mm'] / 2
         max_z = max(max_z, float(verts[:, 2].max()))
@@ -283,22 +300,34 @@ def generate_plate_thumbnail(
     return buf.getvalue()
 
 
-def build_model_settings_xml(plate_obj_ids: list, plate_thumbnails: list | None = None) -> str:
+def build_model_settings_xml(
+    plate_obj_ids: list,
+    plate_thumbnails: list | None = None,
+    wrapper_to_part_id: dict | None = None,
+) -> str:
     """Build OrcaSlicer-compatible Metadata/model_settings.config XML.
 
-    plate_obj_ids: list of plates; each plate is a list of wrapper object IDs
-    (the XML `id` attribute of the component-wrapper <object> elements that
-    appear as <item> entries in <build>).
-
-    OrcaSlicer identifies plate membership via <model_instance> children, each
-    carrying three <metadata> elements:
-      - object_id:   the wrapper's XML object ID from 3dmodel.model
-      - instance_id: 0-based instance index within that object (always 0 here
-                     since every wrapper is instantiated exactly once in <build>)
-      - identify_id: stable unique identifier (we reuse the object ID)
-
-    See: OrcaSlicer src/libslic3r/Format/bbs_3mf.cpp (INSTANCE_TAG, PLATERID_ATTR)
+    wrapper_to_part_id: maps wrapper_id → part_id (component_id from the paired
+    OrcaSlicer ID scheme).  OrcaSlicer requires per-instance <object> sections
+    before <plate> sections, and the part_id must match its internal volume ID.
     """
+    wtp = wrapper_to_part_id or {}
+    object_sections: list = []
+    for wrapper_id, part_id in wtp.items():
+        name = f'Object_{wrapper_id}'
+        object_sections.append(
+            f'<object id="{wrapper_id}">\n'
+            f'  <metadata key="name" value="{name}"/>\n'
+            f'  <metadata key="extruder" value="1"/>\n'
+            f'  <part id="{part_id}" subtype="normal_part">\n'
+            f'    <metadata key="name" value="{name}"/>\n'
+            f'    <metadata key="matrix" value="1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1"/>\n'
+            f'    <mesh_stat edges_fixed="0" degenerate_facets="0" '
+            f'facets_removed="0" facets_reversed="0" backwards_edges="0"/>\n'
+            f'  </part>\n'
+            f'</object>'
+        )
+
     plate_sections: list = []
     for plate_idx, obj_ids in enumerate(plate_obj_ids, start=1):
         thumb_path = (plate_thumbnails or [])[plate_idx - 1] if plate_thumbnails else None
@@ -315,49 +344,61 @@ def build_model_settings_xml(plate_obj_ids: list, plate_thumbnails: list | None 
         plate_sections.append(
             f'<plate>\n'
             f'  <metadata key="plater_id" value="{plate_idx}"/>\n'
-            f'  <metadata key="plater_name" value="Plate {plate_idx}"/>\n'
+            f'  <metadata key="plater_name" value=""/>\n'
             f'  <metadata key="locked" value="false"/>\n'
+            f'  <metadata key="filament_map_mode" value="Auto For Flush"/>\n'
             + thumb_line
             + '\n'.join(instance_lines) + '\n'
             + '</plate>'
         )
+
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<config>\n'
+        + ('\n'.join(object_sections) + '\n' if object_sections else '')
         + '\n'.join(plate_sections) + '\n'
         '</config>\n'
     )
 
 
 def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
-    """Bundle STL files from stl_dir into output_path (.3mf) per manifest.
+    """Bundle STL files from stl_dir into a 3MF archive.
 
     Creates an OrcaSlicer-compatible 3MF with:
     - Shared mesh definitions (one per unique STL shape)
     - Per-instance component-wrapper objects so each copy has a unique object ID
     - Metadata/model_settings.config assigning objects to plates
     - Items arranged on 250×250 mm plates via shelf packing
-
-    manifest: list of {filename, widthUnits, heightUnits, qty, customization}
     """
     # ── 1. Load each unique STL mesh once ────────────────────────────────────
-    mesh_by_filename: dict = {}  # filename → (mesh_obj_id, vertices, triangles)
-    next_mesh_id = 1
+    # mesh_by_filename: filename → (safe_name, vertices, triangles)
+    # safe_name becomes the external file stem: 3D/Objects/{safe_name}.model
+    mesh_by_filename: dict = {}
+    mesh_idx = 0
 
     for entry in manifest:
         fname = entry['filename']
         if fname not in mesh_by_filename:
             stl_path = os.path.join(stl_dir, fname)
             verts, tris = parse_binary_stl(stl_path)
-            mesh_by_filename[fname] = (next_mesh_id, verts, tris)
-            next_mesh_id += 1
+            safe_name = f'Object_{mesh_idx}_{mesh_idx}'
+            mesh_by_filename[fname] = (safe_name, verts, tris)
+            mesh_idx += 1
 
     # ── 2. Expand manifest → flat instance list ───────────────────────────────
     instances: list = []
     for entry in manifest:
         fname = entry['filename']
-        w_mm = entry['widthUnits'] * GRIDFINITY_UNIT_MM
-        d_mm = entry['heightUnits'] * GRIDFINITY_UNIT_MM
+        # Static library items have widthUnits=0 — derive footprint from mesh extents.
+        if entry.get('widthUnits', 0) > 0:
+            w_mm = entry['widthUnits'] * GRIDFINITY_UNIT_MM
+            d_mm = entry['heightUnits'] * GRIDFINITY_UNIT_MM
+        else:
+            _safe, verts, _ = mesh_by_filename[fname]
+            xs = [v[0] for v in verts]
+            ys = [v[1] for v in verts]
+            w_mm = max(xs) - min(xs)
+            d_mm = max(ys) - min(ys)
         for _ in range(entry['qty']):
             instances.append({'filename': fname, 'width_mm': w_mm, 'depth_mm': d_mm})
 
@@ -365,43 +406,79 @@ def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
     plates = autoarrange_plates(instances)
 
     # ── 4. Build 3MF XML ──────────────────────────────────────────────────────
+    # Use OrcaSlicer's paired ID scheme: one global counter allocates IDs for
+    # both mesh components and wrappers.  Each UNIQUE shape consumes two IDs
+    # (component_id, then wrapper_id); repeated shapes skip the component_id
+    # allocation and reuse the existing one.  Part_id in model_settings.config
+    # = component_id (the lower of the pair), matching OrcaSlicer's own saves.
     objects_xml: list = []
     items_xml: list = []
-    plate_obj_ids: list = []  # [[ids on plate 1], [ids on plate 2], ...]
+    plate_obj_ids: list = []
+    wrapper_to_part_id: dict = {}   # wrapper_id → part_id (= component_id)
+    fname_to_component_id: dict = {}  # filename → component_id (for shared meshes)
 
-    # Mesh-definition objects
-    for _fname, (mesh_id, verts, tris) in mesh_by_filename.items():
-        objects_xml.append(_mesh_to_xml(mesh_id, verts, tris))
+    # OrcaSlicer identifies plate membership by world-space position, not solely by
+    # model_settings.config.  Plates are laid out in a 2-column grid:
+    #   col = plate_idx % 2,  row = plate_idx // 2
+    #   x_offset = col * PLATE_WIDTH_MM
+    #   y_offset = -row * PLATE_DEPTH_MM   (rows extend downward / negative Y)
+    # This matches the coordinate layout OrcaSlicer uses when it saves a multi-plate
+    # project (verified against the reference 3MF in docs/reference 3mf/).
+    PLATE_COLS = 2
 
-    # Component-wrapper objects (one per instance) and build items
-    wrapper_id = next_mesh_id
-    for plate_items in plates:
+    id_counter = 1
+    for plate_idx, plate_items in enumerate(plates):
+        col = plate_idx % PLATE_COLS
+        row = plate_idx // PLATE_COLS
+        plate_offset_x = col * PLATE_WIDTH_MM
+        plate_offset_y = -row * PLATE_DEPTH_MM
+
         ids_this_plate: list = []
         for placed in plate_items:
-            mesh_id = mesh_by_filename[placed['filename']][0]
-            objects_xml.append(_component_to_xml(wrapper_id, mesh_id))
+            fname = placed['filename']
+            safe_name, verts, _ = mesh_by_filename[fname]
 
-            # Gridfinity STL meshes are generated with position="center" (the OpenSCAD
-            # library default), so the mesh is centred at its local origin. autoarrange
-            # returns left/front edge coordinates, so shift by half-dimensions to align
-            # the mesh centre with the intended plate position.
-            tx = placed['x'] + placed['width_mm'] / 2
-            ty = placed['y'] + placed['depth_mm'] / 2
-            transform = f'1 0 0 0 1 0 0 0 1 {tx:.3f} {ty:.3f} 0'
-            items_xml.append(f'    <item objectid="{wrapper_id}" transform="{transform}"/>')
+            # Allocate component_id only for first occurrence of this shape
+            if fname not in fname_to_component_id:
+                fname_to_component_id[fname] = id_counter
+                id_counter += 1
+            component_id = fname_to_component_id[fname]
+
+            wrapper_id = id_counter
+            id_counter += 1
+
+            objects_xml.append(_component_wrapper_xml(wrapper_id, safe_name))
+            wrapper_to_part_id[wrapper_id] = component_id
+
+            zs = [v[2] for v in verts]
+            tz = (max(zs) - min(zs)) / 2
+            tx = plate_offset_x + placed['x'] + placed['width_mm'] / 2
+            ty = plate_offset_y + placed['y'] + placed['depth_mm'] / 2
+            # When the packer rotated the item 90° CCW, apply a matching world-space
+            # rotation so the external mesh (which is axis-aligned) appears rotated.
+            # CCW 90° around Z: (x,y) → (y,−x), matrix row-major: 0 1 0 −1 0 0 0 0 1
+            rot = '0 1 0 -1 0 0 0 0 1' if placed.get('rotated') else '1 0 0 0 1 0 0 0 1'
+            transform = f'{rot} {tx:.3f} {ty:.3f} {tz:.3f}'
+            items_xml.append(
+                f'    <item objectid="{wrapper_id}" p:UUID="{uuid.uuid4()}"'
+                f' transform="{transform}" printable="1"/>'
+            )
 
             ids_this_plate.append(wrapper_id)
-            wrapper_id += 1
         plate_obj_ids.append(ids_this_plate)
 
+    build_uuid = uuid.uuid4()
     model_xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<model unit="millimeter" xml:lang="en-US"\n'
-        '      xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">\n'
+        '    xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"\n'
+        '    xmlns:BambuStudio="http://schemas.bambulab.com/package/2021"\n'
+        '    xmlns:p="http://schemas.microsoft.com/3dmanufacturing/production/2015/06"\n'
+        '    requiredextensions="p">\n'
         '  <resources>\n'
         + ''.join(objects_xml)
         + '  </resources>\n'
-        '  <build>\n'
+        f'  <build p:UUID="{build_uuid}">\n'
         + '\n'.join(items_xml) + '\n'
         '  </build>\n'
         '</model>\n'
@@ -415,7 +492,7 @@ def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
         plate_thumbnail_paths.append(thumb_path)
         plate_thumbnail_bytes.append(generate_plate_thumbnail(plate_items, mesh_by_filename))
 
-    model_settings_xml = build_model_settings_xml(plate_obj_ids, plate_thumbnail_paths)
+    model_settings_xml = build_model_settings_xml(plate_obj_ids, plate_thumbnail_paths, wrapper_to_part_id)
 
     # ── 6. Write ZIP ──────────────────────────────────────────────────────────
     content_types = textwrap.dedent("""\
@@ -437,25 +514,32 @@ def bundle(manifest: list, stl_dir: str, output_path: str) -> None:
         <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
           <Relationship
             Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"
-            Target="/3D/model.model" Id="rel0"/>
+            Target="/3D/3dmodel.model" Id="rel0"/>
         </Relationships>
         """)
 
-    # Links model.model to the OrcaSlicer plate-config sidecar
-    model_rels = textwrap.dedent("""\
-        <?xml version="1.0" encoding="UTF-8"?>
-        <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-          <Relationship
-            Type="http://schemas.bambulab.com/package/2021/model-settings"
-            Target="/Metadata/model_settings.config" Id="rel1"/>
-        </Relationships>
-        """)
+    # 3dmodel.model.rels: one entry per unique external mesh file.
+    rel_entries: list = []
+    for i, (safe_name, _, __) in enumerate(mesh_by_filename.values(), start=1):
+        rel_entries.append(
+            f'  <Relationship Target="/3D/Objects/{safe_name}.model" Id="rel{i}"\n'
+            f'    Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/>'
+        )
+    model_rels = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n'
+        + '\n'.join(rel_entries) + '\n'
+        '</Relationships>\n'
+    )
 
     with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         zf.writestr('[Content_Types].xml', content_types)
         zf.writestr('_rels/.rels', rels)
-        zf.writestr('3D/model.model', model_xml)
-        zf.writestr('3D/_rels/model.model.rels', model_rels)
+        zf.writestr('3D/3dmodel.model', model_xml)
+        for fname, (safe_name, verts, tris) in mesh_by_filename.items():
+            zf.writestr(f'3D/Objects/{safe_name}.model',
+                        _mesh_to_external_model(verts, tris))
+        zf.writestr('3D/_rels/3dmodel.model.rels', model_rels)
         zf.writestr('Metadata/model_settings.config', model_settings_xml)
         for thumb_path, thumb_bytes in zip(plate_thumbnail_paths, plate_thumbnail_bytes):
             zf.writestr(thumb_path, thumb_bytes)

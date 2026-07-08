@@ -35,6 +35,7 @@ const router = Router();
 
 router.post('/', requireAuth, upload.single('file'), ctrl.uploadHandler);
 router.get('/', requireAuth, ctrl.listHandler);
+router.get('/public', requireAuth, ctrl.listPublicHandler);
 router.get('/:id', requireAuth, ctrl.getOneHandler);
 router.put('/:id', requireAuth, ctrl.updateMetaHandler);
 router.delete('/:id', requireAuth, ctrl.deleteHandler);

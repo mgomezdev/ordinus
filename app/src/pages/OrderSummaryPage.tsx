@@ -406,6 +406,7 @@ export function OrderSummaryPage() {
               <p className="order-panel-section-title">Generate STL Files</p>
               <BomGenerationPanel
                 layoutId={layoutMeta.id}
+                layoutTitle={layoutMeta.name ?? 'layout'}
                 bomItems={bomItems}
                 accessToken={getAccessToken()}
               />

@@ -1,4 +1,4 @@
-# Gridfinity Customizer
+# Ordinus
 
 A web-based visual layout tool for planning [Gridfinity](https://www.printables.com/model/274917-gridfinity-specification) modular storage systems. Drag bins onto a grid that matches your physical drawer, customize each bin, save layouts, and export a bill of materials.
 
