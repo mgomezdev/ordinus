@@ -22,6 +22,7 @@ const envSchema = z.object({
   GENERATED_STL_DIR: z.string().default('./data/generated'),
   THUMBNAIL_DIR: z.string().default('./data/thumbnails'),
   LIBRARY_BUILDER_DIR: z.string().default('../tools/library-builder'),
+  THEMIS_URL: z.string().url().optional(),
 }).superRefine((data, ctx) => {
   if (data.NODE_ENV === 'production') {
     if (KNOWN_WEAK_SECRETS.has(data.JWT_SECRET)) {
