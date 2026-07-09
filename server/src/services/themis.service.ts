@@ -35,11 +35,9 @@ export async function createThemisProject(
   const data = await themisPost(`${themisUrl}/api/v1/projects`, {
     name,
     notes,
-    ...(sourceUser !== undefined && {
-      source_app: 'ordinus',
-      source_user: sourceUser,
-      source_layout_id: sourceLayoutId,
-    }),
+    source_app: 'ordinus',
+    ...(sourceUser !== undefined && { source_user: sourceUser }),
+    ...(sourceLayoutId !== undefined && { source_layout_id: sourceLayoutId }),
   }) as { id: number };
   return data.id;
 }
