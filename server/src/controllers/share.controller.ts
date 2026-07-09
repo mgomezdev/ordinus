@@ -14,10 +14,6 @@ export async function createShare(
   next: NextFunction,
 ): Promise<void> {
   try {
-    if (!req.user) {
-      throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    }
-
     const layoutId = parseInt(req.params.id as string, 10);
     if (isNaN(layoutId)) {
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
@@ -28,11 +24,7 @@ export async function createShare(
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Validation failed', parsed.error.flatten());
     }
 
-    const share = await shareService.createShare(
-      layoutId,
-      req.user.userId,
-      parsed.data.expiresInDays,
-    );
+    const share = await shareService.createShare(layoutId, parsed.data.expiresInDays);
 
     const body: ApiResponse<ApiSharedProject> = { data: share };
     res.status(201).json(body);
@@ -67,16 +59,12 @@ export async function deleteShare(
   next: NextFunction,
 ): Promise<void> {
   try {
-    if (!req.user) {
-      throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    }
-
     const shareId = parseInt(req.params.shareId as string, 10);
     if (isNaN(shareId)) {
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid share ID');
     }
 
-    await shareService.deleteShare(shareId, req.user.userId);
+    await shareService.deleteShare(shareId);
     res.status(204).send();
   } catch (err) {
     next(err);
@@ -89,16 +77,12 @@ export async function listSharesByLayout(
   next: NextFunction,
 ): Promise<void> {
   try {
-    if (!req.user) {
-      throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    }
-
     const layoutId = parseInt(req.params.id as string, 10);
     if (isNaN(layoutId)) {
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
     }
 
-    const shares = await shareService.getSharesByLayout(layoutId, req.user.userId);
+    const shares = await shareService.getSharesByLayout(layoutId);
 
     const body: ApiResponse<ApiSharedProject[]> = { data: shares };
     res.json(body);

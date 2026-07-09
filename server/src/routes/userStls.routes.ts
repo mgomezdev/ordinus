@@ -4,7 +4,6 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import { config } from '../config.js';
-import { requireAuth } from '../middleware/auth.js';
 import * as ctrl from '../controllers/userStls.controller.js';
 
 // Ensure upload directory exists
@@ -33,15 +32,14 @@ const upload = multer({
 
 const router = Router();
 
-router.post('/', requireAuth, upload.single('file'), ctrl.uploadHandler);
-router.get('/', requireAuth, ctrl.listHandler);
-router.get('/public', requireAuth, ctrl.listPublicHandler);
-router.get('/:id', requireAuth, ctrl.getOneHandler);
-router.put('/:id', requireAuth, ctrl.updateMetaHandler);
-router.delete('/:id', requireAuth, ctrl.deleteHandler);
-router.put('/:id/file', requireAuth, upload.single('file'), ctrl.replaceFileHandler);
-router.post('/:id/reprocess', requireAuth, ctrl.reprocessHandler);
-router.get('/:id/file', requireAuth, ctrl.downloadFileHandler);
-router.get('/:id/images/:filename', requireAuth, ctrl.serveImageHandler);
+router.post('/', upload.single('file'), ctrl.uploadHandler);
+router.get('/', ctrl.listHandler);
+router.get('/:id', ctrl.getOneHandler);
+router.put('/:id', ctrl.updateMetaHandler);
+router.delete('/:id', ctrl.deleteHandler);
+router.put('/:id/file', upload.single('file'), ctrl.replaceFileHandler);
+router.post('/:id/reprocess', ctrl.reprocessHandler);
+router.get('/:id/file', ctrl.downloadFileHandler);
+router.get('/:id/images/:filename', ctrl.serveImageHandler);
 
 export default router;

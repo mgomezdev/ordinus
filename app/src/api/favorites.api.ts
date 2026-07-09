@@ -28,35 +28,31 @@ export interface CreateFavoriteRequest {
   customization: BinCustomization;
 }
 
-export async function listFavoritesApi(token: string): Promise<FavoriteItem[]> {
+export async function listFavoritesApi(): Promise<FavoriteItem[]> {
   const res = await apiFetch<FavoritesListResponse>(
     '/favorites',
     { headers: JSON_HEADERS },
-    token,
   );
   return res.data;
 }
 
 export async function createFavoriteApi(
   data: CreateFavoriteRequest,
-  token: string,
 ): Promise<FavoriteItem> {
   const res = await apiFetch<FavoriteResponse>(
     '/favorites',
     { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(data) },
-    token,
   );
   return res.data;
 }
 
-export async function deleteFavoriteApi(id: string, token: string): Promise<void> {
-  await apiFetch<void>(`/favorites/${id}`, { method: 'DELETE', headers: JSON_HEADERS }, token);
+export async function deleteFavoriteApi(id: string): Promise<void> {
+  await apiFetch<void>(`/favorites/${id}`, { method: 'DELETE', headers: JSON_HEADERS });
 }
 
-export async function renameFavoriteApi(id: string, name: string, token: string): Promise<void> {
+export async function renameFavoriteApi(id: string, name: string): Promise<void> {
   await apiFetch<void>(
     `/favorites/${id}/name`,
     { method: 'PATCH', headers: JSON_HEADERS, body: JSON.stringify({ name }) },
-    token,
   );
 }

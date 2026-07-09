@@ -3,6 +3,7 @@ import type { PlacedItemWithValidity, GridSpacerConfig } from '../../types/gridf
 import type { RefImagePlacement } from '../../hooks/useRefImagePlacements';
 import { buildPayload } from '../../utils/layoutHelpers';
 import { useSaveLayoutMutation } from '../../hooks/useLayouts';
+import { useCustomers } from '../../contexts/CustomerContext';
 
 interface SaveLayoutDialogProps {
   isOpen: boolean;
@@ -51,6 +52,11 @@ function SaveLayoutForm({
   const [description, setDescription] = useState(currentLayoutDescription);
   const [successMessage, setSuccessMessage] = useState('');
 
+  const { customers, selectedCustomer } = useCustomers();
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(
+    selectedCustomer?.id ?? null,
+  );
+
   const saveLayoutMutation = useSaveLayoutMutation();
 
   const isPending = saveLayoutMutation.isPending;
@@ -61,7 +67,10 @@ function SaveLayoutForm({
     if (!name.trim()) return;
 
     try {
-      const payload = buildPayload(name, description, gridX, gridY, widthMm, depthMm, spacerConfig, placedItems, refImagePlacements);
+      const payload = buildPayload(
+        name, description, gridX, gridY, widthMm, depthMm,
+        spacerConfig, placedItems, refImagePlacements, selectedCustomerId,
+      );
       const result = await saveLayoutMutation.mutateAsync(payload);
 
       onSaveComplete?.(result.id, result.name);
@@ -76,7 +85,7 @@ function SaveLayoutForm({
     if (e.key === 'Escape') {
       onClose();
     } else if (e.key === 'Enter' && name.trim() && !isPending) {
-      handleSaveNew();
+      void handleSaveNew();
     }
   };
 
@@ -141,6 +150,22 @@ function SaveLayoutForm({
                 />
               </div>
 
+              {customers.length > 0 && (
+                <div className="form-group">
+                  <label htmlFor="layout-customer">Customer (optional)</label>
+                  <select
+                    id="layout-customer"
+                    value={selectedCustomerId ?? ''}
+                    onChange={e => setSelectedCustomerId(e.target.value ? Number(e.target.value) : null)}
+                  >
+                    <option value="">— None —</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="layout-dialog-info">
                 <span>Grid: {gridX} x {gridY}</span>
                 <span>Items: {placedItems.length}</span>
@@ -163,7 +188,7 @@ function SaveLayoutForm({
                 </button>
                 <button
                   className="submit-button"
-                  onClick={handleSaveNew}
+                  onClick={() => void handleSaveNew()}
                   type="button"
                   disabled={!name.trim() || isPending}
                 >
@@ -210,4 +235,3 @@ export function SaveLayoutDialog({
     />
   );
 }
-

@@ -5,7 +5,6 @@ import { MobileActionBar } from './MobileActionBar';
 import type { ImageViewMode } from '../types/gridfinity';
 
 const baseProps = {
-  isAuthenticated: true,
   layoutMeta: { id: 42, name: 'Test Layout' },
   placedItems: [{ instanceId: 'i1', itemId: 'lib:item', x: 0, y: 0, width: 1, height: 1, rotation: 0 }],
   refImagePlacements: [],
@@ -23,20 +22,13 @@ describe('MobileActionBar', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
   describe('rendering', () => {
-    it('renders all 5 action buttons when authenticated', () => {
+    it('renders all 5 action buttons', () => {
       render(<MobileActionBar {...baseProps} />);
       expect(screen.getByLabelText('Load layout')).toBeInTheDocument();
       expect(screen.getByLabelText('Save layout')).toBeInTheDocument();
       expect(screen.getByLabelText('Export PDF')).toBeInTheDocument();
       expect(screen.getByLabelText('Toggle view')).toBeInTheDocument();
       expect(screen.getByLabelText('Clear all')).toBeInTheDocument();
-    });
-
-    it('hides Load and Save when not authenticated', () => {
-      render(<MobileActionBar {...baseProps} isAuthenticated={false} />);
-      expect(screen.queryByLabelText('Load layout')).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Save layout')).not.toBeInTheDocument();
-      expect(screen.getByLabelText('Export PDF')).toBeInTheDocument();
     });
 
     it('shows "Saving…" label on Save button when isSaving is true', () => {

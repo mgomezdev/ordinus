@@ -10,10 +10,6 @@ const mockItem: ApiUserStl = {
   imageUrl: null, perspImageUrls: [], errorMessage: null, createdAt: '',
 };
 
-vi.mock('../contexts/AuthContext.js', () => ({
-  useAuth: () => ({ user: { role: 'user' }, getAccessToken: () => 'tok', isAuthenticated: true }),
-}));
-
 const mockUpdate = vi.fn();
 const mockDelete = vi.fn();
 vi.mock('../hooks/useUserStls.js', () => ({
@@ -52,8 +48,8 @@ describe('UserStlEditModal', () => {
     expect(await screen.findByText(/are you sure/i)).toBeInTheDocument();
   });
 
-  it('does not show Reprocess button for non-admin users', () => {
+  it('shows Reprocess button for all users', () => {
     render(<UserStlEditModal item={mockItem} onClose={vi.fn()} />, { wrapper });
-    expect(screen.queryByRole('button', { name: /reprocess/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reprocess/i })).toBeInTheDocument();
   });
 });

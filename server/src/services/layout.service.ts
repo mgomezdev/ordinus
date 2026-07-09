@@ -3,10 +3,9 @@ import { AppError, ErrorCodes } from '@gridfinity/shared';
 import { logger } from '../logger.js';
 import type { ApiLayout, ApiLayoutDetail, ApiRefImagePlacement, BinCustomization } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
-import { layouts, placedItems, userStorage, referenceImages, refImages, users } from '../db/schema.js';
+import { layouts, placedItems, referenceImages, refImages, customers } from '../db/schema.js';
 import * as referenceImageService from './referenceImage.service.js';
 import { formatLayout, formatPlacedItem } from './formatters.js';
-import { ensureStorageRow } from './storage.helpers.js';
 import * as layoutThumbnailService from './layoutThumbnail.service.js';
 
 interface CursorData {
@@ -16,7 +15,6 @@ interface CursorData {
 
 function encodeCursor(data: CursorData): string {
   const json = JSON.stringify(data);
-  // base64url encoding
   return Buffer.from(json).toString('base64url');
 }
 
@@ -44,10 +42,10 @@ function unprefixItemId(prefixedId: string): { libraryId: string; itemId: string
   };
 }
 
-export async function getLayoutsByUser(
-  userId: number,
+export async function getAllLayouts(
   cursor?: string,
   limit: number = 20,
+  customerId?: number,
 ): Promise<{ data: ApiLayout[]; nextCursor?: string; hasMore: boolean }> {
   const safeLimit = Math.min(Math.max(limit, 1), 100);
 
@@ -63,19 +61,30 @@ export async function getLayoutsByUser(
     );
   }
 
-  const conditions = cursorCondition
-    ? and(eq(layouts.userId, userId), cursorCondition)
-    : eq(layouts.userId, userId);
+  let conditions;
+  if (customerId !== undefined && !isNaN(customerId)) {
+    const customerFilter = eq(layouts.customerId, customerId);
+    conditions = cursorCondition ? and(customerFilter, cursorCondition) : customerFilter;
+  } else {
+    conditions = cursorCondition;
+  }
 
+  // Fetch layouts with customer name via LEFT JOIN
   const rows = await db
-    .select()
+    .select({
+      layout: layouts,
+      customerName: customers.name,
+    })
     .from(layouts)
+    .leftJoin(customers, eq(layouts.customerId, customers.id))
     .where(conditions)
     .orderBy(desc(layouts.createdAt), desc(layouts.id))
     .limit(safeLimit + 1);
 
   const hasMore = rows.length > safeLimit;
-  const data = rows.slice(0, safeLimit).map(row => formatLayout(row));
+  const data = rows.slice(0, safeLimit).map(row =>
+    formatLayout(row.layout, row.customerName ?? undefined),
+  );
 
   let nextCursor: string | undefined;
   if (hasMore && data.length > 0) {
@@ -89,14 +98,19 @@ export async function getLayoutsByUser(
   return { data, nextCursor, hasMore };
 }
 
+// Keep the old name as an alias for backward compatibility
+export const getLayoutsByUser = getAllLayouts;
+
 export async function getLayoutById(
   layoutId: number,
-  userId: number,
-  isAdmin = false,
 ): Promise<ApiLayoutDetail> {
   const rows = await db
-    .select()
+    .select({
+      layout: layouts,
+      customerName: customers.name,
+    })
     .from(layouts)
+    .leftJoin(customers, eq(layouts.customerId, customers.id))
     .where(eq(layouts.id, layoutId))
     .limit(1);
 
@@ -104,22 +118,7 @@ export async function getLayoutById(
     throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
   }
 
-  const layout = rows[0];
-
-  if (layout.userId !== userId && !isAdmin) {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
-  }
-
-  // Resolve owner username for admin views
-  let ownerUsername: string | undefined;
-  if (isAdmin) {
-    const userRows = await db
-      .select({ username: users.username })
-      .from(users)
-      .where(eq(users.id, layout.userId))
-      .limit(1);
-    ownerUsername = userRows[0]?.username;
-  }
+  const { layout, customerName } = rows[0];
 
   const itemRows = await db
     .select()
@@ -157,7 +156,7 @@ export async function getLayoutById(
   }));
 
   return {
-    ...formatLayout(layout, ownerUsername),
+    ...formatLayout(layout, customerName ?? undefined),
     placedItems: itemRows.map(formatPlacedItem),
     referenceImages: legacyRefImages,
     refImagePlacements,
@@ -167,6 +166,7 @@ export async function getLayoutById(
 interface CreateLayoutData {
   name: string;
   description?: string;
+  customerId?: number | null;
   gridX: number;
   gridY: number;
   widthMm: number;
@@ -197,25 +197,15 @@ interface CreateLayoutData {
 }
 
 export async function createLayout(
-  userId: number,
   data: CreateLayoutData,
 ): Promise<ApiLayoutDetail> {
-  // Check quota
-  const storage = await ensureStorageRow(userId);
-  if (storage.layoutCount >= storage.maxLayouts) {
-    throw new AppError(
-      ErrorCodes.QUOTA_EXCEEDED,
-      `Layout limit reached (${storage.maxLayouts}). Delete existing layouts to save new ones.`,
-    );
-  }
-
   const now = new Date().toISOString();
 
-  // Use a batch for transaction-like behavior
   const layoutRows = await db
     .insert(layouts)
     .values({
-      userId,
+      userId: null,
+      customerId: data.customerId ?? null,
       name: data.name,
       description: data.description ?? null,
       gridX: data.gridX,
@@ -246,7 +236,6 @@ export async function createLayout(
       rotation: item.rotation,
       sortOrder: index,
       customization: item.customization ? JSON.stringify(item.customization) : null,
-      shadowBoxId: libraryId === 'bins_shadowbox' ? itemId : null,
     };
   });
 
@@ -301,12 +290,6 @@ export async function createLayout(
     }
   }
 
-  // Update storage quota
-  await db
-    .update(userStorage)
-    .set({ layoutCount: sql`${userStorage.layoutCount} + 1` })
-    .where(eq(userStorage.userId, userId));
-
   let thumbnailFilename: string | undefined;
   try {
     thumbnailFilename = await layoutThumbnailService.generate(
@@ -327,8 +310,15 @@ export async function createLayout(
     logger.warn({ err, layoutId: layout.id }, 'Thumbnail generation failed — layout saved without thumbnail');
   }
 
+  // Fetch customer name if needed
+  let customerName: string | undefined;
+  if (data.customerId) {
+    const custRows = await db.select({ name: customers.name }).from(customers).where(eq(customers.id, data.customerId)).limit(1);
+    customerName = custRows[0]?.name;
+  }
+
   return {
-    ...formatLayout({ ...layout, thumbnailPath: thumbnailFilename ?? null }),
+    ...formatLayout({ ...layout, thumbnailPath: thumbnailFilename ?? null }, customerName),
     placedItems: insertedItems.map(formatPlacedItem),
     refImagePlacements: refPlacementPlacements,
   };
@@ -336,11 +326,8 @@ export async function createLayout(
 
 export async function updateLayout(
   layoutId: number,
-  userId: number,
   data: CreateLayoutData,
-  isAdmin = false,
 ): Promise<ApiLayoutDetail> {
-  // Verify ownership
   const existing = await db
     .select()
     .from(layouts)
@@ -351,16 +338,12 @@ export async function updateLayout(
     throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
   }
 
-  if (existing[0].userId !== userId && !isAdmin) {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
-  }
-
   const now = new Date().toISOString();
 
-  // Update layout
   const updatedRows = await db
     .update(layouts)
     .set({
+      customerId: data.customerId !== undefined ? data.customerId : existing[0].customerId,
       name: data.name,
       description: data.description ?? null,
       gridX: data.gridX,
@@ -396,7 +379,6 @@ export async function updateLayout(
       rotation: item.rotation,
       sortOrder: index,
       customization: item.customization ? JSON.stringify(item.customization) : null,
-      shadowBoxId: libraryId === 'bins_shadowbox' ? itemId : null,
     };
   });
 
@@ -471,8 +453,16 @@ export async function updateLayout(
     logger.warn({ err, layoutId }, 'Thumbnail generation failed — layout saved without thumbnail');
   }
 
+  // Fetch customer name
+  const effectiveCustomerId = data.customerId !== undefined ? data.customerId : existing[0].customerId;
+  let customerName: string | undefined;
+  if (effectiveCustomerId) {
+    const custRows = await db.select({ name: customers.name }).from(customers).where(eq(customers.id, effectiveCustomerId)).limit(1);
+    customerName = custRows[0]?.name;
+  }
+
   return {
-    ...formatLayout({ ...updatedRows[0], thumbnailPath: thumbnailFilename ?? updatedRows[0].thumbnailPath ?? null }),
+    ...formatLayout({ ...updatedRows[0], thumbnailPath: thumbnailFilename ?? updatedRows[0].thumbnailPath ?? null }, customerName),
     placedItems: insertedItems.map(formatPlacedItem),
     refImagePlacements: refPlacementPlacements,
   };
@@ -480,10 +470,8 @@ export async function updateLayout(
 
 export async function updateLayoutMeta(
   layoutId: number,
-  userId: number,
-  data: { name?: string; description?: string },
+  data: { name?: string; description?: string; customerId?: number | null },
 ): Promise<ApiLayout> {
-  // Verify ownership
   const existing = await db
     .select()
     .from(layouts)
@@ -492,11 +480,6 @@ export async function updateLayoutMeta(
 
   if (existing.length === 0) {
     throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
-  }
-
-
-  if (existing[0].userId !== userId) {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
   }
 
   const now = new Date().toISOString();
@@ -504,6 +487,7 @@ export async function updateLayoutMeta(
 
   if (data.name !== undefined) setValues.name = data.name;
   if (data.description !== undefined) setValues.description = data.description;
+  if (data.customerId !== undefined) setValues.customerId = data.customerId;
 
   const updatedRows = await db
     .update(layouts)
@@ -511,14 +495,19 @@ export async function updateLayoutMeta(
     .where(eq(layouts.id, layoutId))
     .returning();
 
-  return formatLayout(updatedRows[0]);
+  const effectiveCustomerId = data.customerId !== undefined ? data.customerId : existing[0].customerId;
+  let customerName: string | undefined;
+  if (effectiveCustomerId) {
+    const custRows = await db.select({ name: customers.name }).from(customers).where(eq(customers.id, effectiveCustomerId)).limit(1);
+    customerName = custRows[0]?.name;
+  }
+
+  return formatLayout(updatedRows[0], customerName);
 }
 
 export async function deleteLayout(
   layoutId: number,
-  userId: number,
 ): Promise<void> {
-  // Verify ownership
   const existing = await db
     .select()
     .from(layouts)
@@ -529,37 +518,14 @@ export async function deleteLayout(
     throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
   }
 
-
-
-  if (existing[0].userId !== userId) {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
-  }
-
   await layoutThumbnailService.deleteThumbnail(layoutId);
 
   // Delete layout (CASCADE will delete placed_items)
   await db.delete(layouts).where(eq(layouts.id, layoutId));
-
-  // Decrement quota
-  await db
-    .update(userStorage)
-    .set({ layoutCount: sql`MAX(${userStorage.layoutCount} - 1, 0)` })
-    .where(eq(userStorage.userId, userId));
-}
-
-// ============================================================
-// Admin queries
-// ============================================================
-
-export async function getUsers(): Promise<Array<{ id: number; username: string }>> {
-  const rows = await db.select({ id: users.id, username: users.username }).from(users).orderBy(users.username);
-  return rows;
 }
 
 export async function cloneLayout(
   sourceLayoutId: number,
-  requestingUserId: number,
-  isAdmin = false,
 ): Promise<ApiLayoutDetail> {
   // Fetch source layout
   const sourceRows = await db
@@ -574,27 +540,14 @@ export async function cloneLayout(
 
   const source = sourceRows[0];
 
-  // Ownership check: admin can clone any, users can only clone their own
-  if (source.userId !== requestingUserId && !isAdmin) {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
-  }
-
-  // Check quota
-  const storage = await ensureStorageRow(requestingUserId);
-  if (storage.layoutCount >= storage.maxLayouts) {
-    throw new AppError(
-      ErrorCodes.QUOTA_EXCEEDED,
-      `Layout limit reached (${storage.maxLayouts}). Delete existing layouts to save new ones.`,
-    );
-  }
-
   const now = new Date().toISOString();
 
-  // Create new layout as draft
+  // Create new layout preserving customer association
   const newLayoutRows = await db
     .insert(layouts)
     .values({
-      userId: requestingUserId,
+      userId: null,
+      customerId: source.customerId,
       name: `Copy of ${source.name}`,
       description: source.description,
       gridX: source.gridX,
@@ -687,12 +640,6 @@ export async function cloneLayout(
     }
   }
 
-  // Update storage quota
-  await db
-    .update(userStorage)
-    .set({ layoutCount: sql`${userStorage.layoutCount} + 1` })
-    .where(eq(userStorage.userId, requestingUserId));
-
   let thumbnailFilename: string | undefined;
   try {
     thumbnailFilename = await layoutThumbnailService.generate(
@@ -713,9 +660,21 @@ export async function cloneLayout(
     logger.warn({ err, layoutId: newLayout.id }, 'Thumbnail generation failed — layout saved without thumbnail');
   }
 
+  // Fetch customer name
+  let customerName: string | undefined;
+  if (source.customerId) {
+    const custRows = await db.select({ name: customers.name }).from(customers).where(eq(customers.id, source.customerId)).limit(1);
+    customerName = custRows[0]?.name;
+  }
+
   return {
-    ...formatLayout({ ...newLayout, thumbnailPath: thumbnailFilename ?? null }),
+    ...formatLayout({ ...newLayout, thumbnailPath: thumbnailFilename ?? null }, customerName),
     placedItems: insertedItems.map(formatPlacedItem),
     refImagePlacements: refPlacementResults,
   };
+}
+
+// Legacy compatibility — kept but no longer called internally
+export async function getUsers(): Promise<Array<{ id: number; username: string }>> {
+  return [];
 }

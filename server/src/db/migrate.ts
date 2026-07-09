@@ -72,7 +72,7 @@ export async function runMigrations(client: Client): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_item_categories_item ON item_categories(library_id, item_id);
   `);
 
-  // Auth tables
+  // Auth tables — kept for backward compat, no longer actively used
   await client.execute(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,11 +107,46 @@ export async function runMigrations(client: Client): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
   `);
 
+  // ============================================================
+  // Customer profiles (new)
+  // ============================================================
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS customers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS customer_parts (
+      customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+      part_id TEXT NOT NULL REFERENCES user_stl_uploads(id) ON DELETE CASCADE,
+      PRIMARY KEY (customer_id, part_id)
+    );
+  `);
+
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS customer_ref_images (
+      customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+      ref_image_id INTEGER NOT NULL REFERENCES ref_images(id) ON DELETE CASCADE,
+      PRIMARY KEY (customer_id, ref_image_id)
+    );
+  `);
+
+  // ============================================================
   // Layout tables
+  // ============================================================
+
+  // Create layouts WITHOUT user_id NOT NULL constraint (new schema)
+  // We first try creating the table fresh (new DBs) then handle existing ones
   await client.execute(`
     CREATE TABLE IF NOT EXISTS layouts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_id INTEGER,
+      customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
       name TEXT NOT NULL,
       description TEXT,
       grid_x INTEGER NOT NULL CHECK (grid_x BETWEEN 1 AND 20),
@@ -126,9 +161,57 @@ export async function runMigrations(client: Client): Promise<void> {
     );
   `);
 
+  // If layouts table already existed with the old NOT NULL user_id, we need to handle that.
+  // Probe for customer_id — if missing, the table is old and needs migration.
+  try {
+    await client.execute(`SELECT customer_id FROM layouts LIMIT 1;`);
+    // column exists — table is already migrated or created fresh
+  } catch {
+    // customer_id missing — recreate layouts table dropping NOT NULL on user_id
+    try {
+      await client.execute(`ALTER TABLE layouts RENAME TO layouts_old;`);
+      await client.execute(`
+        CREATE TABLE layouts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER,
+          customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
+          name TEXT NOT NULL,
+          description TEXT,
+          grid_x INTEGER NOT NULL CHECK (grid_x BETWEEN 1 AND 20),
+          grid_y INTEGER NOT NULL CHECK (grid_y BETWEEN 1 AND 20),
+          width_mm REAL NOT NULL,
+          depth_mm REAL NOT NULL,
+          spacer_horizontal TEXT NOT NULL DEFAULT 'none',
+          spacer_vertical TEXT NOT NULL DEFAULT 'none',
+          is_public INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          thumbnail_path TEXT
+        );
+      `);
+      await client.execute(`
+        INSERT INTO layouts (id, user_id, name, description, grid_x, grid_y, width_mm, depth_mm,
+          spacer_horizontal, spacer_vertical, is_public, created_at, updated_at, thumbnail_path)
+        SELECT id, user_id, name, description, grid_x, grid_y, width_mm, depth_mm,
+          spacer_horizontal, spacer_vertical, is_public, created_at, updated_at, thumbnail_path
+        FROM layouts_old;
+      `);
+      await client.execute(`DROP TABLE layouts_old;`);
+    } catch {
+      // ignore — table may be in a partially migrated state already
+    }
+  }
+
   await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_layouts_user ON layouts(user_id);
   `);
+
+  // Add customer_id index
+  try {
+    await client.execute(`CREATE INDEX IF NOT EXISTS idx_layouts_customer ON layouts(customer_id);`);
+  } catch {
+    // ignore
+  }
 
   await client.execute(`
     CREATE TABLE IF NOT EXISTS placed_items (
@@ -174,10 +257,12 @@ export async function runMigrations(client: Client): Promise<void> {
     // Column already exists — ignore
   }
 
+  // user_stl_uploads — make user_id nullable (global parts)
+  // Probe for the old NOT NULL constraint by checking if we need to recreate
   await client.execute(`
     CREATE TABLE IF NOT EXISTS user_stl_uploads (
       id TEXT NOT NULL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_id INTEGER,
       name TEXT NOT NULL,
       original_filename TEXT NOT NULL,
       file_path TEXT NOT NULL,
@@ -192,6 +277,47 @@ export async function runMigrations(client: Client): Promise<void> {
     );
   `);
 
+  // If the existing table has user_id NOT NULL, recreate it
+  try {
+    // Probe: try to insert a row with null user_id (immediate rollback)
+    // Instead, inspect the column definition
+    const tableInfo = await client.execute(`PRAGMA table_info(user_stl_uploads);`);
+    const userIdCol = tableInfo.rows.find((r) => r.name === 'user_id');
+    if (userIdCol && userIdCol.notnull === 1) {
+      // Need to recreate
+      await client.execute(`ALTER TABLE user_stl_uploads RENAME TO user_stl_uploads_old;`);
+      await client.execute(`
+        CREATE TABLE user_stl_uploads (
+          id TEXT NOT NULL PRIMARY KEY,
+          user_id INTEGER,
+          name TEXT NOT NULL,
+          original_filename TEXT NOT NULL,
+          file_path TEXT NOT NULL,
+          image_url TEXT,
+          persp_image_urls TEXT,
+          grid_x INTEGER,
+          grid_y INTEGER,
+          grid_z INTEGER,
+          visibility TEXT NOT NULL DEFAULT 'private',
+          status TEXT NOT NULL DEFAULT 'pending',
+          error_message TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
+      await client.execute(`
+        INSERT INTO user_stl_uploads (id, user_id, name, original_filename, file_path, image_url,
+          persp_image_urls, grid_x, grid_y, grid_z, visibility, status, error_message, created_at, updated_at)
+        SELECT id, user_id, name, original_filename, file_path, image_url,
+          persp_image_urls, grid_x, grid_y, grid_z, visibility, status, error_message, created_at, updated_at
+        FROM user_stl_uploads_old;
+      `);
+      await client.execute(`DROP TABLE user_stl_uploads_old;`);
+    }
+  } catch {
+    // ignore — table may not exist yet or column already nullable
+  }
+
   await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_user_stl_uploads_user ON user_stl_uploads(user_id);
   `);
@@ -200,39 +326,158 @@ export async function runMigrations(client: Client): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_user_stl_uploads_status ON user_stl_uploads(status);
   `);
 
-  // Sharing tables
+  // Add visibility to user_stl_uploads if missing
+  try {
+    await client.execute(`ALTER TABLE user_stl_uploads ADD COLUMN visibility TEXT NOT NULL DEFAULT 'private';`);
+  } catch {
+    // Column already exists — ignore
+  }
+
+  // Add grid_z to user_stl_uploads if missing
+  try {
+    await client.execute(`ALTER TABLE user_stl_uploads ADD COLUMN grid_z INTEGER;`);
+  } catch {
+    // Column already exists — ignore
+  }
+
+  // Sharing tables — drop created_by NOT NULL (open sharing)
   await client.execute(`
     CREATE TABLE IF NOT EXISTS shared_projects (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       layout_id INTEGER NOT NULL REFERENCES layouts(id) ON DELETE CASCADE,
       slug TEXT NOT NULL UNIQUE,
-      created_by INTEGER NOT NULL REFERENCES users(id),
+      created_by INTEGER,
       expires_at TEXT,
       view_count INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
 
+  // If existing shared_projects has created_by NOT NULL, recreate
+  try {
+    const tableInfo = await client.execute(`PRAGMA table_info(shared_projects);`);
+    const createdByCol = tableInfo.rows.find((r) => r.name === 'created_by');
+    if (createdByCol && createdByCol.notnull === 1) {
+      await client.execute(`ALTER TABLE shared_projects RENAME TO shared_projects_old;`);
+      await client.execute(`
+        CREATE TABLE shared_projects (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          layout_id INTEGER NOT NULL REFERENCES layouts(id) ON DELETE CASCADE,
+          slug TEXT NOT NULL UNIQUE,
+          created_by INTEGER,
+          expires_at TEXT,
+          view_count INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+      `);
+      await client.execute(`
+        INSERT INTO shared_projects (id, layout_id, slug, created_by, expires_at, view_count, created_at)
+        SELECT id, layout_id, slug, created_by, expires_at, view_count, created_at
+        FROM shared_projects_old;
+      `);
+      await client.execute(`DROP TABLE shared_projects_old;`);
+    }
+  } catch {
+    // ignore
+  }
+
   await client.execute(`
     CREATE INDEX IF NOT EXISTS idx_shared_projects_slug ON shared_projects(slug);
   `);
 
-  // Reference image library table
+  // ref_images — drop owner_id and uploaded_by user FKs (global images)
   await client.execute(`
     CREATE TABLE IF NOT EXISTS ref_images (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      owner_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       file_path TEXT NOT NULL,
       file_size INTEGER NOT NULL DEFAULT 0,
-      uploaded_by INTEGER NOT NULL REFERENCES users(id),
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
 
+  // If existing ref_images has uploaded_by column, recreate without user FKs
+  try {
+    await client.execute(`SELECT uploaded_by FROM ref_images LIMIT 1;`);
+    // column exists — table needs recreation
+    await client.execute(`ALTER TABLE ref_images RENAME TO ref_images_old;`);
+    await client.execute(`
+      CREATE TABLE ref_images (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        file_size INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+    await client.execute(`
+      INSERT INTO ref_images (id, name, file_path, file_size, created_at)
+      SELECT id, name, file_path, file_size, created_at
+      FROM ref_images_old;
+    `);
+    await client.execute(`DROP TABLE ref_images_old;`);
+  } catch {
+    // column already gone or table fresh — skip
+  }
+
+  // favorites — make user_id nullable
   await client.execute(`
-    CREATE INDEX IF NOT EXISTS idx_ref_images_owner ON ref_images(owner_id);
+    CREATE TABLE IF NOT EXISTS favorites (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER,
+      name TEXT NOT NULL,
+      library_id TEXT NOT NULL,
+      library_item_id TEXT NOT NULL,
+      library_item_name TEXT NOT NULL,
+      width_units INTEGER NOT NULL,
+      height_units INTEGER NOT NULL,
+      color TEXT NOT NULL DEFAULT '#3B82F6',
+      param_hash TEXT,
+      image_url TEXT NOT NULL DEFAULT '',
+      perspective_image_url TEXT,
+      perspective_image_url90 TEXT,
+      perspective_image_url180 TEXT,
+      perspective_image_url270 TEXT,
+      customization TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
   `);
+
+  // If existing favorites has user_id NOT NULL, recreate
+  try {
+    const tableInfo = await client.execute(`PRAGMA table_info(favorites);`);
+    const userIdCol = tableInfo.rows.find((r) => r.name === 'user_id');
+    if (userIdCol && userIdCol.notnull === 1) {
+      await client.execute(`ALTER TABLE favorites RENAME TO favorites_old;`);
+      await client.execute(`
+        CREATE TABLE favorites (
+          id TEXT PRIMARY KEY,
+          user_id INTEGER,
+          name TEXT NOT NULL,
+          library_id TEXT NOT NULL,
+          library_item_id TEXT NOT NULL,
+          library_item_name TEXT NOT NULL,
+          width_units INTEGER NOT NULL,
+          height_units INTEGER NOT NULL,
+          color TEXT NOT NULL DEFAULT '#3B82F6',
+          param_hash TEXT,
+          image_url TEXT NOT NULL DEFAULT '',
+          perspective_image_url TEXT,
+          perspective_image_url90 TEXT,
+          perspective_image_url180 TEXT,
+          perspective_image_url270 TEXT,
+          customization TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        );
+      `);
+      await client.execute(`
+        INSERT INTO favorites SELECT * FROM favorites_old;
+      `);
+      await client.execute(`DROP TABLE favorites_old;`);
+    }
+  } catch {
+    // ignore
+  }
 
   // Reference images table (per-layout placements)
   await client.execute(`
@@ -307,32 +552,6 @@ export async function runMigrations(client: Client): Promise<void> {
     `);
   }
 
-  await client.execute(`
-    CREATE TABLE IF NOT EXISTS favorites (
-      id TEXT PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      name TEXT NOT NULL,
-      library_id TEXT NOT NULL,
-      library_item_id TEXT NOT NULL,
-      library_item_name TEXT NOT NULL,
-      width_units INTEGER NOT NULL,
-      height_units INTEGER NOT NULL,
-      color TEXT NOT NULL DEFAULT '#3B82F6',
-      param_hash TEXT,
-      image_url TEXT NOT NULL DEFAULT '',
-      perspective_image_url TEXT,
-      perspective_image_url90 TEXT,
-      perspective_image_url180 TEXT,
-      perspective_image_url270 TEXT,
-      customization TEXT NOT NULL,
-      created_at INTEGER NOT NULL
-    );
-  `);
-
-  await client.execute(`
-    CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id);
-  `);
-
   // Add base_model_path to libraries if missing
   try {
     await client.execute(`ALTER TABLE libraries ADD COLUMN base_model_path TEXT;`);
@@ -364,20 +583,6 @@ export async function runMigrations(client: Client): Promise<void> {
   // Add thumbnail_path to layouts if missing
   try {
     await client.execute(`ALTER TABLE layouts ADD COLUMN thumbnail_path TEXT;`);
-  } catch {
-    // Column already exists — ignore
-  }
-
-  // Add visibility to user_stl_uploads if missing
-  try {
-    await client.execute(`ALTER TABLE user_stl_uploads ADD COLUMN visibility TEXT NOT NULL DEFAULT 'private';`);
-  } catch {
-    // Column already exists — ignore
-  }
-
-  // Add grid_z to user_stl_uploads if missing
-  try {
-    await client.execute(`ALTER TABLE user_stl_uploads ADD COLUMN grid_z INTEGER;`);
   } catch {
     // Column already exists — ignore
   }

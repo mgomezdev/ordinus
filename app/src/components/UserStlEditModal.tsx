@@ -6,16 +6,12 @@ import {
   useReprocessUserStlMutation,
   useReplaceUserStlFileMutation,
 } from '../hooks/useUserStls';
-import { useAuth } from '../contexts/AuthContext';
-
 interface UserStlEditModalProps {
   item: ApiUserStl;
   onClose: () => void;
 }
 
 export function UserStlEditModal({ item, onClose }: UserStlEditModalProps) {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
 
   const [name, setName] = useState(item.name);
   const [gridX, setGridX] = useState<string>(item.gridX != null ? String(item.gridX) : '');
@@ -110,11 +106,9 @@ export function UserStlEditModal({ item, onClose }: UserStlEditModalProps) {
             />
           </label>
 
-          {isAdmin && (
-            <button type="button" onClick={() => void handleReprocess()} disabled={isReprocessing}>
-              {isReprocessing ? 'Reprocessing\u2026' : 'Reprocess'}
-            </button>
-          )}
+          <button type="button" onClick={() => void handleReprocess()} disabled={isReprocessing}>
+            {isReprocessing ? 'Reprocessing\u2026' : 'Reprocess'}
+          </button>
 
           {!confirmDelete ? (
             <button type="button" className="delete-btn" onClick={() => setConfirmDelete(true)}>

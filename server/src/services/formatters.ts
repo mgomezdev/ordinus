@@ -23,12 +23,13 @@ export function parseCustomization(json: string | null): BinCustomization | unde
 
 export function formatLayout(
   row: typeof layouts.$inferSelect,
-  ownerUsername?: string,
-  ownerEmail?: string,
+  customerName?: string,
 ): ApiLayout {
   return {
     id: row.id,
-    userId: row.userId,
+    userId: row.userId ?? 0,
+    customerId: row.customerId ?? null,
+    customerName: customerName ?? null,
     name: row.name,
     description: row.description,
     gridX: row.gridX,
@@ -41,8 +42,6 @@ export function formatLayout(
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     thumbnailUrl: row.thumbnailPath ? `/thumbnails/${row.id}?v=${encodeURIComponent(row.updatedAt)}` : null,
-    ...(ownerUsername !== undefined ? { ownerUsername } : {}),
-    ...(ownerEmail !== undefined ? { ownerEmail } : {}),
   };
 }
 

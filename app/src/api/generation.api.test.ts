@@ -12,10 +12,10 @@ const mockApiFetch = vi.mocked(apiFetch);
 beforeEach(() => vi.clearAllMocks());
 
 describe('requestGenerationApi', () => {
-  it('POSTs to /generation/generate with correct body and token', async () => {
+  it('POSTs to /generation/generate with correct body', async () => {
     mockApiFetch.mockResolvedValue({ hash: 'abc123', status: 'pending' });
 
-    const result = await requestGenerationApi('lib-1', 'item-1', undefined, 'tok');
+    const result = await requestGenerationApi('lib-1', 'item-1', undefined);
 
     expect(mockApiFetch).toHaveBeenCalledWith(
       '/generation/generate',
@@ -24,7 +24,6 @@ describe('requestGenerationApi', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ libraryId: 'lib-1', itemId: 'item-1', customization: undefined }),
       }),
-      'tok',
     );
     expect(result).toEqual({ hash: 'abc123', status: 'pending' });
   });
@@ -33,7 +32,7 @@ describe('requestGenerationApi', () => {
     mockApiFetch.mockResolvedValue({ hash: 'def456', status: 'pending' });
 
     const customization = { wallPatternEnabled: true, wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: { front: false, back: false, left: false, right: false }, height: 4 };
-    await requestGenerationApi('lib-1', 'item-1', customization, 'tok');
+    await requestGenerationApi('lib-1', 'item-1', customization);
 
     const call = mockApiFetch.mock.calls[0];
     const body = JSON.parse((call[1] as RequestInit).body as string);
@@ -43,14 +42,14 @@ describe('requestGenerationApi', () => {
   it('returns complete status when already cached', async () => {
     mockApiFetch.mockResolvedValue({ hash: 'abc123', status: 'complete' });
 
-    const result = await requestGenerationApi('lib-1', 'item-1', undefined, 'tok');
+    const result = await requestGenerationApi('lib-1', 'item-1', undefined);
     expect(result.status).toBe('complete');
   });
 
   it('propagates errors from apiFetch', async () => {
     mockApiFetch.mockRejectedValue(new Error('Network error'));
 
-    await expect(requestGenerationApi('lib-1', 'item-1', undefined, 'tok')).rejects.toThrow('Network error');
+    await expect(requestGenerationApi('lib-1', 'item-1', undefined)).rejects.toThrow('Network error');
   });
 });
 

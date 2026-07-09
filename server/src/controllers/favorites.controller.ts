@@ -59,10 +59,9 @@ function serializeFavorite(row: favoritesService.FavoriteRow) {
   };
 }
 
-export async function listFavorites(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function listFavorites(_req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const userId = req.user!.userId;
-    const rows = await favoritesService.listFavorites(userId);
+    const rows = await favoritesService.listAllFavorites();
     res.json({ data: rows.map(serializeFavorite) });
   } catch (err) {
     next(err);
@@ -75,8 +74,7 @@ export async function createFavorite(req: Request, res: Response, next: NextFunc
     if (!parsed.success) {
       throw new AppError(ErrorCodes.VALIDATION_ERROR, parsed.error.errors[0]?.message ?? 'Invalid request');
     }
-    const userId = req.user!.userId;
-    const row = await favoritesService.createFavorite(userId, parsed.data);
+    const row = await favoritesService.createFavorite(parsed.data);
     res.status(201).json({ data: serializeFavorite(row) });
   } catch (err) {
     next(err);
@@ -85,8 +83,7 @@ export async function createFavorite(req: Request, res: Response, next: NextFunc
 
 export async function deleteFavorite(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const userId = req.user!.userId;
-    const deleted = await favoritesService.deleteFavorite(req.params.id as string, userId);
+    const deleted = await favoritesService.deleteFavorite(req.params.id as string);
     if (!deleted) {
       throw new AppError(ErrorCodes.NOT_FOUND, 'Favorite not found');
     }
@@ -102,8 +99,7 @@ export async function renameFavorite(req: Request, res: Response, next: NextFunc
     if (!parsed.success) {
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'name is required');
     }
-    const userId = req.user!.userId;
-    const updated = await favoritesService.renameFavorite(req.params.id as string, userId, parsed.data.name);
+    const updated = await favoritesService.renameFavorite(req.params.id as string, parsed.data.name);
     if (!updated) {
       throw new AppError(ErrorCodes.NOT_FOUND, 'Favorite not found');
     }

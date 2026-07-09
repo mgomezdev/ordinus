@@ -14,7 +14,6 @@ interface LibraryPanelProps {
 
 export function LibraryPanel({ width, isMobile, isOpen }: LibraryPanelProps) {
   const {
-    isAuthenticated,
     libraryItems, isLibraryLoading, isLibrariesLoading,
     libraryError, librariesError, categories,
   } = useWorkspace();
@@ -36,13 +35,11 @@ export function LibraryPanel({ width, isMobile, isOpen }: LibraryPanelProps) {
         </div>
       </div>
       <div className="library-panel-tabs">
-        {isAuthenticated && (
-          <button
-            className={`library-cat-tab${libraryTab === 'favorites' ? ' active' : ''}`}
-            onClick={() => setLibraryTab('favorites')}
-            type="button"
-          >♥</button>
-        )}
+        <button
+          className={`library-cat-tab${libraryTab === 'favorites' ? ' active' : ''}`}
+          onClick={() => setLibraryTab('favorites')}
+          type="button"
+        >♥</button>
         <button
           className={`library-cat-tab${libraryTab === 'items' && !libraryCategory ? ' active' : ''}`}
           onClick={() => { setLibraryTab('items'); setLibraryCategory(null); }}
@@ -56,16 +53,14 @@ export function LibraryPanel({ width, isMobile, isOpen }: LibraryPanelProps) {
             type="button"
           >{cat.name}</button>
         ))}
-        {isAuthenticated && (
-          <button
-            className={`library-cat-tab${libraryTab === 'images' ? ' active' : ''}`}
-            onClick={() => setLibraryTab('images')}
-            type="button"
-          >Images</button>
-        )}
+        <button
+          className={`library-cat-tab${libraryTab === 'images' ? ' active' : ''}`}
+          onClick={() => setLibraryTab('images')}
+          type="button"
+        >Images</button>
       </div>
       <div className="library-panel-content">
-        {libraryTab === 'favorites' && isAuthenticated ? (
+        {libraryTab === 'favorites' ? (
           favorites.length === 0 ? (
             <div className="favorites-empty-state">
               <p>No favorites yet. Click the ♥ button on any item to save it here.</p>
@@ -90,14 +85,10 @@ export function LibraryPanel({ width, isMobile, isOpen }: LibraryPanelProps) {
               error={libraryError || librariesError}
               activeCategory={libraryCategory}
             />
-            {isAuthenticated && <UserStlLibrarySection />}
+            <UserStlLibrarySection />
           </>
-        ) : isAuthenticated ? (
-          <RefImageLibrary />
         ) : (
-          <div className="ref-image-auth-prompt">
-            <p>Sign in to upload and manage reference images.</p>
-          </div>
+          <RefImageLibrary />
         )}
       </div>
     </section>

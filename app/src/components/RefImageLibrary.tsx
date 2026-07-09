@@ -7,13 +7,9 @@ import {
   useRenameRefImageMutation,
   useDeleteRefImageMutation,
 } from '../hooks/useRefImages';
-import { useAuth } from '../contexts/AuthContext';
 import { RefImageCard } from './RefImageCard';
 
 export function RefImageLibrary() {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
-
   const refImagesQuery = useRefImagesQuery();
   const uploadMutation = useUploadRefImageMutation();
   const uploadGlobalMutation = useUploadGlobalRefImageMutation();
@@ -77,12 +73,6 @@ export function RefImageLibrary() {
     renameMutation.mutate({ id, name: newName });
   };
 
-  const canDeleteImage = (img: ApiRefImage): boolean => {
-    if (isAdmin) return true;
-    if (img.isGlobal) return false;
-    return true; // own images
-  };
-
   const isUploading = uploadMutation.isPending || uploadGlobalMutation.isPending;
 
   return (
@@ -107,15 +97,13 @@ export function RefImageLibrary() {
         >
           {isUploading ? 'Uploading...' : 'Upload Image'}
         </button>
-        {isAdmin && (
-          <button
-            className="ref-image-upload-btn ref-image-upload-btn--global"
-            onClick={() => handleUploadClick('global')}
-            disabled={isUploading}
-          >
-            Upload as Shared
-          </button>
-        )}
+        <button
+          className="ref-image-upload-btn ref-image-upload-btn--global"
+          onClick={() => handleUploadClick('global')}
+          disabled={isUploading}
+        >
+          Upload as Shared
+        </button>
       </div>
 
       {uploadError && (
@@ -160,8 +148,8 @@ export function RefImageLibrary() {
                   <RefImageCard
                     key={img.id}
                     image={img}
-                    onDelete={canDeleteImage(img) ? handleDelete : undefined}
-                    onRename={isAdmin ? handleRename : undefined}
+                    onDelete={handleDelete}
+                    onRename={handleRename}
                   />
                 ))}
               </div>
@@ -184,11 +172,11 @@ export function RefImageLibrary() {
               <span className={`category-chevron ${myCollapsed ? 'collapsed' : 'expanded'}`}>
                 ▶
               </span>
-              My Images ({personalImages.length})
+              Images ({personalImages.length})
             </h4>
             <div className={`ref-image-grid ${myCollapsed ? 'collapsed' : 'expanded'}`}>
               {personalImages.length === 0 ? (
-                <p className="ref-image-empty">No personal images yet. Upload one above.</p>
+                <p className="ref-image-empty">No images yet. Upload one above.</p>
               ) : (
                 personalImages.map(img => (
                   <RefImageCard

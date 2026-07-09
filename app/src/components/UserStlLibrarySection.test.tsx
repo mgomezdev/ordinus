@@ -4,10 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { UserStlLibrarySection } from './UserStlLibrarySection.js';
 
-vi.mock('../contexts/AuthContext.js', () => ({
-  useAuth: () => ({ getAccessToken: () => 'tok', isAuthenticated: true }),
-}));
-
 // Mutable reference so individual tests can override data
 let mockData = [
   {

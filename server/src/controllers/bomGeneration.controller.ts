@@ -15,17 +15,15 @@ function parseLayoutId(req: Request): number {
   return id;
 }
 
-async function assertLayoutOwnership(layoutId: number, userId: number): Promise<void> {
-  const rows = await db.select({ userId: layouts.userId }).from(layouts).where(eq(layouts.id, layoutId)).limit(1);
+async function assertLayoutExists(layoutId: number): Promise<void> {
+  const rows = await db.select({ id: layouts.id }).from(layouts).where(eq(layouts.id, layoutId)).limit(1);
   if (!rows.length) throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
-  if (rows[0].userId !== userId) throw new AppError(ErrorCodes.FORBIDDEN, 'Not authorized');
 }
 
 export async function generateHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const layoutId = parseLayoutId(req);
-    if (!req.user) throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    await assertLayoutOwnership(layoutId, req.user.userId);
+    await assertLayoutExists(layoutId);
     const bomItems = (req.body as { bomItems?: BOMItem[] }).bomItems ?? [];
     const generation = await bomGenerationService.triggerGeneration(layoutId, bomItems);
     const body: ApiResponse<ApiBomGeneration> = { data: generation };
@@ -38,8 +36,7 @@ export async function generateHandler(req: Request, res: Response, next: NextFun
 export async function getGenerationHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const layoutId = parseLayoutId(req);
-    if (!req.user) throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    await assertLayoutOwnership(layoutId, req.user.userId);
+    await assertLayoutExists(layoutId);
     const generation = await bomGenerationService.getGeneration(layoutId);
     if (!generation) throw new AppError(ErrorCodes.NOT_FOUND, 'No generation record for this layout');
     const body: ApiResponse<ApiBomGeneration> = { data: generation };
@@ -52,8 +49,7 @@ export async function getGenerationHandler(req: Request, res: Response, next: Ne
 export async function serveFileHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const layoutId = parseLayoutId(req);
-    if (!req.user) throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    await assertLayoutOwnership(layoutId, req.user.userId);
+    await assertLayoutExists(layoutId);
     const filename = req.params.filename as string;
 
     if (!/^[a-zA-Z0-9._-]+$/.test(filename)) {

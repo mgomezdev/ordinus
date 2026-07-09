@@ -65,24 +65,6 @@ vi.mock('./components/KeyboardShortcutsHelp', () => ({
   },
 }));
 
-vi.mock('./components/auth/UserMenu', () => ({
-  UserMenu: () => <div data-testid="user-menu" />,
-}));
-
-let mockIsAuthenticated = false;
-
-vi.mock('./contexts/AuthContext', () => ({
-  useAuth: () => ({
-    user: mockIsAuthenticated ? { id: 1, username: 'testuser', role: 'user' } : null,
-    isAuthenticated: mockIsAuthenticated,
-    isLoading: false,
-    login: vi.fn(),
-    register: vi.fn(),
-    logout: vi.fn(),
-    getAccessToken: () => (mockIsAuthenticated ? 'test-token' : null),
-  }),
-}));
-
 let capturedSaveLayoutDialogProps: Record<string, unknown> = {};
 vi.mock('./components/layouts/SaveLayoutDialog', async (importOriginal) => {
   const original = await importOriginal<typeof import('./components/layouts/SaveLayoutDialog')>();
@@ -94,14 +76,6 @@ vi.mock('./components/layouts/SaveLayoutDialog', async (importOriginal) => {
     },
   };
 });
-
-vi.mock('./components/admin/AdminSubmissionsDialog', () => ({
-  AdminSubmissionsDialog: () => null,
-}));
-
-vi.mock('./components/admin/SubmissionsBadge', () => ({
-  SubmissionsBadge: () => null,
-}));
 
 vi.mock('./components/UserStlLibrarySection', () => ({
   UserStlLibrarySection: () => <div data-testid="user-stl-library-section" />,
@@ -311,7 +285,6 @@ describe('App Integration Tests', () => {
     capturedZoomControlsProps = {};
     capturedSaveLayoutDialogProps = {};
     mockPlacements = [];
-    mockIsAuthenticated = false;
     localStorage.removeItem('gridfinity-image-view-mode');
   });
 
@@ -448,7 +421,6 @@ describe('App Integration Tests', () => {
   // ==========================================
   describe('Save button states', () => {
     beforeEach(() => {
-      mockIsAuthenticated = true;
       vi.clearAllMocks();
     });
 
@@ -1054,10 +1026,6 @@ describe('App Integration Tests', () => {
   // 11. isDirty breadcrumb indicator
   // ==========================================
   describe('isDirty breadcrumb indicator', () => {
-    beforeEach(() => {
-      mockIsAuthenticated = false;
-    });
-
     it('does not show unsaved indicator on a fresh canvas with no saved layout', () => {
       renderApp();
       expect(screen.queryByText('unsaved changes')).not.toBeInTheDocument();

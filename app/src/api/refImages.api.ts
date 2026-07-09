@@ -1,32 +1,23 @@
 import type { ApiResponse, ApiRefImage } from '@gridfinity/shared';
 import { apiFetch } from './apiClient';
 
-export async function fetchRefImages(
-  accessToken: string,
-): Promise<ApiRefImage[]> {
-  const result = await apiFetch<{ data: ApiRefImage[] }>(
-    '/ref-images',
-    {},
-    accessToken,
-  );
+export async function fetchRefImages(): Promise<ApiRefImage[]> {
+  const result = await apiFetch<{ data: ApiRefImage[] }>('/ref-images', {});
   return result.data;
 }
 
-async function uploadToEndpoint(endpoint: string, accessToken: string, file: File): Promise<ApiRefImage> {
+async function uploadToEndpoint(endpoint: string, file: File): Promise<ApiRefImage> {
   const formData = new FormData();
   formData.append('image', file);
-  const result = await apiFetch<ApiResponse<ApiRefImage>>(endpoint, { method: 'POST', body: formData }, accessToken);
+  const result = await apiFetch<ApiResponse<ApiRefImage>>(endpoint, { method: 'POST', body: formData });
   return result.data;
 }
 
-export const uploadRefImage = (accessToken: string, file: File) =>
-  uploadToEndpoint('/ref-images', accessToken, file);
+export const uploadRefImage = (file: File) => uploadToEndpoint('/ref-images', file);
 
-export const uploadGlobalRefImage = (accessToken: string, file: File) =>
-  uploadToEndpoint('/ref-images/global', accessToken, file);
+export const uploadGlobalRefImage = (file: File) => uploadToEndpoint('/ref-images/global', file);
 
 export async function renameRefImage(
-  accessToken: string,
   id: number,
   name: string,
 ): Promise<ApiRefImage> {
@@ -37,18 +28,10 @@ export async function renameRefImage(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     },
-    accessToken,
   );
   return result.data;
 }
 
-export async function deleteRefImage(
-  accessToken: string,
-  id: number,
-): Promise<void> {
-  await apiFetch<void>(
-    `/ref-images/${id}`,
-    { method: 'DELETE' },
-    accessToken,
-  );
+export async function deleteRefImage(id: number): Promise<void> {
+  await apiFetch<void>(`/ref-images/${id}`, { method: 'DELETE' });
 }

@@ -223,9 +223,18 @@ export type UserRole = 'user' | 'admin';
 // Layout API types
 // ============================================================
 
+export interface ApiCustomer {
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ApiLayout {
   id: number;
   userId: number;
+  customerId?: number | null;
+  customerName?: string | null;
   name: string;
   description: string | null;
   gridX: number;

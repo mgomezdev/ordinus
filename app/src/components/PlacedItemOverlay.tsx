@@ -1,6 +1,5 @@
 import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useSearchParams } from 'react-router-dom';
 import type { PlacedItemWithValidity, LibraryItem, ImageViewMode, BinCustomization, LibraryMeta, CustomizableFieldDef } from '../types/gridfinity';
 import { isDefaultCustomization, DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
 import { generatorParamsToBinCustomization } from '../utils/generatorParams';
@@ -9,7 +8,6 @@ import { useImageLoadState } from '../hooks/useImageLoadState';
 import { BinCustomizationPanel } from './BinCustomizationPanel';
 import { getRotatedPerspectiveUrl } from '../utils/imageHelpers';
 import { BinContextMenu } from './BinContextMenu';
-import { useAuth } from '../contexts/AuthContext';
 import { useFavorites } from '../hooks/useFavorites';
 import { generatedImageUrl } from '../api/generation.api';
 
@@ -60,9 +58,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [libraryMeta, setLibraryMeta] = useState<LibraryMeta>({ customizableFields: [], parameters: {} });
 
-  const { isAuthenticated } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const [, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     if (!getLibraryMeta) return;
@@ -214,14 +210,10 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const handleGearClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    if (!isAuthenticated) {
-      setSearchParams({ authRequired: '1' }, { replace: true });
-      return;
-    }
     setPopoverDraft(item.customization);
     computePopoverPos();
     setShowPopover(true);
-  }, [isAuthenticated, setSearchParams, item.customization, computePopoverPos]);
+  }, [item.customization, computePopoverPos]);
 
   // Updates draft only — generation fires when popover is dismissed
   const handlePopoverChange = useCallback((customization: BinCustomization) => {
@@ -282,7 +274,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
 
   const badges = getCustomizationBadges(item.customization);
   const currentCustomization = item.customization ?? DEFAULT_BIN_CUSTOMIZATION;
-  const isFavorited = isAuthenticated && isFavorite(item.itemId, currentCustomization);
+  const isFavorited = isFavorite(item.itemId, currentCustomization);
 
   return (
     <div
@@ -354,7 +346,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          {isAuthenticated && libraryItem && (
+          {libraryItem && (
             <button
               className={`placed-item-toolbar-btn placed-item-toolbar-btn--heart${isFavorited ? ' favorited' : ''}`}
               onClick={(e) => {

@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { requireAuth } from '../middleware/auth.js';
 import * as layoutController from '../controllers/layout.controller.js';
 import * as refImageController from '../controllers/referenceImage.controller.js';
 
@@ -9,9 +8,6 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
-
-// All routes require authentication
-router.use(requireAuth);
 
 router.get('/', layoutController.listLayouts);
 router.get('/:id', layoutController.getLayout);

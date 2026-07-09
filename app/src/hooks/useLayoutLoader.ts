@@ -14,13 +14,12 @@ interface UseLayoutLoaderParams {
   loadItems: (items: PlacedItem[]) => void;
   loadRefImagePlacements: (placements: RefImagePlacement[]) => void;
   layoutDispatch: React.Dispatch<LayoutMetaAction>;
-  getAccessToken: () => string | null;
   clearExtras?: () => void;
 }
 
 export function useLayoutLoader({
   unitSystem, setWidth, setDepth, setSpacerConfig,
-  loadItems, loadRefImagePlacements, layoutDispatch, getAccessToken,
+  loadItems, loadRefImagePlacements, layoutDispatch,
   clearExtras,
 }: UseLayoutLoaderParams) {
   const handleLoadLayout = useCallback((config: LoadedLayoutConfig) => {
@@ -35,11 +34,7 @@ export function useLayoutLoader({
     loadItems(config.placedItems);
     loadRefImagePlacements(config.refImagePlacements ?? []);
 
-    let owner = '';
-    if (config.ownerUsername) {
-      owner = config.ownerUsername;
-      if (config.ownerEmail) owner += ` <${config.ownerEmail}>`;
-    }
+    const owner = config.ownerUsername ?? '';
 
     clearExtras?.();
 
@@ -55,10 +50,8 @@ export function useLayoutLoader({
   }, [unitSystem, setWidth, setDepth, setSpacerConfig, loadItems, loadRefImagePlacements, layoutDispatch, clearExtras]);
 
   const loadLayout = useCallback(async (id: number) => {
-    const token = getAccessToken();
-    if (!token) throw new Error('Not authenticated');
     try {
-      const detail = await fetchLayout(token, id);
+      const detail = await fetchLayout(id);
       const loadPrefix = Date.now();
 
       const loadedPlacedItems: PlacedItem[] = detail.placedItems.map((item, index) => ({
@@ -92,7 +85,7 @@ export function useLayoutLoader({
       console.error('Failed to load layout:', err);
       throw err;
     }
-  }, [getAccessToken, handleLoadLayout]);
+  }, [handleLoadLayout]);
 
   return { handleLoadLayout, loadLayout };
 }

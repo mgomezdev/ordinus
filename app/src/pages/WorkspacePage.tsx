@@ -51,7 +51,6 @@ export function WorkspacePage() {
     handleSaveComplete,
     drawerWidth,
     drawerDepth,
-    isAuthenticated,
   } = ws;
 
   // Local UI state
@@ -448,7 +447,6 @@ export function WorkspacePage() {
         </GridViewport>
 
         <MobileActionBar
-          isAuthenticated={isAuthenticated}
           layoutMeta={layoutMeta}
           placedItems={placedItems}
           refImagePlacements={refImagePlacements}
