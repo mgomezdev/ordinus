@@ -24,8 +24,6 @@ export function OrderSummaryPage() {
     dialogDispatch,
     exportPdfError,
     setExportPdfError,
-    isAuthenticated,
-    getAccessToken,
   } = useWorkspace();
 
   const [isConfiguredOpen, setIsConfiguredOpen] = useState(true);
@@ -399,7 +397,7 @@ export function OrderSummaryPage() {
           <span>{hasTbd ? 'Pending quote' : `$${grandTotal.toFixed(2)}`}</span>
         </div>
 
-        {isAuthenticated && layoutMeta.id !== null && (
+        {layoutMeta.id !== null && (
           <>
             <hr className="order-panel-divider" />
             <div className="order-panel-section">
@@ -408,7 +406,7 @@ export function OrderSummaryPage() {
                 layoutId={layoutMeta.id}
                 layoutTitle={layoutMeta.name ?? 'layout'}
                 bomItems={bomItems}
-                accessToken={getAccessToken()}
+                accessToken={null}
               />
             </div>
           </>

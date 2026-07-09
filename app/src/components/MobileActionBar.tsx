@@ -3,7 +3,6 @@ import type { ImageViewMode, PlacedItemWithValidity } from '../types/gridfinity'
 import type { RefImagePlacement } from '../hooks/useRefImagePlacements';
 
 interface MobileActionBarProps {
-  isAuthenticated: boolean;
   layoutMeta: { id: number | null; name: string };
   placedItems: PlacedItemWithValidity[];
   refImagePlacements: RefImagePlacement[];
@@ -20,7 +19,6 @@ interface MobileActionBarProps {
 const LONG_PRESS_MS = 500;
 
 export function MobileActionBar({
-  isAuthenticated,
   layoutMeta,
   placedItems,
   refImagePlacements,
@@ -62,8 +60,7 @@ export function MobileActionBar({
 
   return (
     <div className="mobile-action-bar" role="toolbar" aria-label="Workspace actions">
-      {isAuthenticated && (
-        <button
+      <button
           className="mab-btn"
           aria-label="Load layout"
           onClick={onLoad}
@@ -72,10 +69,8 @@ export function MobileActionBar({
           <span className="mab-icon" aria-hidden="true">📂</span>
           <span className="mab-label">Load</span>
         </button>
-      )}
 
-      {isAuthenticated && (
-        <button
+      <button
           className={`mab-btn mab-save${layoutMeta.id ? ' mab-save--has-id' : ' mab-save--new'}`}
           aria-label="Save layout"
           onClick={handleSaveClick}
@@ -91,7 +86,6 @@ export function MobileActionBar({
             <span className="mab-sublabel">hold: new layout</span>
           )}
         </button>
-      )}
 
       <button
         className="mab-btn"

@@ -8,7 +8,7 @@ import type {
 } from '../types/gridfinity';
 import type { SelectModifiers } from '../hooks/useGridItems';
 import type { LoadedLayoutConfig } from '../types/layoutConfig';
-import type { BOMItem, ApiUser } from '@gridfinity/shared';
+import type { BOMItem } from '@gridfinity/shared';
 import type { RefImagePlacement, UseRefImagePlacementsReturn } from '../hooks/useRefImagePlacements';
 import type { LayoutMetaState } from '../reducers/layoutMetaReducer';
 import type { DialogState, DialogAction } from '../reducers/dialogReducer';
@@ -23,7 +23,6 @@ import { useLibraries } from '../hooks/useLibraries';
 import { useLibraryData } from '../hooks/useLibraryData';
 import { useCategoryData } from '../hooks/useCategoryData';
 import { useRefImagePlacements } from '../hooks/useRefImagePlacements';
-import { useAuth } from './AuthContext';
 import {
   useCloneLayoutMutation,
 } from '../hooks/useLayouts';
@@ -156,11 +155,7 @@ interface WorkspaceContextValue {
   }) => Promise<boolean>;
   confirmDialogProps: ConfirmDialogProps;
 
-  // Auth
-  isAuthenticated: boolean;
-  user: ApiUser | null;
-  isAdmin: boolean;
-  getAccessToken: () => string | null;
+  // No auth — removed
 
   // Export
   exportPdfError: string | null;
@@ -217,8 +212,6 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     handleCloneComplete, handleClearLayout,
   } = useLayoutMeta();
 
-  const { isAuthenticated, user, getAccessToken } = useAuth();
-  const isAdmin = user?.role === 'admin';
 
   const cloneLayoutMutation = useCloneLayoutMutation();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmDialog();
@@ -335,7 +328,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
   const { handleLoadLayout: rawHandleLoadLayout, loadLayout: rawLoadLayout } = useLayoutLoader({
     unitSystem, setWidth, setDepth, setSpacerConfig,
-    loadItems, loadRefImagePlacements, layoutDispatch, getAccessToken,
+    loadItems, loadRefImagePlacements, layoutDispatch,
     clearExtras,
   });
 
@@ -397,17 +390,15 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
   const trackGeneration = useCallback(
     async (instanceId: string, libraryId: string, itemId: string, customization: BinCustomization | undefined) => {
-      const token = getAccessToken();
-      if (!token) return;
       try {
-        const { hash, status } = await requestGenerationApi(libraryId, itemId, customization, token);
+        const { hash, status } = await requestGenerationApi(libraryId, itemId, customization);
         trackHash(hash, status);
         recordInstanceHash(instanceId, hash);
       } catch {
         // non-critical — UI will just not show spinner
       }
     },
-    [getAccessToken, trackHash, recordInstanceHash],
+    [trackHash, recordInstanceHash],
   );
 
   // Rebind image select handler
@@ -518,12 +509,6 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     handleRebindSelect,
     confirm,
     confirmDialogProps,
-
-    // Auth
-    isAuthenticated,
-    user,
-    isAdmin,
-    getAccessToken,
 
     // Export
     exportPdfError,

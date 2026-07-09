@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../contexts/AuthContext';
 import {
   listFavoritesApi,
   createFavoriteApi,
@@ -46,25 +45,15 @@ export interface UseFavoritesResult {
 }
 
 export function useFavorites(): UseFavoritesResult {
-  const { isAuthenticated, getAccessToken } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: favorites = [], isLoading } = useQuery({
     queryKey: QUERY_KEY,
-    queryFn: () => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return listFavoritesApi(token);
-    },
-    enabled: isAuthenticated,
+    queryFn: listFavoritesApi,
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: Parameters<typeof createFavoriteApi>[0]) => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return createFavoriteApi(data, token);
-    },
+    mutationFn: (data: Parameters<typeof createFavoriteApi>[0]) => createFavoriteApi(data),
     onMutate: async (data) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previous = queryClient.getQueryData<FavoriteItem[]>(QUERY_KEY);
@@ -81,11 +70,7 @@ export function useFavorites(): UseFavoritesResult {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return deleteFavoriteApi(id, token);
-    },
+    mutationFn: (id: string) => deleteFavoriteApi(id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previous = queryClient.getQueryData<FavoriteItem[]>(QUERY_KEY);
@@ -101,11 +86,7 @@ export function useFavorites(): UseFavoritesResult {
   });
 
   const renameMutation = useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return renameFavoriteApi(id, name, token);
-    },
+    mutationFn: ({ id, name }: { id: string; name: string }) => renameFavoriteApi(id, name),
     onMutate: async ({ id, name }) => {
       await queryClient.cancelQueries({ queryKey: QUERY_KEY });
       const previous = queryClient.getQueryData<FavoriteItem[]>(QUERY_KEY);

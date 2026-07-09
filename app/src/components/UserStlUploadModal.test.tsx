@@ -4,10 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { UserStlUploadModal } from './UserStlUploadModal.js';
 
-vi.mock('../contexts/AuthContext.js', () => ({
-  useAuth: () => ({ getAccessToken: () => 'tok', isAuthenticated: true }),
-}));
-
 const mockMutateAsync = vi.fn();
 vi.mock('../hooks/useUserStls.js', () => ({
   useUploadUserStlMutation: () => ({

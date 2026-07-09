@@ -1,21 +1,40 @@
-import { Outlet, NavLink, useSearchParams } from 'react-router-dom';
-import { useCallback } from 'react';
+import { Outlet, NavLink } from 'react-router-dom';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
+import { useCustomers } from './contexts/CustomerContext';
 import { SaveLayoutDialog } from './components/layouts/SaveLayoutDialog';
 import { RebindImageDialog } from './components/RebindImageDialog';
-import { AdminSubmissionsDialog } from './components/admin/AdminSubmissionsDialog';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
-import { UserMenu } from './components/auth/UserMenu';
 import { calculateOrderTotal } from './utils/exportOrderSummaryPdf';
 import './App.css';
 import './AppShell.css';
 
+function CustomerSelector() {
+  const { customers, selectedCustomer, setSelectedCustomerId } = useCustomers();
+
+  return (
+    <div className="customer-selector">
+      <label htmlFor="customer-select" className="customer-selector-label">
+        Customer:
+      </label>
+      <select
+        id="customer-select"
+        className="customer-selector-select"
+        value={selectedCustomer?.id ?? ''}
+        onChange={(e) => setSelectedCustomerId(e.target.value ? Number(e.target.value) : null)}
+      >
+        <option value="">— None —</option>
+        {customers.map((c) => (
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 // Inner shell reads from context (must be inside WorkspaceProvider)
 function AppShellInner() {
   const {
-    isAuthenticated,
-    isAdmin,
     layoutMeta,
     dialogs,
     dialogDispatch,
@@ -32,15 +51,6 @@ function AppShellInner() {
     handleSaveComplete,
     handleLoadLayout,
   } = useWorkspace();
-
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  // authOpen is derived directly from the URL — no state sync needed
-  const authOpen = searchParams.get('authRequired') === '1';
-  const handleAuthClosed = useCallback(
-    () => setSearchParams({}, { replace: true }),
-    [setSearchParams],
-  );
 
   const totalPlaced = bomItems.reduce((s, i) => s + i.quantity, 0);
   const capacity = gridResult.gridX * gridResult.gridY;
@@ -71,14 +81,12 @@ function AppShellInner() {
           >
             Workspace
           </NavLink>
-          {isAuthenticated && (
-            <NavLink
-              to="/configs"
-              className={({ isActive }) => `nav-tab${isActive ? ' nav-tab-active' : ''}`}
-            >
-              Saved Configs
-            </NavLink>
-          )}
+          <NavLink
+            to="/configs"
+            className={({ isActive }) => `nav-tab${isActive ? ' nav-tab-active' : ''}`}
+          >
+            Saved Configs
+          </NavLink>
           <NavLink
             to="/order"
             className={({ isActive }) => `nav-tab${isActive ? ' nav-tab-active' : ''}`}
@@ -96,7 +104,7 @@ function AppShellInner() {
               <span className="nav-layout-name">{layoutMeta.name}</span>
             </div>
           )}
-          <UserMenu openAuth={authOpen} onAuthClosed={handleAuthClosed} />
+          <CustomerSelector />
           <button
             className="keyboard-help-button"
             onClick={() => dialogDispatch({ type: 'OPEN', dialog: 'keyboard' })}
@@ -127,22 +135,13 @@ function AppShellInner() {
         <div className="status-spacer" />
         <div className="status-count">
           <strong>{totalPlaced} item{totalPlaced !== 1 ? 's' : ''}</strong>
-          {' \u00b7 '}{gridResult.gridX}&times;{gridResult.gridY} grid
+          {' · '}{gridResult.gridX}&times;{gridResult.gridY} grid
         </div>
         <div className="status-spacer" />
         <div className="status-cost">
           <span className="status-cost-label">Est.</span>
           <strong>{costLabel}</strong>
         </div>
-        {isAdmin && (
-          <button
-            type="button"
-            className="admin-badge"
-            onClick={() => dialogDispatch({ type: 'OPEN', dialog: 'admin' })}
-          >
-            Admin
-          </button>
-        )}
       </div>
 
       {/* Global dialogs */}
@@ -172,15 +171,6 @@ function AppShellInner() {
         onClose={closeRebind}
         onSelect={handleRebindSelect}
       />
-
-      {isAdmin && (
-        <AdminSubmissionsDialog
-          isOpen={dialogs.admin}
-          onClose={() => dialogDispatch({ type: 'CLOSE', dialog: 'admin' })}
-          onLoad={handleLoadLayout}
-          hasItems={placedItems.length > 0}
-        />
-      )}
 
       <ConfirmDialog {...confirmDialogProps} />
     </div>

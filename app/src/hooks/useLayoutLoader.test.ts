@@ -41,7 +41,6 @@ function makeParams(overrides = {}) {
     loadItems: vi.fn(),
     loadRefImagePlacements: vi.fn(),
     layoutDispatch: vi.fn(),
-    getAccessToken: vi.fn().mockReturnValue('token123'),
     ...overrides,
   };
 }
@@ -101,27 +100,6 @@ describe('handleLoadLayout', () => {
     );
   });
 
-  it('builds owner string with username + email', () => {
-    const params = makeParams();
-    const { result } = renderHook(() => useLayoutLoader(params));
-
-    act(() => {
-      result.current.handleLoadLayout({
-        layoutId: 5, layoutName: 'L', layoutDescription: '', layoutStatus: 'draft',
-        widthMm: 168, depthMm: 168,
-        spacerConfig: { horizontal: 'none', vertical: 'none' },
-        placedItems: [], refImagePlacements: [],
-        ownerUsername: 'alice', ownerEmail: 'alice@example.com',
-      });
-    });
-
-    expect(params.layoutDispatch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        payload: expect.objectContaining({ owner: 'alice <alice@example.com>' }),
-      })
-    );
-  });
-
   it('dispatches LOAD_LAYOUT with correct payload', () => {
     const params = makeParams();
     const { result } = renderHook(() => useLayoutLoader(params));
@@ -148,14 +126,7 @@ describe('loadLayout', () => {
     vi.mocked(fetchLayout).mockResolvedValue(MOCK_DETAIL as never);
   });
 
-  it('throws if no token', async () => {
-    const params = makeParams({ getAccessToken: vi.fn().mockReturnValue(null) });
-    const { result } = renderHook(() => useLayoutLoader(params));
-
-    await expect(result.current.loadLayout(1)).rejects.toThrow('Not authenticated');
-  });
-
-  it('calls fetchLayout with token and id', async () => {
+  it('calls fetchLayout with id', async () => {
     const params = makeParams();
     const { result } = renderHook(() => useLayoutLoader(params));
 
@@ -163,7 +134,7 @@ describe('loadLayout', () => {
       await result.current.loadLayout(42);
     });
 
-    expect(fetchLayout).toHaveBeenCalledWith('token123', 42);
+    expect(fetchLayout).toHaveBeenCalledWith(42);
   });
 
   it('maps placed items with prefixed instanceId', async () => {

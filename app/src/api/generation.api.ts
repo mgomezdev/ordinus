@@ -10,7 +10,6 @@ export async function requestGenerationApi(
   libraryId: string,
   itemId: string,
   customization: BinCustomization | undefined,
-  accessToken: string,
 ): Promise<GenerateResponse> {
   return apiFetch<GenerateResponse>(
     '/generation/generate',
@@ -19,7 +18,6 @@ export async function requestGenerationApi(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ libraryId, itemId, customization }),
     },
-    accessToken,
   );
 }
 

@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../contexts/AuthContext';
 import {
   fetchUserStls,
   uploadUserStl,
@@ -7,15 +6,10 @@ import {
   deleteUserStl,
   reprocessUserStl,
   replaceUserStlFile,
-  fetchAdminUserStls,
-  promoteUserStl,
-  fetchPublicUserStls,
 } from '../api/userStls.api';
 import type { ApiUserStl } from '@gridfinity/shared';
 
 export const USER_STLS_QUERY_KEY = ['user-stls'] as const;
-export const PUBLIC_USER_STLS_QUERY_KEY = ['public-user-stls'] as const;
-export const ADMIN_USER_STLS_QUERY_KEY = ['admin-user-stls'] as const;
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -24,15 +18,9 @@ function hasActiveJobs(items: ApiUserStl[]): boolean {
 }
 
 export function useUserStlsQuery() {
-  const { getAccessToken, isAuthenticated } = useAuth();
   return useQuery({
     queryKey: USER_STLS_QUERY_KEY,
-    queryFn: () => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return fetchUserStls(token);
-    },
-    enabled: isAuthenticated,
+    queryFn: fetchUserStls,
     refetchInterval: (query) => {
       const data = query.state.data;
       return data && hasActiveJobs(data) ? POLL_INTERVAL_MS : false;
@@ -41,36 +29,18 @@ export function useUserStlsQuery() {
 }
 
 export function useUploadUserStlMutation() {
-  const { getAccessToken } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ file, name, opts }: { file: File; name: string; opts?: { gridX?: number; gridY?: number; gridZ?: number; visibility?: string } }) => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return uploadUserStl(file, name, token, opts);
+      return uploadUserStl(file, name, opts);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: USER_STLS_QUERY_KEY });
-      void queryClient.invalidateQueries({ queryKey: PUBLIC_USER_STLS_QUERY_KEY });
     },
-  });
-}
-
-export function usePublicUserStlsQuery() {
-  const { getAccessToken, isAuthenticated } = useAuth();
-  return useQuery({
-    queryKey: PUBLIC_USER_STLS_QUERY_KEY,
-    queryFn: () => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return fetchPublicUserStls(token);
-    },
-    enabled: isAuthenticated,
   });
 }
 
 export function useUpdateUserStlMutation() {
-  const { getAccessToken } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -82,9 +52,7 @@ export function useUpdateUserStlMutation() {
       gridX?: number | null;
       gridY?: number | null;
     }) => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return updateUserStl(id, data, token);
+      return updateUserStl(id, data);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: USER_STLS_QUERY_KEY });
@@ -93,14 +61,9 @@ export function useUpdateUserStlMutation() {
 }
 
 export function useDeleteUserStlMutation() {
-  const { getAccessToken } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return deleteUserStl(id, token);
-    },
+    mutationFn: (id: string) => deleteUserStl(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: USER_STLS_QUERY_KEY });
     },
@@ -108,14 +71,9 @@ export function useDeleteUserStlMutation() {
 }
 
 export function useReprocessUserStlMutation() {
-  const { getAccessToken } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return reprocessUserStl(id, token);
-    },
+    mutationFn: (id: string) => reprocessUserStl(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: USER_STLS_QUERY_KEY });
     },
@@ -123,43 +81,11 @@ export function useReprocessUserStlMutation() {
 }
 
 export function useReplaceUserStlFileMutation() {
-  const { getAccessToken } = useAuth();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, file }: { id: string; file: File }) => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return replaceUserStlFile(id, file, token);
-    },
+    mutationFn: ({ id, file }: { id: string; file: File }) => replaceUserStlFile(id, file),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: USER_STLS_QUERY_KEY });
-    },
-  });
-}
-
-export function useAdminUserStlsQuery() {
-  const { getAccessToken } = useAuth();
-  return useQuery({
-    queryKey: ADMIN_USER_STLS_QUERY_KEY,
-    queryFn: () => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return fetchAdminUserStls(token);
-    },
-  });
-}
-
-export function usePromoteUserStlMutation() {
-  const { getAccessToken } = useAuth();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return promoteUserStl(id, token);
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ADMIN_USER_STLS_QUERY_KEY });
     },
   });
 }

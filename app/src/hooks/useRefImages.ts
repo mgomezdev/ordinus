@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { ApiRefImage } from '@gridfinity/shared';
-import { useAuth } from '../contexts/AuthContext';
 import {
   fetchRefImages,
   uploadRefImage,
@@ -10,28 +9,18 @@ import {
 } from '../api/refImages.api';
 
 export function useRefImagesQuery() {
-  const { getAccessToken, isAuthenticated } = useAuth();
-
   return useQuery({
     queryKey: ['ref-images'],
-    queryFn: async () => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return fetchRefImages(token);
-    },
-    enabled: isAuthenticated,
+    queryFn: fetchRefImages,
   });
 }
 
 export function useUploadRefImageMutation() {
-  const { getAccessToken } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (file: File): Promise<ApiRefImage> => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return uploadRefImage(token, file);
+      return uploadRefImage(file);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ref-images'] });
@@ -40,14 +29,11 @@ export function useUploadRefImageMutation() {
 }
 
 export function useUploadGlobalRefImageMutation() {
-  const { getAccessToken } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (file: File): Promise<ApiRefImage> => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return uploadGlobalRefImage(token, file);
+      return uploadGlobalRefImage(file);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ref-images'] });
@@ -56,14 +42,11 @@ export function useUploadGlobalRefImageMutation() {
 }
 
 export function useRenameRefImageMutation() {
-  const { getAccessToken } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ id, name }: { id: number; name: string }): Promise<ApiRefImage> => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      return renameRefImage(token, id, name);
+      return renameRefImage(id, name);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ref-images'] });
@@ -72,14 +55,11 @@ export function useRenameRefImageMutation() {
 }
 
 export function useDeleteRefImageMutation() {
-  const { getAccessToken } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: number): Promise<void> => {
-      const token = getAccessToken();
-      if (!token) throw new Error('Not authenticated');
-      await deleteRefImage(token, id);
+      await deleteRefImage(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ref-images'] });
