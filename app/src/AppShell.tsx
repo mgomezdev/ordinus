@@ -49,7 +49,6 @@ function AppShellInner() {
     drawerDepth,
     spacerConfig,
     handleSaveComplete,
-    handleLoadLayout,
   } = useWorkspace();
 
   const totalPlaced = bomItems.reduce((s, i) => s + i.quantity, 0);
