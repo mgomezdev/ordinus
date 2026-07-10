@@ -593,4 +593,21 @@ export async function runMigrations(client: Client): Promise<void> {
   } catch {
     // Column already exists — ignore
   }
+
+  // Settings table — runtime-configurable service URLs
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL DEFAULT ''
+    );
+  `);
+  // Seed defaults (INSERT OR IGNORE — never overwrite user-set values)
+  await client.execute({
+    sql: "INSERT OR IGNORE INTO settings (key, value) VALUES ('themis_url', ?)",
+    args: [process.env['THEMIS_URL'] ?? ''],
+  });
+  await client.execute({
+    sql: "INSERT OR IGNORE INTO settings (key, value) VALUES ('laminus_url', '')",
+    args: [],
+  });
 }

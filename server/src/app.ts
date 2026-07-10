@@ -18,6 +18,7 @@ import generationRoutes from './routes/generation.routes.js';
 import favoritesRoutes from './routes/favorites.routes.js';
 import thumbnailsRoutes from './routes/thumbnails.routes.js';
 import customersRoutes from './routes/customers.routes.js';
+import settingsRoutes from './routes/settings.routes.js';
 
 export function createApp(): express.Express {
   const app = express();
@@ -63,6 +64,7 @@ export function createApp(): express.Express {
   app.use('/api/v1/user-stls', userStlsRouter);
   app.use('/api/v1/favorites', favoritesRoutes);
   app.use('/api/v1/customers', customersRoutes);
+  app.use('/api/v1', settingsRoutes);
 
   // Global error handler (must be last)
   app.use(errorHandler);

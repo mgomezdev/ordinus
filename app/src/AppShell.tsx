@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { useCustomers } from './contexts/CustomerContext';
@@ -5,6 +6,7 @@ import { SaveLayoutDialog } from './components/layouts/SaveLayoutDialog';
 import { RebindImageDialog } from './components/RebindImageDialog';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
+import { SettingsModal } from './components/SettingsModal';
 import { calculateOrderTotal } from './utils/exportOrderSummaryPdf';
 import './App.css';
 import './AppShell.css';
@@ -34,6 +36,7 @@ function CustomerSelector() {
 
 // Inner shell reads from context (must be inside WorkspaceProvider)
 function AppShellInner() {
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const {
     layoutMeta,
     dialogs,
@@ -113,6 +116,15 @@ function AppShellInner() {
           >
             ?
           </button>
+          <button
+            className="keyboard-help-button"
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Service settings"
+            title="Service settings"
+            type="button"
+          >
+            ⚙
+          </button>
         </div>
       </nav>
 
@@ -172,6 +184,8 @@ function AppShellInner() {
       />
 
       <ConfirmDialog {...confirmDialogProps} />
+
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
     </div>
   );
 }

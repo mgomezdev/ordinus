@@ -8,15 +8,15 @@ import { db } from '../db/connection.js';
 import { layouts, bomGenerations } from '../db/schema.js';
 import { config } from '../config.js';
 import { uploadStlToThemis, createThemisProject, addThemisProjectItem } from '../services/themis.service.js';
+import { getSetting } from '../services/settings.service.js';
 import { logger } from '../logger.js';
 
 
 export async function sendToThemisHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // Read THEMIS_URL from env directly so tests can override it at runtime.
-    const themisUrl = process.env['THEMIS_URL'] ?? config.THEMIS_URL;
+    const themisUrl = await getSetting('themis_url');
     if (!themisUrl) {
-      res.status(503).json({ error: { message: 'THEMIS_URL is not configured' } });
+      res.status(503).json({ error: { message: 'Themis URL is not configured in settings' } });
       return;
     }
 

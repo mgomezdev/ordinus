@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ApiBomGeneration, BOMItem } from '@gridfinity/shared';
 import { triggerBomGeneration, getBomGeneration, getFileDownloadUrl, sendToThemis } from '../api/bomGeneration.api';
+import { useSettings } from '../contexts/SettingsContext.js';
 
 interface BomGenerationPanelProps {
   layoutId: number | null;
@@ -17,7 +18,8 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems }: BomGener
   const [themisProjectUrl, setThemisProjectUrl] = useState<string | null>(null);
   const [themisNeedsProfiles, setThemisNeedsProfiles] = useState(false);
 
-  const THEMIS_URL = import.meta.env['VITE_THEMIS_URL'] as string | undefined;
+  const { settings, health } = useSettings();
+  const themisUrl = settings.themis_url;
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) clearInterval(pollRef.current);
@@ -50,11 +52,11 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems }: BomGener
   }, [generation?.status, fetchGeneration, stopPolling]);
 
   useEffect(() => {
-    if (generation?.themisProjectId && THEMIS_URL) {
-      setThemisProjectUrl(`${THEMIS_URL}/projects/${generation.themisProjectId}`);
+    if (generation?.themisProjectId && themisUrl) {
+      setThemisProjectUrl(`${themisUrl}/projects/${generation.themisProjectId}`);
       setThemisState('sent');
     }
-  }, [generation?.themisProjectId, THEMIS_URL]);
+  }, [generation?.themisProjectId, themisUrl]);
 
   const handleSendToThemis = async () => {
     if (!layoutId) return;
@@ -134,7 +136,8 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems }: BomGener
           type="button"
           className="bom-gen-btn bom-gen-btn-primary"
           onClick={handleGenerate}
-          disabled={isGenerating || !layoutId}
+          disabled={isGenerating || !layoutId || health.laminus !== 'up'}
+          title={health.laminus !== 'up' ? 'Laminus is not reachable — configure it in ⚙ Settings' : undefined}
         >
           {isGenerating ? 'Generating\u2026' : hasGeneration ? 'Regenerate' : 'Generate'}
         </button>
@@ -146,7 +149,7 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems }: BomGener
         >
           Download 3MF
         </button>
-        {THEMIS_URL && (
+        {themisUrl && (
           themisState === 'sent' && themisProjectUrl ? (
             <a
               className="bom-gen-btn"
@@ -160,7 +163,8 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems }: BomGener
             <button
               type="button"
               className="bom-gen-btn"
-              disabled={!isReady || themisState === 'sending'}
+              disabled={!isReady || themisState === 'sending' || health.themis !== 'up'}
+              title={health.themis !== 'up' ? 'Themis is not reachable — configure it in ⚙ Settings' : undefined}
               onClick={() => { void handleSendToThemis(); }}
             >
               {themisState === 'sending' ? 'Sending…' : 'Send to Themis'}
