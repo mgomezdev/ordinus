@@ -78,6 +78,7 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems }: BomGener
     setError(null);
     setThemisState('idle');
     setThemisProjectUrl(null);
+    setThemisNeedsProfiles(false);
     try {
       const gen = await triggerBomGeneration(layoutId, bomItems);
       setGeneration(gen);
