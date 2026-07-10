@@ -6,10 +6,9 @@ interface BomGenerationPanelProps {
   layoutId: number | null;
   layoutTitle: string;
   bomItems: BOMItem[];
-  accessToken: string | null;
 }
 
-export function BomGenerationPanel({ layoutId, layoutTitle, bomItems, accessToken }: BomGenerationPanelProps) {
+export function BomGenerationPanel({ layoutId, layoutTitle, bomItems }: BomGenerationPanelProps) {
   const [generation, setGeneration] = useState<ApiBomGeneration | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,15 +24,15 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems, accessToke
   }, []);
 
   const fetchGeneration = useCallback(async () => {
-    if (!layoutId || !accessToken) return;
+    if (!layoutId) return;
     try {
-      const gen = await getBomGeneration(layoutId, accessToken);
+      const gen = await getBomGeneration(layoutId);
       setGeneration(gen);
       if (gen?.status !== 'generating') stopPolling();
     } catch {
       stopPolling();
     }
-  }, [layoutId, accessToken, stopPolling]);
+  }, [layoutId, stopPolling]);
 
   useEffect(() => {
     void fetchGeneration();
@@ -57,11 +56,11 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems, accessToke
   }, [generation?.themisProjectId, THEMIS_URL]);
 
   const handleSendToThemis = async () => {
-    if (!layoutId || !accessToken) return;
+    if (!layoutId) return;
     setThemisState('sending');
     setError(null);
     try {
-      const { projectUrl } = await sendToThemis(layoutId, accessToken);
+      const { projectUrl } = await sendToThemis(layoutId);
       setThemisProjectUrl(projectUrl);
       setThemisState('sent');
       window.open(projectUrl, '_blank', 'noopener');
@@ -72,13 +71,13 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems, accessToke
   };
 
   const handleGenerate = async () => {
-    if (!layoutId || !accessToken) return;
+    if (!layoutId) return;
     setLoading(true);
     setError(null);
     setThemisState('idle');
     setThemisProjectUrl(null);
     try {
-      const gen = await triggerBomGeneration(layoutId, bomItems, accessToken);
+      const gen = await triggerBomGeneration(layoutId, bomItems);
       setGeneration(gen);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed');
@@ -100,11 +99,9 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems, accessToke
     : null;
 
   const handleDownload = async () => {
-    if (!downloadUrl || !accessToken) return;
+    if (!downloadUrl) return;
     try {
-      const response = await fetch(downloadUrl, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const response = await fetch(downloadUrl);
       if (!response.ok) {
         const data = await response.json().catch(() => ({})) as { error?: { message?: string } };
         setError(data?.error?.message ?? 'Download failed');

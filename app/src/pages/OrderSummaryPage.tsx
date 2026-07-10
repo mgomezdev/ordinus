@@ -406,7 +406,6 @@ export function OrderSummaryPage() {
                 layoutId={layoutMeta.id}
                 layoutTitle={layoutMeta.name ?? 'layout'}
                 bomItems={bomItems}
-                accessToken={null}
               />
             </div>
           </>

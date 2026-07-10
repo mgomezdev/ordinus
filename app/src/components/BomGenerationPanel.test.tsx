@@ -14,7 +14,6 @@ const baseProps = {
   layoutId: 1,
   layoutTitle: 'My Layout',
   bomItems: [],
-  accessToken: 'tok',
 };
 
 describe('BomGenerationPanel', () => {
@@ -67,7 +66,7 @@ describe('BomGenerationPanel', () => {
     render(<BomGenerationPanel {...baseProps} />);
     await waitFor(() => screen.getByRole('button', { name: /generate/i }));
     fireEvent.click(screen.getByRole('button', { name: /generate/i }));
-    await waitFor(() => expect(bomApi.triggerBomGeneration).toHaveBeenCalledWith(1, [], 'tok'));
+    await waitFor(() => expect(bomApi.triggerBomGeneration).toHaveBeenCalledWith(1, []));
   });
 
   it('shows error message when status is error', async () => {

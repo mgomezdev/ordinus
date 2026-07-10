@@ -364,17 +364,6 @@ export interface ApiUser {
   createdAt: string;
 }
 
-export interface AuthResponse {
-  user: ApiUser;
-  accessToken: string;
-  refreshToken: string;
-}
-
-export interface TokenResponse {
-  accessToken: string;
-  refreshToken: string;
-}
-
 // ============================================================
 // Sharing API types
 // ============================================================
