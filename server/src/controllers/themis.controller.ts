@@ -76,7 +76,8 @@ export async function sendToThemisHandler(req: Request, res: Response, next: Nex
       .where(eq(bomGenerations.layoutId, layoutId));
 
     const projectUrl = `${themisUrl}/projects/${projectId}`;
-    res.status(200).json({ data: { projectUrl } });
+    const needsFilamentProfiles = manifest.length > 0;
+    res.status(200).json({ data: { projectUrl, needsFilamentProfiles } });
   } catch (err) {
     next(err);
   }

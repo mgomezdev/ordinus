@@ -30,6 +30,7 @@ export function getFileDownloadUrl(layoutId: number, filename: string): string {
 
 export interface SendToThemisResponse {
   projectUrl: string;
+  needsFilamentProfiles?: boolean;
 }
 
 export async function sendToThemis(

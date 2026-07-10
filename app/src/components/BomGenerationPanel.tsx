@@ -15,6 +15,7 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems }: BomGener
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [themisState, setThemisState] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [themisProjectUrl, setThemisProjectUrl] = useState<string | null>(null);
+  const [themisNeedsProfiles, setThemisNeedsProfiles] = useState(false);
 
   const THEMIS_URL = import.meta.env['VITE_THEMIS_URL'] as string | undefined;
 
@@ -60,8 +61,9 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems }: BomGener
     setThemisState('sending');
     setError(null);
     try {
-      const { projectUrl } = await sendToThemis(layoutId);
+      const { projectUrl, needsFilamentProfiles } = await sendToThemis(layoutId);
       setThemisProjectUrl(projectUrl);
+      setThemisNeedsProfiles(needsFilamentProfiles ?? false);
       setThemisState('sent');
       window.open(projectUrl, '_blank', 'noopener');
     } catch (err) {
@@ -165,6 +167,11 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems }: BomGener
           )
         )}
       </div>
+      {themisNeedsProfiles && (
+        <div className="bom-gen-status">
+          Project sent to Themis. Assign filament profiles to parts before generating prints.
+        </div>
+      )}
       {isReady && generation?.generatedAt && (
         <div className="bom-gen-status">
           Generated {new Date(generation.generatedAt).toLocaleString()}
