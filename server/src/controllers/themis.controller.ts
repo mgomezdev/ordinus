@@ -76,6 +76,7 @@ export async function sendToThemisHandler(req: Request, res: Response, next: Nex
       .where(eq(bomGenerations.layoutId, layoutId));
 
     const projectUrl = `${themisUrl}/projects/${projectId}`;
+    // Ordinus never assigns filament profiles, so any non-empty send always needs them
     const needsFilamentProfiles = manifest.length > 0;
     res.status(200).json({ data: { projectUrl, needsFilamentProfiles } });
   } catch (err) {
