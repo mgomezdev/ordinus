@@ -2,14 +2,26 @@ import { useState } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { useCustomers } from './contexts/CustomerContext';
+import { useSettings } from './contexts/SettingsContext.js';
 import { SaveLayoutDialog } from './components/layouts/SaveLayoutDialog';
 import { RebindImageDialog } from './components/RebindImageDialog';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 import { SettingsModal } from './components/SettingsModal';
 import { calculateOrderTotal } from './utils/exportOrderSummaryPdf';
+import type { ServiceStatus } from './api/settings.api.js';
 import './App.css';
 import './AppShell.css';
+
+function ServiceBubble({ name, status }: { name: string; status: ServiceStatus }) {
+  const dot = status === 'up' ? '#22c55e' : status === 'down' ? '#ef4444' : 'var(--text-tertiary, #6b7280)';
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-tertiary, #9ca3af)', userSelect: 'none' }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: dot, flexShrink: 0 }} />
+      {name}
+    </span>
+  );
+}
 
 function CustomerSelector() {
   const { customers, selectedCustomer, setSelectedCustomerId } = useCustomers();
@@ -37,6 +49,7 @@ function CustomerSelector() {
 // Inner shell reads from context (must be inside WorkspaceProvider)
 function AppShellInner() {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const { health } = useSettings();
   const {
     layoutMeta,
     dialogs,
@@ -134,6 +147,11 @@ function AppShellInner() {
 
       {/* Status bar */}
       <div className="app-status-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginRight: 8 }}>
+          <ServiceBubble name="Themis" status={health.themis} />
+          <ServiceBubble name="Laminus" status={health.laminus} />
+        </div>
+        <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.12)', flexShrink: 0 }} />
         <div className="status-capacity">
           <span className="status-dot" />
           <span className="status-cap-label">
