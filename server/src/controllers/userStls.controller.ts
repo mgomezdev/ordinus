@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fs from 'fs/promises';
 import { randomUUID } from 'crypto';
-import { client } from '../db/client.js';
+import { client } from '../db/connection.js';
 import { config } from '../config.js';
 import {
   createUpload,

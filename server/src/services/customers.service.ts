@@ -86,7 +86,7 @@ export async function associatePart(customerId: number, partId: string): Promise
 }
 
 export async function dissociatePart(customerId: number, partId: string): Promise<void> {
-  const { client } = await import('../db/client.js');
+  const { client } = await import('../db/connection.js');
   await client.execute({
     sql: `DELETE FROM customer_parts WHERE customer_id = ? AND part_id = ?`,
     args: [customerId, partId],
@@ -123,7 +123,7 @@ export async function associateRefImage(customerId: number, refImageId: number):
 }
 
 export async function dissociateRefImage(customerId: number, refImageId: number): Promise<void> {
-  const { client } = await import('../db/client.js');
+  const { client } = await import('../db/connection.js');
   await client.execute({
     sql: `DELETE FROM customer_ref_images WHERE customer_id = ? AND ref_image_id = ?`,
     args: [customerId, refImageId],

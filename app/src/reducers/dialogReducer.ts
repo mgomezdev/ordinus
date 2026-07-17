@@ -1,11 +1,9 @@
-export type DialogName = 'keyboard' | 'save' | 'load' | 'rebind' | 'admin';
+export type DialogName = 'keyboard' | 'save' | 'rebind';
 
 export interface DialogState {
   keyboard: boolean;
   save: boolean;
-  load: boolean;
   rebind: boolean;
-  admin: boolean;
   rebindTargetId: string | null;
 }
 
@@ -19,18 +17,14 @@ export type DialogAction =
 export const initialDialogState: DialogState = {
   keyboard: false,
   save: false,
-  load: false,
   rebind: false,
-  admin: false,
   rebindTargetId: null,
 };
 
 const closedDialogs: Pick<DialogState, DialogName> = {
   keyboard: false,
   save: false,
-  load: false,
   rebind: false,
-  admin: false,
 };
 
 export function dialogReducer(state: DialogState, action: DialogAction): DialogState {

@@ -1,10 +1,9 @@
 import { eq, desc } from 'drizzle-orm';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
 import type { ApiRefImage } from '@gridfinity/shared';
-import { db } from '../db/connection.js';
+import { db, client } from '../db/connection.js';
 import { refImages } from '../db/schema.js';
 import * as imageService from './image.service.js';
-import { client } from '../db/client.js';
 
 function formatRefImage(row: typeof refImages.$inferSelect): ApiRefImage {
   return {

@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
 import path from 'path';
-import { client } from '../db/client.js';
+import { client } from '../db/connection.js';
 import { updateUploadStatus } from './userStls.service.js';
 import { stlQueue } from './stlQueue.service.js';
 import { config } from '../config.js';
