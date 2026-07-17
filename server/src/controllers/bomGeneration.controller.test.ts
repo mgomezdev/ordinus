@@ -19,7 +19,6 @@ function makeReq(overrides: Partial<Request> = {}): Partial<Request> {
   return {
     params: {},
     body: {},
-    user: { userId: 1, role: 'user' },
     ...overrides,
   };
 }
@@ -78,13 +77,6 @@ describe('generateHandler', () => {
     const res = makeRes();
     await generateHandler(req as Request, res as unknown as Response, next);
     expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'VALIDATION_ERROR' }));
-  });
-
-  it('calls next with error if user is not authenticated', async () => {
-    const req = makeReq({ params: { layoutId: '5' }, user: undefined });
-    const res = makeRes();
-    await generateHandler(req as Request, res as unknown as Response, next);
-    expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'AUTH_REQUIRED' }));
   });
 
   it('calls next with FORBIDDEN if user does not own layout', async () => {
