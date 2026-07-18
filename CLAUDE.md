@@ -17,7 +17,7 @@ Ordinus is a web application for customizing Gridfinity modular storage system c
 - **Data Fetching**: TanStack Query v5
 - **Backend**: Express + TypeScript (Node 24)
 - **Database**: SQLite via `@libsql/client` + drizzle-orm
-- **Auth**: JWT (`jsonwebtoken`) + Argon2 password hashing
+- **Auth**: Customer profiles (no password auth — JWT/Argon2 removed)
 - **Image Processing**: `sharp` (server), `html2canvas` (client)
 - **PDF Generation**: jspdf + jspdf-autotable
 - **Unit Testing**: Vitest + React Testing Library
@@ -29,12 +29,11 @@ Ordinus is a web application for customizing Gridfinity modular storage system c
 This is an npm workspaces monorepo:
 
 ```
-packages/
-├── app/        # React frontend (@gridfinity/app)
-├── server/     # Express backend (@gridfinity/server)
-└── shared/     # Shared types and utilities (@gridfinity/shared)
-infra/          # Docker, Nginx, docker-compose
-tools/          # Dev tools (gridfinity-generator)
+app/        # React frontend (@gridfinity/app)
+server/     # Express backend (@gridfinity/server)
+shared/     # Shared types and utilities (@gridfinity/shared)
+infra/      # Docker, Nginx, docker-compose
+tools/      # Dev tools (gridfinity-generator)
 ```
 
 ## Commands
@@ -83,18 +82,15 @@ npm run test:e2e:docker
 ## Frontend Architecture
 
 ```
-packages/app/src/
+app/src/
 ├── api/            # API client layer
-│   ├── adapters/   # DataSourceAdapter pattern (api.adapter.ts, static.adapter.ts, types.ts)
-│   ├── auth.api.ts
+│   ├── adapters/   # DataSourceAdapter pattern (api.adapter.ts, types.ts)
 │   ├── generation.api.ts
 │   ├── layouts.api.ts
 │   └── ...         # Per-domain API modules
 ├── components/     # React components
-│   ├── admin/      # Admin-only components
-│   ├── auth/       # Auth-related components
 │   └── share/      # Share feature components
-├── contexts/       # React contexts (Auth, DataSource, Grid, Library, Workspace)
+├── contexts/       # React contexts (Customer, DataSource, Grid, Library, Settings, Workspace)
 ├── hooks/          # Custom React hooks
 ├── pages/          # Route-level page components
 ├── reducers/       # useReducer-based state (dialog, layoutMeta)
@@ -105,20 +101,15 @@ packages/app/src/
 
 ### DataSourceAdapter Pattern
 
-The frontend abstracts data fetching behind a `DataSourceAdapter` interface (`packages/app/src/api/adapters/types.ts`):
-
-- `StaticAdapter` — reads from `/public/libraries/` JSON files (default when `VITE_API_BASE_URL` is not set)
-- `ApiAdapter` — calls the backend REST API
-
-The active adapter is provided via `DataSourceContext`. Providers are configured in `main.tsx` (not `App.tsx`). Hooks use `useDataSource()` combined with TanStack Query (`useQuery`/`useQueries`).
+The frontend abstracts data fetching behind a `DataSourceAdapter` interface (`app/src/api/adapters/types.ts`). Only `ApiAdapter` exists — `StaticAdapter` was removed. The active adapter is provided via `DataSourceContext`; the `adapter?` prop is kept as a test seam. Providers are configured in `main.tsx` (not `App.tsx`). Hooks use `useDataSource()` combined with TanStack Query (`useQuery`/`useQueries`).
 
 ## Backend Architecture
 
 ```
-packages/server/src/
-├── controllers/    # Route handlers (auth, library, layout, generation, favorites, ...)
-├── db/             # drizzle schema, client, migrations, seeding
-├── middleware/     # Auth, CORS, rate limiting, error handling, validation
+server/src/
+├── controllers/    # Route handlers (customers, library, layout, generation, favorites, ...)
+├── db/             # drizzle schema, connection, migrations, seeding
+├── middleware/     # CORS, rate limiting, error handling, validation, requestId
 ├── routes/         # Express router definitions
 ├── services/       # Business logic (STL pipeline, image, BOM generation, thumbnails, ...)
 ├── types/          # Server-side type definitions
@@ -126,9 +117,10 @@ packages/server/src/
 ```
 
 - API prefix: `/api/v1/`
-- Endpoints: `libraries`, `items`, `categories`, `images`, `layouts`, `favorites`, `generation`, `auth`, `refImages`, `userStls`, `thumbnails`, `share`, `admin`
+- Endpoints: `libraries`, `items`, `categories`, `images`, `layouts`, `favorites`, `generation`, `customers`, `refImages`, `userStls`, `thumbnails`, `share`, `settings`, `health`, `bom`
 - Logger: pino + pino-http. Tests mock logger with `pino({ level: 'silent' })` (NOT a plain object — pino-http requires a real pino instance)
 - Drizzle `COUNT(*)` subqueries can fail with libsql; use a separate GROUP BY query + Map instead
+- DB client: import `{ db }` from `server/src/db/connection.ts` (the `client.ts` shim was removed)
 
 ## Docker Deployment
 
@@ -226,23 +218,23 @@ Before merging into `develop` or `main`:
 ## Key Files
 
 ### Frontend
-- `packages/app/src/components/GridPreview.tsx` — Main grid rendering and drop target
-- `packages/app/src/components/GridViewport.tsx` — Viewport with zoom/pan
-- `packages/app/src/hooks/useGridItems.ts` — Placed item state management
-- `packages/app/src/hooks/useGridTransform.ts` — Zoom and pan transform state
-- `packages/app/src/hooks/useLayouts.ts` — Saved layout management
-- `packages/app/src/api/adapters/types.ts` — DataSourceAdapter interface
-- `packages/app/src/contexts/DataSourceContext.tsx` — Adapter provider
-- `packages/app/src/contexts/AuthContext.tsx` — Auth state
-- `packages/app/src/types/gridfinity.ts` — Core type definitions
+- `app/src/components/GridPreview.tsx` — Main grid rendering and drop target
+- `app/src/components/GridViewport.tsx` — Viewport with zoom/pan
+- `app/src/hooks/useGridItems.ts` — Placed item state management
+- `app/src/hooks/useGridTransform.ts` — Zoom and pan transform state
+- `app/src/hooks/useLayouts.ts` — Saved layout management
+- `app/src/api/adapters/types.ts` — DataSourceAdapter interface (ApiAdapter is the only impl)
+- `app/src/contexts/DataSourceContext.tsx` — Adapter provider
+- `app/src/contexts/CustomerContext.tsx` — Customer profile state (replaces AuthContext)
+- `app/src/types/gridfinity.ts` — Core type definitions
 
 ### Backend
-- `packages/server/src/index.ts` — Express app entry point
-- `packages/server/src/db/schema.ts` — drizzle-orm database schema
-- `packages/server/src/services/generationPipeline.service.ts` — STL generation pipeline
-- `packages/server/src/services/stlProcessing.service.ts` — STL file processing
-- `packages/server/src/middleware/auth.ts` — JWT auth middleware
+- `server/src/index.ts` — Express app entry point
+- `server/src/db/schema.ts` — drizzle-orm database schema
+- `server/src/db/connection.ts` — drizzle client (use this, not the removed client.ts shim)
+- `server/src/services/generationPipeline.service.ts` — STL generation pipeline
+- `server/src/services/stlProcessing.service.ts` — STL file processing
 
 ### Shared
-- `packages/shared/src/types.ts` — Shared TypeScript types
-- `packages/shared/src/errors.ts` — Shared error definitions
+- `shared/src/types.ts` — Shared TypeScript types
+- `shared/src/errors.ts` — Shared error definitions
