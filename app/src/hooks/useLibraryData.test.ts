@@ -34,7 +34,6 @@ describe('useLibraryData', () => {
         return Object.keys(itemsByLibrary).map((id) => ({
           id,
           name: id,
-          path: `/libraries/${id}/index.json`,
           itemCount: itemsByLibrary[id].length,
         }));
       },
@@ -375,7 +374,7 @@ describe('useLibraryData', () => {
       let callCount = 0;
       const adapter: DataSourceAdapter = {
         async getLibraries() {
-          return [{ id: 'bins_standard', name: 'bins_standard', path: '/libraries/bins_standard/index.json' }];
+          return [{ id: 'bins_standard', name: 'bins_standard' }];
         },
         async getLibraryItems() {
           callCount++;

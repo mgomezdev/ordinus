@@ -50,7 +50,6 @@ describe('useLibraryData - Modular Utensil Library', () => {
           {
             id: 'modular-utensil',
             name: 'modular-utensil',
-            path: '/libraries/modular-utensil/index.json',
             itemCount: mockModularUtensilItems.length,
           },
         ];
@@ -123,7 +122,6 @@ describe('useLibraryData - Modular Utensil Library', () => {
           {
             id: 'modular-utensil',
             name: 'modular-utensil',
-            path: '/libraries/modular-utensil/index.json',
             itemCount: 1,
           },
         ];

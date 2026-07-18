@@ -1,8 +1,6 @@
-import { createClient } from '@libsql/client';
-import { config } from '../config.js';
+import { client } from './connection.js';
 import { runMigrations, rollbackLast } from './migrate.js';
 
-const client = createClient({ url: `file:${config.DB_PATH}` });
 const cmd = process.argv[2];
 
 async function main() {

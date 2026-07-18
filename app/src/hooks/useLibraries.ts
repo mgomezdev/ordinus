@@ -26,7 +26,7 @@ export function useLibraries(): UseLibrariesResult {
   const availableLibraries: Library[] = (libraryInfos ?? []).map((info) => ({
     id: info.id,
     name: info.name,
-    path: info.path,
+    path: '',
     isEnabled: true,
     itemCount: info.itemCount,
   }));
