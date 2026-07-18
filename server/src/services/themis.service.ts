@@ -31,15 +31,31 @@ export async function createThemisProject(
   notes: string,
   sourceUser?: string,
   sourceLayoutId?: number,
+  customer?: string,
 ): Promise<number> {
   const data = await themisPost(`${themisUrl}/api/v1/projects`, {
     name,
     notes,
+    order_type: 'customer',
+    ...(customer ? { customer } : {}),
     source_app: 'ordinus',
     ...(sourceUser !== undefined && { source_user: sourceUser }),
     ...(sourceLayoutId !== undefined && { source_layout_id: sourceLayoutId }),
   }) as { id: number };
   return data.id;
+}
+
+/** Add a link to a Themis project. */
+export async function addThemisProjectLink(
+  themisUrl: string,
+  projectId: number,
+  url: string,
+  label?: string,
+): Promise<void> {
+  await themisPost(`${themisUrl}/api/v1/projects/${projectId}/links`, {
+    url,
+    ...(label ? { label } : {}),
+  });
 }
 
 /** Add an item to a Themis project. */

@@ -5,16 +5,16 @@ import { AppError, ErrorCodes } from '@gridfinity/shared';
 import type { BomGenerationManifestEntry } from '@gridfinity/shared';
 import type { Request, Response, NextFunction } from 'express';
 import { db } from '../db/connection.js';
-import { layouts, bomGenerations } from '../db/schema.js';
+import { layouts, bomGenerations, customers } from '../db/schema.js';
 import { config } from '../config.js';
-import { uploadStlToThemis, createThemisProject, addThemisProjectItem } from '../services/themis.service.js';
+import { uploadStlToThemis, createThemisProject, addThemisProjectItem, addThemisProjectLink } from '../services/themis.service.js';
 import { getSetting } from '../services/settings.service.js';
 import { logger } from '../logger.js';
 
 
 export async function sendToThemisHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const themisUrl = await getSetting('themis_url');
+    const themisUrl = (await getSetting('themis_url')) || config.THEMIS_URL;
     if (!themisUrl) {
       res.status(503).json({ error: { message: 'Themis URL is not configured in settings' } });
       return;
@@ -55,12 +55,20 @@ export async function sendToThemisHandler(req: Request, res: Response, next: Nex
       logger.info({ filename: entry.filename, fileId }, 'Uploaded STL to Themis');
     }
 
+    let customerName: string | undefined;
+    if (layout.customerId) {
+      const customerRows = await db.select().from(customers)
+        .where(eq(customers.id, layout.customerId)).limit(1);
+      if (customerRows.length) customerName = customerRows[0]!.name;
+    }
+
     const projectId = await createThemisProject(
       themisUrl,
       layout.name,
       'Imported from Ordinus',
       undefined,  // no username — auth removed
       layoutId,
+      customerName,
     );
     logger.info({ projectId, layoutId }, 'Created Themis project');
 
@@ -69,6 +77,10 @@ export async function sendToThemisHandler(req: Request, res: Response, next: Nex
       if (fileId === undefined) continue;
       await addThemisProjectItem(themisUrl, projectId, fileId, entry.qty);
     }
+
+    const publicUrl = config.PUBLIC_URL;
+    await addThemisProjectLink(themisUrl, projectId, `${publicUrl}/layouts/${layoutId}`, 'Ordinus layout');
+    logger.info({ projectId, layoutId }, 'Added Ordinus backlink to Themis project');
 
     // Write Themis project ID back to bom_generations for bidirectional link.
     await db.update(bomGenerations)

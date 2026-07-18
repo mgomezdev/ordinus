@@ -137,40 +137,8 @@ export async function up(client: Client): Promise<void> {
     );
   `);
 
-  try {
-    await client.execute(`SELECT customer_id FROM layouts LIMIT 1;`);
-  } catch {
-    try {
-      await client.execute(`ALTER TABLE layouts RENAME TO layouts_old;`);
-      await client.execute(`
-        CREATE TABLE layouts (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER,
-          customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
-          name TEXT NOT NULL,
-          description TEXT,
-          grid_x INTEGER NOT NULL CHECK (grid_x BETWEEN 1 AND 20),
-          grid_y INTEGER NOT NULL CHECK (grid_y BETWEEN 1 AND 20),
-          width_mm REAL NOT NULL,
-          depth_mm REAL NOT NULL,
-          spacer_horizontal TEXT NOT NULL DEFAULT 'none',
-          spacer_vertical TEXT NOT NULL DEFAULT 'none',
-          is_public INTEGER NOT NULL DEFAULT 0,
-          created_at TEXT NOT NULL DEFAULT (datetime('now')),
-          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-          thumbnail_path TEXT
-        );
-      `);
-      await client.execute(`
-        INSERT INTO layouts (id, user_id, name, description, grid_x, grid_y, width_mm, depth_mm,
-          spacer_horizontal, spacer_vertical, is_public, created_at, updated_at, thumbnail_path)
-        SELECT id, user_id, name, description, grid_x, grid_y, width_mm, depth_mm,
-          spacer_horizontal, spacer_vertical, is_public, created_at, updated_at, thumbnail_path
-        FROM layouts_old;
-      `);
-      await client.execute(`DROP TABLE layouts_old;`);
-    } catch { /* ignore */ }
-  }
+  // Add customer_id if not present — use ADD COLUMN (safe, no rename needed)
+  try { await client.execute(`ALTER TABLE layouts ADD COLUMN customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL;`); } catch { /* exists */ }
 
   await client.execute(`CREATE INDEX IF NOT EXISTS idx_layouts_user ON layouts(user_id);`);
   try { await client.execute(`CREATE INDEX IF NOT EXISTS idx_layouts_customer ON layouts(customer_id);`); } catch { /* ignore */ }
