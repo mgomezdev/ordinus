@@ -84,3 +84,7 @@ server/dist/
 .worktrees/
 .superpowers/
 .worktrees/
+
+# Claude tooling artifacts
+.claude/scheduled_tasks.lock
+.claude/worktrees/
