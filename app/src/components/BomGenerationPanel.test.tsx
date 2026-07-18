@@ -8,6 +8,15 @@ vi.mock('../api/bomGeneration.api', () => ({
   getFileDownloadUrl: vi.fn((id: number, filename: string) => `/api/bom/${id}/${filename}`),
 }));
 
+vi.mock('../contexts/SettingsContext.js', () => ({
+  useSettings: () => ({
+    settings: { themis_url: 'http://themis', laminus_url: 'http://laminus' },
+    health: { themis: 'up', laminus: 'up' },
+    saveSettings: vi.fn(),
+    refreshHealth: vi.fn(),
+  }),
+}));
+
 import * as bomApi from '../api/bomGeneration.api';
 
 const baseProps = {

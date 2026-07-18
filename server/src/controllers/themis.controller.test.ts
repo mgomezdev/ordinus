@@ -35,14 +35,18 @@ vi.mock('../db/connection.js', () => ({
   },
 }));
 
-vi.mock('../db/schema.js', () => ({ layouts: {}, bomGenerations: {}, users: {} }));
+vi.mock('../db/schema.js', () => ({ layouts: {}, bomGenerations: {}, customers: {} }));
+
+vi.mock('../services/settings.service.js', () => ({
+  getSetting: vi.fn().mockResolvedValue(null),
+}));
 
 describe('sendToThemisHandler', () => {
-  it('returns 503 when THEMIS_URL is not configured', async () => {
+  it('returns 503 when Themis URL is not configured', async () => {
     const origUrl = process.env['THEMIS_URL'];
     delete process.env['THEMIS_URL'];
     const res = { status: vi.fn().mockReturnThis(), json: vi.fn() } as unknown as Response;
-    const req = { params: { layoutId: '1' }, user: { userId: 1 } } as unknown as Request;
+    const req = { params: { layoutId: '1' } } as unknown as Request;
     await sendToThemisHandler(req, res, vi.fn() as NextFunction);
     expect(res.status).toHaveBeenCalledWith(503);
     if (origUrl !== undefined) process.env['THEMIS_URL'] = origUrl;

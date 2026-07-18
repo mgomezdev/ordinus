@@ -79,20 +79,6 @@ describe('generateHandler', () => {
     expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'VALIDATION_ERROR' }));
   });
 
-  it('calls next with FORBIDDEN if user does not own layout', async () => {
-    const { db } = await import('../db/connection.js');
-    const mockLimit = vi.fn().mockResolvedValue([{ userId: 99 }]); // different owner
-    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
-    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
-    const mockSelect = vi.fn().mockReturnValue({ from: mockFrom });
-    Object.assign(db, { select: mockSelect });
-
-    const req = makeReq({ params: { layoutId: '5' }, body: { bomItems: [] } });
-    const res = makeRes();
-    await generateHandler(req as Request, res as unknown as Response, next);
-    expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'FORBIDDEN' }));
-  });
-
   it('calls next with NOT_FOUND if layout does not exist', async () => {
     const { db } = await import('../db/connection.js');
     const mockLimit = vi.fn().mockResolvedValue([]); // no rows
