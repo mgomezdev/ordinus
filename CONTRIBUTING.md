@@ -280,6 +280,23 @@ Migrations auto-apply on server startup — no manual step needed in production.
 
 ---
 
+## Running Tests
+
+```bash
+# Unit tests (server — Vitest)
+npm test --workspace=server
+
+# Unit tests (app — Vitest)
+npm run test:run --workspace=app
+
+# E2E tests (Playwright — requires running server)
+cd app && npm run test:e2e
+```
+
+`DB_PATH=:memory:` starts the server with an in-memory SQLite database — library data is auto-seeded on boot. Use this in CI or when you want a clean slate without touching the development database. The Concordia test stack (`docker-compose.test.yml`) passes this to the Ordinus container.
+
+---
+
 ## Environment Variables
 
 Defined and validated in `server/src/config.ts` via Zod:
