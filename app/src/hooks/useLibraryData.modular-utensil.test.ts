@@ -7,6 +7,7 @@ import { createTestWrapper } from '../test/testWrapper';
 
 vi.mock('./useUserStls.js', () => ({
   useUserStlsQuery: () => ({ data: [], isLoading: false }),
+  usePublicUserStlsQuery: () => ({ data: [], isLoading: false }),
 }));
 
 describe('useLibraryData - Modular Utensil Library', () => {
@@ -49,7 +50,6 @@ describe('useLibraryData - Modular Utensil Library', () => {
           {
             id: 'modular-utensil',
             name: 'modular-utensil',
-            path: '/libraries/modular-utensil/index.json',
             itemCount: mockModularUtensilItems.length,
           },
         ];
@@ -122,7 +122,6 @@ describe('useLibraryData - Modular Utensil Library', () => {
           {
             id: 'modular-utensil',
             name: 'modular-utensil',
-            path: '/libraries/modular-utensil/index.json',
             itemCount: 1,
           },
         ];

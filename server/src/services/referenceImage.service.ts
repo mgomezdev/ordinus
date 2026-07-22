@@ -1,10 +1,9 @@
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
 import type { ApiReferenceImage } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
-import { referenceImages, layouts, userStorage } from '../db/schema.js';
+import { referenceImages, layouts } from '../db/schema.js';
 import * as imageService from './image.service.js';
-import { ensureStorageRow } from './storage.helpers.js';
 
 function formatReferenceImage(
   row: typeof referenceImages.$inferSelect,
@@ -40,10 +39,10 @@ export async function getReferenceImagesByLayout(
 
 export async function uploadReferenceImage(
   layoutId: number,
-  userId: number,
+  _userId: number | null,
   file: { buffer: Buffer; originalname: string },
 ): Promise<ApiReferenceImage> {
-  // Verify layout exists and belongs to user
+  // Verify layout exists
   const layoutRows = await db
     .select()
     .from(layouts)
@@ -52,19 +51,6 @@ export async function uploadReferenceImage(
 
   if (layoutRows.length === 0) {
     throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
-  }
-
-  if (layoutRows[0].userId !== userId) {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
-  }
-
-  // Check storage quota
-  const storage = await ensureStorageRow(userId);
-  if (storage.imageBytes + file.buffer.length > storage.maxImageBytes) {
-    throw new AppError(
-      ErrorCodes.QUOTA_EXCEEDED,
-      `Image storage quota exceeded (${storage.maxImageBytes / 1024 / 1024}MB limit)`,
-    );
   }
 
   // Process and save image
@@ -86,21 +72,15 @@ export async function uploadReferenceImage(
     })
     .returning();
 
-  // Update user storage
-  await db
-    .update(userStorage)
-    .set({ imageBytes: sql`${userStorage.imageBytes} + ${result.sizeBytes}` })
-    .where(eq(userStorage.userId, userId));
-
   return formatReferenceImage(rows[0]);
 }
 
 export async function deleteReferenceImage(
   layoutId: number,
   imageId: number,
-  userId: number,
+  _userId?: number | null,
 ): Promise<void> {
-  // Verify layout exists and belongs to user
+  // Verify layout exists
   const layoutRows = await db
     .select()
     .from(layouts)
@@ -109,10 +89,6 @@ export async function deleteReferenceImage(
 
   if (layoutRows.length === 0) {
     throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
-  }
-
-  if (layoutRows[0].userId !== userId) {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
   }
 
   // Find the reference image
@@ -133,19 +109,11 @@ export async function deleteReferenceImage(
 
   const img = imgRows[0];
 
-  // Delete the file and get its size
-  const freedBytes = await imageService.deleteImage(img.filePath);
+  // Delete the file
+  await imageService.deleteImage(img.filePath);
 
   // Delete the DB record
   await db
     .delete(referenceImages)
     .where(eq(referenceImages.id, imageId));
-
-  // Update user storage
-  if (freedBytes > 0) {
-    await db
-      .update(userStorage)
-      .set({ imageBytes: sql`MAX(${userStorage.imageBytes} - ${freedBytes}, 0)` })
-      .where(eq(userStorage.userId, userId));
-  }
 }

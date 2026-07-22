@@ -8,13 +8,21 @@ vi.mock('../api/bomGeneration.api', () => ({
   getFileDownloadUrl: vi.fn((id: number, filename: string) => `/api/bom/${id}/${filename}`),
 }));
 
+vi.mock('../contexts/SettingsContext.js', () => ({
+  useSettings: () => ({
+    settings: { themis_url: 'http://themis', laminus_url: 'http://laminus' },
+    health: { themis: 'up', laminus: 'up' },
+    saveSettings: vi.fn(),
+    refreshHealth: vi.fn(),
+  }),
+}));
+
 import * as bomApi from '../api/bomGeneration.api';
 
 const baseProps = {
   layoutId: 1,
   layoutTitle: 'My Layout',
   bomItems: [],
-  accessToken: 'tok',
 };
 
 describe('BomGenerationPanel', () => {
@@ -67,7 +75,7 @@ describe('BomGenerationPanel', () => {
     render(<BomGenerationPanel {...baseProps} />);
     await waitFor(() => screen.getByRole('button', { name: /generate/i }));
     fireEvent.click(screen.getByRole('button', { name: /generate/i }));
-    await waitFor(() => expect(bomApi.triggerBomGeneration).toHaveBeenCalledWith(1, [], 'tok'));
+    await waitFor(() => expect(bomApi.triggerBomGeneration).toHaveBeenCalledWith(1, []));
   });
 
   it('shows error message when status is error', async () => {

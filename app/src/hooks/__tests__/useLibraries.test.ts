@@ -13,8 +13,8 @@ import { useDataSource } from '../../contexts/DataSourceContext.js';
 import { useLibraries } from '../useLibraries';
 
 const MOCK_LIBRARY_INFOS = [
-  { id: 'gridfinity-bins', name: 'Gridfinity Bins', path: '/libraries/bins', itemCount: 42 },
-  { id: 'labeled', name: 'Labeled', path: '/libraries/labeled', itemCount: 10 },
+  { id: 'gridfinity-bins', name: 'Gridfinity Bins', itemCount: 42 },
+  { id: 'labeled', name: 'Labeled', itemCount: 10 },
 ];
 
 function makeAdapter(overrides: Partial<DataSourceAdapter> = {}): DataSourceAdapter {
@@ -46,8 +46,8 @@ describe('useLibraries', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.availableLibraries).toEqual([
-      { id: 'gridfinity-bins', name: 'Gridfinity Bins', path: '/libraries/bins', isEnabled: true, itemCount: 42 },
-      { id: 'labeled', name: 'Labeled', path: '/libraries/labeled', isEnabled: true, itemCount: 10 },
+      { id: 'gridfinity-bins', name: 'Gridfinity Bins', path: '', isEnabled: true, itemCount: 42 },
+      { id: 'labeled', name: 'Labeled', path: '', isEnabled: true, itemCount: 10 },
     ]);
     expect(result.current.error).toBeNull();
   });
@@ -55,7 +55,7 @@ describe('useLibraries', () => {
   it('sets isEnabled to true for all libraries regardless of source', async () => {
     const adapter = makeAdapter({
       getLibraries: vi.fn().mockResolvedValue([
-        { id: 'lib1', name: 'Library One', path: '/l1', itemCount: 5 },
+        { id: 'lib1', name: 'Library One', itemCount: 5 },
       ]),
     });
     vi.mocked(useDataSource).mockReturnValue(adapter);
@@ -103,7 +103,7 @@ describe('useLibraries', () => {
   it('refreshLibraries invalidates the libraries query', async () => {
     const getLibraries = vi.fn()
       .mockResolvedValueOnce(MOCK_LIBRARY_INFOS)
-      .mockResolvedValueOnce([...MOCK_LIBRARY_INFOS, { id: 'new', name: 'New', path: '/new', itemCount: 1 }]);
+      .mockResolvedValueOnce([...MOCK_LIBRARY_INFOS, { id: 'new', name: 'New', itemCount: 1 }]);
     const adapter = makeAdapter({ getLibraries });
     vi.mocked(useDataSource).mockReturnValue(adapter);
 

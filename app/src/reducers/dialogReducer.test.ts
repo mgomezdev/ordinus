@@ -7,9 +7,7 @@ describe('dialogReducer', () => {
     it('all dialogs are closed', () => {
       expect(initialDialogState.keyboard).toBe(false);
       expect(initialDialogState.save).toBe(false);
-      expect(initialDialogState.load).toBe(false);
       expect(initialDialogState.rebind).toBe(false);
-      expect(initialDialogState.admin).toBe(false);
     });
 
     it('rebindTargetId is null', () => {
@@ -26,9 +24,7 @@ describe('dialogReducer', () => {
 
       expect(state.save).toBe(true);
       expect(state.keyboard).toBe(false);
-      expect(state.load).toBe(false);
       expect(state.rebind).toBe(false);
-      expect(state.admin).toBe(false);
     });
 
     it('opens keyboard dialog', () => {
@@ -39,22 +35,6 @@ describe('dialogReducer', () => {
       expect(state.keyboard).toBe(true);
     });
 
-    it('opens load dialog', () => {
-      const state = dialogReducer(initialDialogState, {
-        type: 'OPEN',
-        dialog: 'load',
-      });
-      expect(state.load).toBe(true);
-    });
-
-    it('opens admin dialog', () => {
-      const state = dialogReducer(initialDialogState, {
-        type: 'OPEN',
-        dialog: 'admin',
-      });
-      expect(state.admin).toBe(true);
-    });
-
     it('closes other dialogs when opening one (exclusive)', () => {
       const withSaveOpen: DialogState = {
         ...initialDialogState,
@@ -63,28 +43,11 @@ describe('dialogReducer', () => {
 
       const state = dialogReducer(withSaveOpen, {
         type: 'OPEN',
-        dialog: 'load',
-      });
-
-      expect(state.load).toBe(true);
-      expect(state.save).toBe(false);
-    });
-
-    it('closes all other dialogs when opening keyboard', () => {
-      const withMultipleOpen: DialogState = {
-        ...initialDialogState,
-        save: true,
-        admin: true,
-      };
-
-      const state = dialogReducer(withMultipleOpen, {
-        type: 'OPEN',
         dialog: 'keyboard',
       });
 
       expect(state.keyboard).toBe(true);
       expect(state.save).toBe(false);
-      expect(state.admin).toBe(false);
     });
   });
 
@@ -107,7 +70,7 @@ describe('dialogReducer', () => {
       const open: DialogState = {
         ...initialDialogState,
         save: true,
-        load: true,
+        keyboard: true,
       };
 
       const state = dialogReducer(open, {
@@ -116,7 +79,7 @@ describe('dialogReducer', () => {
       });
 
       expect(state.save).toBe(false);
-      expect(state.load).toBe(true);
+      expect(state.keyboard).toBe(true);
     });
   });
 

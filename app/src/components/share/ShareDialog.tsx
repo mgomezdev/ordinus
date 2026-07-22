@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { ApiSharedProject } from '@gridfinity/shared';
-import { useAuth } from '../../contexts/AuthContext';
 import { createShareLink, getSharesByLayout, deleteShareLink } from '../../api/shared.api';
 
 interface ShareDialogProps {
@@ -15,7 +14,6 @@ export function ShareDialog({ isOpen, onClose, layoutId }: ShareDialogProps) {
 }
 
 function ShareDialogContent({ onClose, layoutId }: Omit<ShareDialogProps, 'isOpen'>) {
-  const { getAccessToken } = useAuth();
   const dialogRef = useRef<HTMLDivElement>(null);
   const [shares, setShares] = useState<ApiSharedProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,18 +23,16 @@ function ShareDialogContent({ onClose, layoutId }: Omit<ShareDialogProps, 'isOpe
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
   const loadShares = useCallback(async () => {
-    const token = getAccessToken();
-    if (!token) return;
     setIsLoading(true);
     try {
-      const result = await getSharesByLayout(token, layoutId);
+      const result = await getSharesByLayout(layoutId);
       setShares(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load shares');
     } finally {
       setIsLoading(false);
     }
-  }, [getAccessToken, layoutId]);
+  }, [layoutId]);
 
   useEffect(() => {
     loadShares();
@@ -47,13 +43,11 @@ function ShareDialogContent({ onClose, layoutId }: Omit<ShareDialogProps, 'isOpe
   }, []);
 
   const handleCreateShare = async () => {
-    const token = getAccessToken();
-    if (!token) return;
     setIsCreating(true);
     setError(null);
     try {
       const days = expiresInDays ? parseInt(expiresInDays, 10) : undefined;
-      await createShareLink(token, layoutId, days);
+      await createShareLink(layoutId, days);
       setExpiresInDays('');
       await loadShares();
     } catch (err) {
@@ -64,10 +58,8 @@ function ShareDialogContent({ onClose, layoutId }: Omit<ShareDialogProps, 'isOpe
   };
 
   const handleDelete = async (shareId: number) => {
-    const token = getAccessToken();
-    if (!token) return;
     try {
-      await deleteShareLink(token, shareId);
+      await deleteShareLink(shareId);
       setShares(prev => prev.filter(s => s.id !== shareId));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete share');

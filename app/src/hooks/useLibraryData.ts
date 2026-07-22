@@ -71,10 +71,10 @@ export function useLibraryData(
     [userStls]
   );
 
-  // Combine results from all queries
-  const items = useMemo(() => {
-    return [...queries.flatMap((q) => q.data ?? []), ...userStlItems];
-  }, [queries, userStlItems]);
+  const items = useMemo(
+    () => [...queries.flatMap((q) => q.data ?? []), ...userStlItems],
+    [queries, userStlItems]
+  );
 
   const isLoading = queries.some((q) => q.isLoading);
 

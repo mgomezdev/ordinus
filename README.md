@@ -1,4 +1,4 @@
-# Gridfinity Customizer
+# Ordinus
 
 A web-based visual layout tool for planning [Gridfinity](https://www.printables.com/model/274917-gridfinity-specification) modular storage systems. Drag bins onto a grid that matches your physical drawer, customize each bin, save layouts, and export a bill of materials.
 
@@ -39,8 +39,8 @@ Gridfinity is an open-source modular storage system for 3D printing. Every bin s
 - **Lock** — freeze a reference image to prevent accidental movement
 - **Multiple images** — layer as many references as needed
 
-### Save & Load (requires account)
-- **Save as New** — name a layout and save it to your account
+### Save & Load
+- **Save as New** — name a layout and save it
 - **Direct Save** — one-tap update when a layout is already saved; amber "unsaved changes" indicator appears in the breadcrumb whenever edits are pending
 - **Saved Configs** — browse all your saved layouts, load or clone any of them
 - **Clone** — duplicate a layout to iterate on it without losing the original
@@ -93,7 +93,7 @@ If you want to design around existing tools or check clearances, upload a photo 
 
 ### 6. Save your layout
 
-If you're logged in, the toolbar shows **Save** and **Load** buttons:
+The toolbar shows **Save** and **Load** buttons:
 
 | Situation | Action |
 |-----------|--------|
@@ -110,7 +110,7 @@ Click **Export PDF** to download a print-ready summary with:
 
 ### 8. Load a saved layout
 
-**Saved Configs** (top nav, requires account) shows all your saved layouts as cards. Click **Edit** to open a layout in the workspace, or **Duplicate** to fork it.
+**Saved Configs** (top nav) shows all your saved layouts as cards. Click **Edit** to open a layout in the workspace, or **Duplicate** to fork it.
 
 ---
 
@@ -143,7 +143,7 @@ Click **Export PDF** to download a print-ready summary with:
 git clone https://github.com/mgomezdev/GridfinityCustomizer.git
 cd GridfinityCustomizer
 npm install
-npm run build --workspace=packages/shared   # required before first server start
+npm run build --workspace=shared   # required before first server start
 ```
 
 Start the backend and frontend in separate terminals:
@@ -156,9 +156,7 @@ npm run server:dev
 npm run dev
 ```
 
-Open `http://localhost:5173`. The backend seeds the database and creates dev accounts on first startup:
-- `admin@gridfinity.local` / `admin`
-- `test@gridfinity.local` / `testpassword`
+Open `http://localhost:5173`.
 
 ### Common commands
 
@@ -178,7 +176,7 @@ See [CLAUDE.md](CLAUDE.md) for full coding standards, architecture notes, and gi
 
 ## Docker Deployment
 
-The production stack runs as two containers behind Nginx (frontend on port **32888**, backend proxied internally on 3001).
+The production stack runs as two containers behind Nginx. The host port is `ORDINUS_PORT` (default `3001`).
 
 ```bash
 # Build and start
@@ -190,25 +188,24 @@ docker compose -f infra/docker-compose.yml build --no-cache
 docker compose -f infra/docker-compose.yml up -d
 ```
 
-Visit `http://localhost:32888`.
+Visit `http://localhost:3001` (or whatever `ORDINUS_PORT` is set to).
 
 ---
 
 ## Project Structure
 
 ```
-packages/
-  app/          React 19 + TypeScript frontend (Vite)
-    src/
-      components/   UI components
-      contexts/     React context providers (WorkspaceContext, AuthContext, …)
-      hooks/        Custom hooks (grid items, layout loader, zoom, …)
-      pages/        Route-level pages (Workspace, SavedConfigs, OrderSummary)
-      types/        Shared TypeScript types
-      utils/        Pure utilities (conversions, PDF export, …)
-    e2e/          Playwright E2E tests
-  server/         Express + SQLite backend (drizzle-orm, libsql)
-  shared/         Types and schemas shared between app and server
+app/            React 19 + TypeScript frontend (Vite)
+  src/
+    components/   UI components
+    contexts/     React context providers (WorkspaceContext, …)
+    hooks/        Custom hooks (grid items, layout loader, zoom, …)
+    pages/        Route-level pages (Workspace, SavedConfigs, OrderSummary)
+    types/        Shared TypeScript types
+    utils/        Pure utilities (conversions, PDF export, …)
+  e2e/          Playwright E2E tests
+server/         Express + SQLite backend (drizzle-orm, libsql)
+shared/         Types and schemas shared between app and server
 ```
 
 ---

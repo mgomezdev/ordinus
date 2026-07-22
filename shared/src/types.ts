@@ -223,9 +223,18 @@ export type UserRole = 'user' | 'admin';
 // Layout API types
 // ============================================================
 
+export interface ApiCustomer {
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ApiLayout {
   id: number;
   userId: number;
+  customerId?: number | null;
+  customerName?: string | null;
   name: string;
   description: string | null;
   gridX: number;
@@ -355,17 +364,6 @@ export interface ApiUser {
   createdAt: string;
 }
 
-export interface AuthResponse {
-  user: ApiUser;
-  accessToken: string;
-  refreshToken: string;
-}
-
-export interface TokenResponse {
-  accessToken: string;
-  refreshToken: string;
-}
-
 // ============================================================
 // Sharing API types
 // ============================================================
@@ -408,6 +406,7 @@ export interface ApiBomGeneration {
   threeMfPath: string | null;
   generatedAt: string | null;
   errorMessage: string | null;
+  themisProjectId: number | null;
 }
 
 // ============================================================
@@ -419,6 +418,8 @@ export interface ApiUserStl {
   name: string;
   gridX: number | null;
   gridY: number | null;
+  gridZ?: number | null;
+  visibility?: 'private' | 'public';
   imageUrl: string | null;
   perspImageUrls: string[];
   status: 'pending' | 'processing' | 'ready' | 'error';

@@ -120,7 +120,7 @@ describe('formatBomGeneration', () => {
   it('maps layoutId and status correctly', () => {
     const row = {
       id: 1, layoutId: 42, status: 'ready', fileManifest: null,
-      threeMfPath: null, generatedAt: null, errorMessage: null,
+      threeMfPath: null, generatedAt: null, errorMessage: null, themisProjectId: null,
     };
     const result = formatBomGeneration(row);
     expect(result.layoutId).toBe(42);

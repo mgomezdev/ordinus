@@ -1,21 +1,33 @@
-import { Outlet, NavLink, useSearchParams } from 'react-router-dom';
-import { useCallback } from 'react';
+import { useState } from 'react';
+import { Outlet, NavLink } from 'react-router-dom';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
+import { useSettings } from './contexts/SettingsContext.js';
+import { CustomerSelector } from './components/CustomerSelector';
 import { SaveLayoutDialog } from './components/layouts/SaveLayoutDialog';
 import { RebindImageDialog } from './components/RebindImageDialog';
-import { AdminSubmissionsDialog } from './components/admin/AdminSubmissionsDialog';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
-import { UserMenu } from './components/auth/UserMenu';
+import { SettingsModal } from './components/SettingsModal';
 import { calculateOrderTotal } from './utils/exportOrderSummaryPdf';
+import type { ServiceStatus } from './api/settings.api.js';
 import './App.css';
 import './AppShell.css';
 
+function ServiceBubble({ name, status }: { name: string; status: ServiceStatus }) {
+  const dot = status === 'up' ? '#22c55e' : status === 'down' ? '#ef4444' : 'var(--text-tertiary, #6b7280)';
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-tertiary, #9ca3af)', userSelect: 'none' }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: dot, flexShrink: 0 }} />
+      {name}
+    </span>
+  );
+}
+
 // Inner shell reads from context (must be inside WorkspaceProvider)
 function AppShellInner() {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { health } = useSettings();
   const {
-    isAuthenticated,
-    isAdmin,
     layoutMeta,
     dialogs,
     dialogDispatch,
@@ -30,17 +42,7 @@ function AppShellInner() {
     drawerDepth,
     spacerConfig,
     handleSaveComplete,
-    handleLoadLayout,
   } = useWorkspace();
-
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  // authOpen is derived directly from the URL — no state sync needed
-  const authOpen = searchParams.get('authRequired') === '1';
-  const handleAuthClosed = useCallback(
-    () => setSearchParams({}, { replace: true }),
-    [setSearchParams],
-  );
 
   const totalPlaced = bomItems.reduce((s, i) => s + i.quantity, 0);
   const capacity = gridResult.gridX * gridResult.gridY;
@@ -71,14 +73,12 @@ function AppShellInner() {
           >
             Workspace
           </NavLink>
-          {isAuthenticated && (
-            <NavLink
-              to="/configs"
-              className={({ isActive }) => `nav-tab${isActive ? ' nav-tab-active' : ''}`}
-            >
-              Saved Configs
-            </NavLink>
-          )}
+          <NavLink
+            to="/configs"
+            className={({ isActive }) => `nav-tab${isActive ? ' nav-tab-active' : ''}`}
+          >
+            Saved Configs
+          </NavLink>
           <NavLink
             to="/order"
             className={({ isActive }) => `nav-tab${isActive ? ' nav-tab-active' : ''}`}
@@ -96,7 +96,7 @@ function AppShellInner() {
               <span className="nav-layout-name">{layoutMeta.name}</span>
             </div>
           )}
-          <UserMenu openAuth={authOpen} onAuthClosed={handleAuthClosed} />
+          <CustomerSelector />
           <button
             className="keyboard-help-button"
             onClick={() => dialogDispatch({ type: 'OPEN', dialog: 'keyboard' })}
@@ -105,6 +105,15 @@ function AppShellInner() {
             type="button"
           >
             ?
+          </button>
+          <button
+            className="keyboard-help-button"
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Service settings"
+            title="Service settings"
+            type="button"
+          >
+            ⚙
           </button>
         </div>
       </nav>
@@ -115,6 +124,11 @@ function AppShellInner() {
 
       {/* Status bar */}
       <div className="app-status-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginRight: 8 }}>
+          <ServiceBubble name="Themis" status={health.themis} />
+          <ServiceBubble name="Laminus" status={health.laminus} />
+        </div>
+        <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.12)', flexShrink: 0 }} />
         <div className="status-capacity">
           <span className="status-dot" />
           <span className="status-cap-label">
@@ -127,22 +141,13 @@ function AppShellInner() {
         <div className="status-spacer" />
         <div className="status-count">
           <strong>{totalPlaced} item{totalPlaced !== 1 ? 's' : ''}</strong>
-          {' \u00b7 '}{gridResult.gridX}&times;{gridResult.gridY} grid
+          {' · '}{gridResult.gridX}&times;{gridResult.gridY} grid
         </div>
         <div className="status-spacer" />
         <div className="status-cost">
           <span className="status-cost-label">Est.</span>
           <strong>{costLabel}</strong>
         </div>
-        {isAdmin && (
-          <button
-            type="button"
-            className="admin-badge"
-            onClick={() => dialogDispatch({ type: 'OPEN', dialog: 'admin' })}
-          >
-            Admin
-          </button>
-        )}
       </div>
 
       {/* Global dialogs */}
@@ -173,16 +178,9 @@ function AppShellInner() {
         onSelect={handleRebindSelect}
       />
 
-      {isAdmin && (
-        <AdminSubmissionsDialog
-          isOpen={dialogs.admin}
-          onClose={() => dialogDispatch({ type: 'CLOSE', dialog: 'admin' })}
-          onLoad={handleLoadLayout}
-          hasItems={placedItems.length > 0}
-        />
-      )}
-
       <ConfirmDialog {...confirmDialogProps} />
+
+      {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
     </div>
   );
 }

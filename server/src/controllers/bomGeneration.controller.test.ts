@@ -19,7 +19,6 @@ function makeReq(overrides: Partial<Request> = {}): Partial<Request> {
   return {
     params: {},
     body: {},
-    user: { userId: 1, role: 'user' },
     ...overrides,
   };
 }
@@ -59,6 +58,7 @@ describe('generateHandler', () => {
       threeMfPath: null,
       generatedAt: null,
       errorMessage: null,
+      themisProjectId: null,
     };
     vi.mocked(bomGenerationService.triggerGeneration).mockResolvedValueOnce(mockGeneration);
     await setupDbMock(1);
@@ -77,27 +77,6 @@ describe('generateHandler', () => {
     const res = makeRes();
     await generateHandler(req as Request, res as unknown as Response, next);
     expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'VALIDATION_ERROR' }));
-  });
-
-  it('calls next with error if user is not authenticated', async () => {
-    const req = makeReq({ params: { layoutId: '5' }, user: undefined });
-    const res = makeRes();
-    await generateHandler(req as Request, res as unknown as Response, next);
-    expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'AUTH_REQUIRED' }));
-  });
-
-  it('calls next with FORBIDDEN if user does not own layout', async () => {
-    const { db } = await import('../db/connection.js');
-    const mockLimit = vi.fn().mockResolvedValue([{ userId: 99 }]); // different owner
-    const mockWhere = vi.fn().mockReturnValue({ limit: mockLimit });
-    const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
-    const mockSelect = vi.fn().mockReturnValue({ from: mockFrom });
-    Object.assign(db, { select: mockSelect });
-
-    const req = makeReq({ params: { layoutId: '5' }, body: { bomItems: [] } });
-    const res = makeRes();
-    await generateHandler(req as Request, res as unknown as Response, next);
-    expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'FORBIDDEN' }));
   });
 
   it('calls next with NOT_FOUND if layout does not exist', async () => {
@@ -125,6 +104,7 @@ describe('getGenerationHandler', () => {
       threeMfPath: null,
       generatedAt: null,
       errorMessage: null,
+      themisProjectId: null,
     };
     vi.mocked(bomGenerationService.getGeneration).mockResolvedValueOnce(mockGeneration);
     await setupDbMock(1);

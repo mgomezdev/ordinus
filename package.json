@@ -2,7 +2,7 @@
   "name": "gridfinity-customizer",
   "private": true,
   "version": "3.1.0",
-  "description": "Web-based visual design tool for creating custom Gridfinity modular storage layouts with drag-and-drop, reference images, and bill of materials generation",
+  "description": "Ordinus — web-based visual design tool for creating custom Gridfinity modular storage layouts with drag-and-drop, reference images, and bill of materials generation",
   "repository": {
     "type": "git",
     "url": "https://github.com/mgomezdev/GridfinityCustomizer"

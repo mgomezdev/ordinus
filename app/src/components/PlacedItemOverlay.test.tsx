@@ -15,23 +15,6 @@ function render(ui: React.ReactElement, options?: RenderOptions): RenderResult {
   });
 }
 
-// Mock AuthContext — use vi.hoisted so mockUseAuth is available when the factory runs
-const { mockUseAuth } = vi.hoisted(() => {
-  const mockUseAuth = vi.fn(() => ({
-    isAuthenticated: true,
-    user: null as null,
-    isLoading: false,
-    login: vi.fn(),
-    register: vi.fn(),
-    logout: vi.fn(),
-    getAccessToken: () => null as string | null,
-  }));
-  return { mockUseAuth };
-});
-vi.mock('../contexts/AuthContext', () => ({
-  useAuth: () => mockUseAuth(),
-}));
-
 vi.mock('../hooks/useFavorites', () => ({
   useFavorites: () => ({
     isFavorite: () => false,
@@ -124,16 +107,6 @@ describe('PlacedItemOverlay', () => {
 
   beforeEach(() => {
     capturedOnTap = undefined;
-    mockUseAuth.mockReset();
-    mockUseAuth.mockImplementation(() => ({
-      isAuthenticated: true,
-      user: null,
-      isLoading: false,
-      login: vi.fn(),
-      register: vi.fn(),
-      logout: vi.fn(),
-      getAccessToken: () => null as string | null,
-    }));
   });
 
   describe('Percentage-based Positioning', () => {
@@ -2697,38 +2670,6 @@ describe('PlacedItemOverlay', () => {
       expect(screen.queryByRole('status', { name: /generation failed/i })).not.toBeInTheDocument();
     });
 
-    it('does not open customization popover when unauthenticated user clicks gear', async () => {
-      // Override useAuth for this test to return isAuthenticated: false
-      mockUseAuth.mockImplementation(() => ({
-        isAuthenticated: false,
-        user: null,
-        isLoading: false,
-        login: vi.fn(),
-        register: vi.fn(),
-        logout: vi.fn(),
-        getAccessToken: () => null,
-      }));
-
-      render(
-        <PlacedItemOverlay
-          item={{ instanceId: 'test-item-1', itemId: 'testlib:bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 as const, isValid: true }}
-          gridX={4}
-          gridY={4}
-          isSelected={true}
-          onSelect={mockOnSelect}
-          getItemById={mockGetItemById}
-          onCustomizationChange={vi.fn()}
-          getLibraryMeta={async () => ({ customizableFields: [{ field: 'lipStyle', label: 'Lip Style', options: ['normal', 'reduced', 'minimum', 'none'] }], parameters: {} })}
-        />
-      );
-
-      const customizeBtn = await waitFor(() => screen.getByRole('button', { name: 'Customize' }));
-      fireEvent.click(customizeBtn);
-
-      // The popover should NOT open when unauthenticated — auth gate redirects instead
-      const popover = document.body.querySelector('.placed-item-customize-popover');
-      expect(popover).not.toBeInTheDocument();
-    });
   });
 
 });

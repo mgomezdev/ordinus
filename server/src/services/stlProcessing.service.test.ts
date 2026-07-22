@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EventEmitter } from 'events';
 
 vi.mock('child_process');
-vi.mock('../db/client.js', () => ({ client: {} }));
+vi.mock('../db/connection.js', () => ({ client: {} }));
 vi.mock('../logger.js', () => ({ logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn(), debug: vi.fn() } }));
 vi.mock('./userStls.service.js', () => ({
   updateUploadStatus: vi.fn().mockResolvedValue(undefined),

@@ -11,6 +11,7 @@ export function buildPayload(
   spacerConfig: GridSpacerConfig,
   placedItems: PlacedItemWithValidity[],
   refImagePlacements: RefImagePlacement[],
+  customerId?: number | null,
 ) {
   const validPlacements = refImagePlacements
     .filter(p => p.refImageId !== null)
@@ -46,5 +47,6 @@ export function buildPayload(
       ...(item.customization ? { customization: item.customization } : {}),
     })),
     ...(validPlacements.length > 0 ? { refImagePlacements: validPlacements } : {}),
+    ...(customerId != null ? { customerId } : {}),
   };
 }

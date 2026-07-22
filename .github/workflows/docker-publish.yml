@@ -6,8 +6,33 @@ on:
       - main
 
 jobs:
+  test-server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build --workspace=shared
+      - run: npm test --workspace=server
+
+  test-app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build --workspace=shared
+      - run: npm run test:run --workspace=app
+
   build-and-push:
     runs-on: ubuntu-latest
+    needs: [test-server, test-app]
     permissions:
       contents: read
 

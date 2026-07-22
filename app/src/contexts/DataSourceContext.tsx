@@ -1,7 +1,6 @@
 import { createContext, useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { DataSourceAdapter } from '../api/adapters/types';
-import { StaticAdapter } from '../api/adapters/static.adapter';
 import { ApiAdapter } from '../api/adapters/api.adapter';
 
 const DataSourceContext = createContext<DataSourceAdapter | null>(null);
@@ -21,9 +20,8 @@ interface DataSourceProviderProps {
 export function DataSourceProvider({ children, adapter }: DataSourceProviderProps) {
   const defaultAdapter = useMemo(() => {
     if (adapter) return adapter;
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
-    if (apiBaseUrl) return new ApiAdapter(apiBaseUrl);
-    return new StaticAdapter();
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL as string;
+    return new ApiAdapter(apiBaseUrl);
   }, [adapter]);
 
   return (

@@ -2,6 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { SaveLayoutDialog } from './SaveLayoutDialog';
 
+vi.mock('../../contexts/CustomerContext', () => ({
+  useCustomers: () => ({
+    customers: [],
+    isLoading: false,
+    selectedCustomer: null,
+    setSelectedCustomerId: vi.fn(),
+    createCustomer: vi.fn(),
+    updateCustomer: vi.fn(),
+    deleteCustomer: vi.fn(),
+  }),
+}));
+
 const mockSaveAsync = vi.fn();
 vi.mock('../../hooks/useLayouts', () => ({
   useSaveLayoutMutation: () => ({

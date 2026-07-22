@@ -3,7 +3,6 @@ import type { LibraryItem, LibraryMeta } from '../../types/gridfinity';
 export interface LibraryInfo {
   id: string;
   name: string;
-  path: string;
   description?: string;
   itemCount?: number;
 }

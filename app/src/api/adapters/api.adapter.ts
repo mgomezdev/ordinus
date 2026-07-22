@@ -16,7 +16,6 @@ export class ApiAdapter implements DataSourceAdapter {
     return json.data.map((lib: Record<string, unknown>) => ({
       id: lib.id as string,
       name: lib.name as string,
-      path: '',
       description: lib.description as string | undefined,
       itemCount: lib.itemCount as number | undefined,
     }));

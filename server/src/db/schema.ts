@@ -48,7 +48,7 @@ export const itemCategories = sqliteTable('item_categories', {
   primaryKey({ columns: [table.libraryId, table.itemId, table.categoryId] }),
 ]);
 
-// Auth tables
+// Auth tables — kept for backward compat, no longer actively used
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   email: text('email').notNull().unique(),
@@ -74,10 +74,35 @@ export const refreshTokens = sqliteTable('refresh_tokens', {
   index('idx_refresh_tokens_user').on(table.userId),
 ]);
 
+// Customer profiles
+export const customers = sqliteTable('customers', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  createdAt: text('created_at').notNull().default(''),
+  updatedAt: text('updated_at').notNull().default(''),
+});
+
+// Many-to-many: custom STL uploads <-> customers
+export const customerParts = sqliteTable('customer_parts', {
+  customerId: integer('customer_id').notNull().references(() => customers.id, { onDelete: 'cascade' }),
+  partId: text('part_id').notNull().references(() => userStlUploads.id, { onDelete: 'cascade' }),
+}, (table) => [
+  primaryKey({ columns: [table.customerId, table.partId] }),
+]);
+
+// Many-to-many: ref images <-> customers
+export const customerRefImages = sqliteTable('customer_ref_images', {
+  customerId: integer('customer_id').notNull().references(() => customers.id, { onDelete: 'cascade' }),
+  refImageId: integer('ref_image_id').notNull().references(() => refImages.id, { onDelete: 'cascade' }),
+}, (table) => [
+  primaryKey({ columns: [table.customerId, table.refImageId] }),
+]);
+
 // Layout tables
 export const layouts = sqliteTable('layouts', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: integer('user_id'),  // nullable — no longer enforced
+  customerId: integer('customer_id').references(() => customers.id, { onDelete: 'set null' }),
   name: text('name').notNull(),
   description: text('description'),
   gridX: integer('grid_x').notNull(),
@@ -92,6 +117,7 @@ export const layouts = sqliteTable('layouts', {
   thumbnailPath: text('thumbnail_path'),
 }, (table) => [
   index('idx_layouts_user').on(table.userId),
+  index('idx_layouts_customer').on(table.customerId),
 ]);
 
 export const placedItems = sqliteTable('placed_items', {
@@ -121,7 +147,7 @@ export const userStorage = sqliteTable('user_storage', {
 
 export const userStlUploads = sqliteTable('user_stl_uploads', {
   id: text('id').primaryKey(),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: integer('user_id'),  // nullable — parts are now global
   name: text('name').notNull(),
   originalFilename: text('original_filename').notNull(),
   filePath: text('file_path').notNull(),
@@ -129,31 +155,22 @@ export const userStlUploads = sqliteTable('user_stl_uploads', {
   perspImageUrls: text('persp_image_urls'), // JSON array string
   gridX: integer('grid_x'),
   gridY: integer('grid_y'),
+  gridZ: integer('grid_z'),
+  visibility: text('visibility').notNull().default('private'),
   status: text('status').notNull().default('pending'), // 'pending'|'processing'|'ready'|'error'
   errorMessage: text('error_message'),
   createdAt: text('created_at').notNull().default(''),
   updatedAt: text('updated_at').notNull().default(''),
 });
 
-export const userStlUploadsRelations = relations(userStlUploads, ({ one }) => ({
-  user: one(users, {
-    fields: [userStlUploads.userId],
-    references: [users.id],
-  }),
-}));
-
-// Reference image library table
+// Reference image library table — global, no user ownership
 export const refImages = sqliteTable('ref_images', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  ownerId: integer('owner_id').references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   filePath: text('file_path').notNull(),
   fileSize: integer('file_size').notNull().default(0),
-  uploadedBy: integer('uploaded_by').notNull().references(() => users.id),
   createdAt: text('created_at').notNull().default(''),
-}, (table) => [
-  index('idx_ref_images_owner').on(table.ownerId),
-]);
+});
 
 // Reference image placements table (per-layout)
 export const referenceImages = sqliteTable('reference_images', {
@@ -175,12 +192,12 @@ export const referenceImages = sqliteTable('reference_images', {
   index('idx_reference_images_layout').on(table.layoutId),
 ]);
 
-// Sharing tables
+// Sharing tables — open sharing, no user FK
 export const sharedProjects = sqliteTable('shared_projects', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   layoutId: integer('layout_id').notNull().references(() => layouts.id, { onDelete: 'cascade' }),
   slug: text('slug').notNull().unique(),
-  createdBy: integer('created_by').notNull().references(() => users.id),
+  createdBy: integer('created_by'),  // nullable — no user ownership
   expiresAt: text('expires_at'),
   viewCount: integer('view_count').notNull().default(0),
   createdAt: text('created_at').notNull().default(''),
@@ -198,11 +215,13 @@ export const bomGenerations = sqliteTable('bom_generations', {
   threeMfPath: text('three_mf_path'),
   generatedAt: text('generated_at'),
   errorMessage: text('error_message'),
+  themisProjectId: integer('themis_project_id'),
 });
 
+// Favorites — global, no user ownership
 export const favorites = sqliteTable('favorites', {
   id: text('id').primaryKey(),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: integer('user_id'),  // nullable — kept for compat but not used
   name: text('name').notNull(),
   libraryId: text('library_id').notNull(),
   libraryItemId: text('library_item_id').notNull(),
@@ -218,25 +237,9 @@ export const favorites = sqliteTable('favorites', {
   perspectiveImageUrl270: text('perspective_image_url270'),
   customization: text('customization').notNull(),
   createdAt: integer('created_at').notNull(),
-}, (table) => [
-  index('idx_favorites_user').on(table.userId),
-]);
+});
 
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
-  refreshTokens: many(refreshTokens),
-  layouts: many(layouts),
-  stlUploads: many(userStlUploads),
-  favorites: many(favorites),
-}));
-
-export const refreshTokensRelations = relations(refreshTokens, ({ one }) => ({
-  user: one(users, {
-    fields: [refreshTokens.userId],
-    references: [users.id],
-  }),
-}));
-
 export const librariesRelations = relations(libraries, ({ many }) => ({
   items: many(libraryItems),
 }));
@@ -264,24 +267,45 @@ export const itemCategoriesRelations = relations(itemCategories, ({ one }) => ({
   }),
 }));
 
+export const customersRelations = relations(customers, ({ many }) => ({
+  layouts: many(layouts),
+  customerParts: many(customerParts),
+  customerRefImages: many(customerRefImages),
+}));
+
+export const customerPartsRelations = relations(customerParts, ({ one }) => ({
+  customer: one(customers, {
+    fields: [customerParts.customerId],
+    references: [customers.id],
+  }),
+  part: one(userStlUploads, {
+    fields: [customerParts.partId],
+    references: [userStlUploads.id],
+  }),
+}));
+
+export const customerRefImagesRelations = relations(customerRefImages, ({ one }) => ({
+  customer: one(customers, {
+    fields: [customerRefImages.customerId],
+    references: [customers.id],
+  }),
+  refImage: one(refImages, {
+    fields: [customerRefImages.refImageId],
+    references: [refImages.id],
+  }),
+}));
+
 export const layoutsRelations = relations(layouts, ({ one, many }) => ({
-  user: one(users, {
-    fields: [layouts.userId],
-    references: [users.id],
+  customer: one(customers, {
+    fields: [layouts.customerId],
+    references: [customers.id],
   }),
   placedItems: many(placedItems),
   referenceImages: many(referenceImages),
 }));
 
-export const refImagesRelations = relations(refImages, ({ one }) => ({
-  owner: one(users, {
-    fields: [refImages.ownerId],
-    references: [users.id],
-  }),
-  uploader: one(users, {
-    fields: [refImages.uploadedBy],
-    references: [users.id],
-  }),
+export const refImagesRelations = relations(refImages, ({ many }) => ({
+  customerRefImages: many(customerRefImages),
 }));
 
 export const referenceImagesRelations = relations(referenceImages, ({ one }) => ({
@@ -314,10 +338,6 @@ export const sharedProjectsRelations = relations(sharedProjects, ({ one }) => ({
     fields: [sharedProjects.layoutId],
     references: [layouts.id],
   }),
-  creator: one(users, {
-    fields: [sharedProjects.createdBy],
-    references: [users.id],
-  }),
 }));
 
 export const bomGenerationsRelations = relations(bomGenerations, ({ one }) => ({
@@ -327,9 +347,9 @@ export const bomGenerationsRelations = relations(bomGenerations, ({ one }) => ({
   }),
 }));
 
-export const favoritesRelations = relations(favorites, ({ one }) => ({
-  user: one(users, {
-    fields: [favorites.userId],
-    references: [users.id],
-  }),
+export const favoritesRelations = relations(favorites, ({ }) => ({
+}));
+
+export const userStlUploadsRelations = relations(userStlUploads, ({ many }) => ({
+  customerParts: many(customerParts),
 }));

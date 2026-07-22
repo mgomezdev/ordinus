@@ -1,101 +1,85 @@
-import { eq, or, isNull, desc, sql } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
 import type { ApiRefImage } from '@gridfinity/shared';
-import { db } from '../db/connection.js';
-import { refImages, userStorage } from '../db/schema.js';
+import { db, client } from '../db/connection.js';
+import { refImages } from '../db/schema.js';
 import * as imageService from './image.service.js';
-import { ensureStorageRow } from './storage.helpers.js';
 
 function formatRefImage(row: typeof refImages.$inferSelect): ApiRefImage {
   return {
     id: row.id,
-    ownerId: row.ownerId,
+    ownerId: null,
     name: row.name,
-    isGlobal: row.ownerId === null,
+    isGlobal: true,
     imageUrl: row.filePath,
     fileSize: row.fileSize,
     createdAt: row.createdAt,
   };
 }
 
-export async function listRefImages(userId: number): Promise<ApiRefImage[]> {
+/**
+ * List ref images with optional customer context filter.
+ * Images with NO customer associations → visible everywhere
+ * Images with ONE OR MORE customer associations → only visible in those customers' contexts
+ */
+export async function listRefImages(customerId?: number): Promise<ApiRefImage[]> {
+  if (customerId !== undefined && !isNaN(customerId)) {
+    const result = await client.execute({
+      sql: `SELECT id, name, file_path, file_size, created_at
+            FROM ref_images ri
+            WHERE NOT EXISTS (SELECT 1 FROM customer_ref_images cri WHERE cri.ref_image_id = ri.id)
+               OR EXISTS (SELECT 1 FROM customer_ref_images cri WHERE cri.ref_image_id = ri.id AND cri.customer_id = ?)
+            ORDER BY ri.created_at DESC`,
+      args: [customerId],
+    });
+    return result.rows.map(row => ({
+      id: Number(row.id),
+      ownerId: null,
+      name: String(row.name),
+      isGlobal: true,
+      imageUrl: String(row.file_path),
+      fileSize: Number(row.file_size),
+      createdAt: String(row.created_at),
+    }));
+  }
+
   const rows = await db
     .select()
     .from(refImages)
-    .where(or(eq(refImages.ownerId, userId), isNull(refImages.ownerId)))
     .orderBy(desc(refImages.createdAt));
 
   return rows.map(formatRefImage);
 }
 
 export async function uploadRefImage(
-  userId: number,
   file: { buffer: Buffer; originalname: string },
 ): Promise<ApiRefImage> {
-  // Check storage quota
-  const storage = await ensureStorageRow(userId);
-  if (storage.imageBytes + file.buffer.length > storage.maxImageBytes) {
-    throw new AppError(
-      ErrorCodes.QUOTA_EXCEEDED,
-      `Image storage quota exceeded (${storage.maxImageBytes / 1024 / 1024}MB limit)`,
-    );
-  }
-
-  // Process and save image
   const result = await imageService.processAndSaveImage(file.buffer, 'ref-lib');
 
   const now = new Date().toISOString();
 
-  // Insert ref_images row
   const rows = await db
     .insert(refImages)
     .values({
-      ownerId: userId,
       name: file.originalname,
       filePath: result.filePath,
       fileSize: result.sizeBytes,
-      uploadedBy: userId,
       createdAt: now,
     })
     .returning();
-
-  // Update user storage
-  await db
-    .update(userStorage)
-    .set({ imageBytes: sql`${userStorage.imageBytes} + ${result.sizeBytes}` })
-    .where(eq(userStorage.userId, userId));
 
   return formatRefImage(rows[0]);
 }
 
+// Kept for compatibility with the schema migration — no longer uploads global images separately
 export async function uploadGlobalRefImage(
-  uploadedBy: number,
   file: { buffer: Buffer; originalname: string },
 ): Promise<ApiRefImage> {
-  // No quota check for global images
-  const result = await imageService.processAndSaveImage(file.buffer, 'ref-lib');
-
-  const now = new Date().toISOString();
-
-  const rows = await db
-    .insert(refImages)
-    .values({
-      ownerId: null,
-      name: file.originalname,
-      filePath: result.filePath,
-      fileSize: result.sizeBytes,
-      uploadedBy,
-      createdAt: now,
-    })
-    .returning();
-
-  return formatRefImage(rows[0]);
+  return uploadRefImage(file);
 }
 
 export async function renameRefImage(
   imageId: number,
-  userId: number,
-  userRole: string,
   newName: string,
 ): Promise<ApiRefImage> {
   const rows = await db
@@ -108,16 +92,6 @@ export async function renameRefImage(
     throw new AppError(ErrorCodes.NOT_FOUND, 'Reference image not found');
   }
 
-  const img = rows[0];
-
-  // Check permissions: own image or admin
-  if (img.ownerId !== null && img.ownerId !== userId && userRole !== 'admin') {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
-  }
-  if (img.ownerId === null && userRole !== 'admin') {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
-  }
-
   const updated = await db
     .update(refImages)
     .set({ name: newName })
@@ -127,11 +101,7 @@ export async function renameRefImage(
   return formatRefImage(updated[0]);
 }
 
-export async function deleteRefImage(
-  imageId: number,
-  userId: number,
-  userRole: string,
-): Promise<void> {
+export async function deleteRefImage(imageId: number): Promise<void> {
   const rows = await db
     .select()
     .from(refImages)
@@ -142,27 +112,9 @@ export async function deleteRefImage(
     throw new AppError(ErrorCodes.NOT_FOUND, 'Reference image not found');
   }
 
-  const img = rows[0];
-
-  // Check permissions
-  if (img.ownerId !== null && img.ownerId !== userId && userRole !== 'admin') {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
-  }
-  if (img.ownerId === null && userRole !== 'admin') {
-    throw new AppError(ErrorCodes.FORBIDDEN, 'Access denied');
-  }
-
   // Delete file from disk
-  await imageService.deleteImage(img.filePath);
+  await imageService.deleteImage(rows[0].filePath);
 
   // Delete DB row (ON DELETE SET NULL cascades to reference_images.ref_image_id)
   await db.delete(refImages).where(eq(refImages.id, imageId));
-
-  // Deduct from user storage if it was a user-owned image
-  if (img.ownerId !== null) {
-    await db
-      .update(userStorage)
-      .set({ imageBytes: sql`MAX(${userStorage.imageBytes} - ${img.fileSize}, 0)` })
-      .where(eq(userStorage.userId, img.ownerId));
-  }
 }

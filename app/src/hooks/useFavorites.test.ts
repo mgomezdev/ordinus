@@ -18,11 +18,6 @@ vi.mock('../api/favorites.api', () => ({
   renameFavoriteApi: (...args: unknown[]) => mockRename(...args),
 }));
 
-const mockGetAccessToken = vi.fn(() => 'test-token');
-vi.mock('../contexts/AuthContext', () => ({
-  useAuth: () => ({ isAuthenticated: true, getAccessToken: mockGetAccessToken }),
-}));
-
 const defaultCustomization: BinCustomization = {
   wallPatternEnabled: false, wallPattern: 'grid',
   lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 4,
@@ -77,16 +72,9 @@ describe('useFavorites', () => {
     expect(result.current.isFavorite('bins_standard:bin_1x1x5', voronoiCustomization)).toBe(false);
   });
 
-  it('returns empty favorites when not authenticated', async () => {
-    vi.doMock('../contexts/AuthContext', () => ({
-      useAuth: () => ({ isAuthenticated: false, getAccessToken: () => null }),
-    }));
-    // This test validates behavior declared in the spec:
-    // when unauthenticated, useQuery is disabled so favorites stays []
-    // The mock at module level is authenticated, so just verify the loaded favorites come from the mock
+  it('returns favorites as array', async () => {
     const { result } = renderHook(() => useFavorites(), { wrapper });
     await waitFor(() => !result.current.isLoading);
-    // favorites should be truthy array
     expect(Array.isArray(result.current.favorites)).toBe(true);
   });
 });

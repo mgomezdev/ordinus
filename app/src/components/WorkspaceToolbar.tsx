@@ -12,7 +12,7 @@ interface WorkspaceToolbarProps {
 export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolbarProps) {
   const navigate = useNavigate();
   const {
-    isAuthenticated, layoutMeta,
+    layoutMeta,
     placedItems, refImagePlacements, gridResult, drawerWidth, drawerDepth,
     spacerConfig, handleSaveComplete,
     handleClearAll, dialogDispatch,
@@ -52,12 +52,10 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
 
   return (
     <div className="reference-image-toolbar">
-      {isAuthenticated && (
-        <button className="layout-toolbar-btn layout-load-btn" onClick={() => navigate('/configs')} type="button">Load</button>
-      )}
+      <button className="layout-toolbar-btn layout-load-btn" onClick={() => navigate('/configs')} type="button">Load</button>
 
       {/* Unsaved layout */}
-      {isAuthenticated && !layoutMeta.id && (
+      {!layoutMeta.id && (
         <button
           className="layout-toolbar-btn layout-save-btn"
           onClick={() => dialogDispatch({ type: 'OPEN', dialog: 'save' })}
@@ -69,7 +67,7 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
       )}
 
       {/* Saved layout */}
-      {isAuthenticated && !!layoutMeta.id && (
+      {!!layoutMeta.id && (
         <>
           <button
             className="layout-toolbar-btn"
@@ -80,11 +78,11 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
           </button>
           <button
             className="layout-toolbar-btn layout-save-btn"
-            onClick={handleDirectSave}
+            onClick={() => void handleDirectSave()}
             type="button"
             disabled={updateLayoutMutation.isPending || (placedItems.length === 0 && refImagePlacements.length === 0)}
           >
-            {updateLayoutMutation.isPending ? 'Saving\u2026' : 'Save Changes'}
+            {updateLayoutMutation.isPending ? 'Saving…' : 'Save Changes'}
           </button>
         </>
       )}
@@ -123,7 +121,7 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
       )}
 
       {(placedItems.length > 0 || refImagePlacements.length > 0) && (
-        <button className="clear-all-button" onClick={handleClearAll}>
+        <button className="clear-all-button" onClick={() => void handleClearAll()}>
           Clear All ({placedItems.length + refImagePlacements.length})
         </button>
       )}

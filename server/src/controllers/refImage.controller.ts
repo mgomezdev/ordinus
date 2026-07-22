@@ -14,11 +14,10 @@ export async function listRefImages(
   next: NextFunction,
 ): Promise<void> {
   try {
-    if (!req.user) {
-      throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    }
+    const customerIdStr = typeof req.query.customerId === 'string' ? req.query.customerId : undefined;
+    const customerId = customerIdStr ? parseInt(customerIdStr, 10) : undefined;
 
-    const images = await refImageService.listRefImages(req.user.userId);
+    const images = await refImageService.listRefImages(customerId);
 
     res.json({ data: images });
   } catch (err) {
@@ -32,44 +31,12 @@ export async function uploadRefImage(
   next: NextFunction,
 ): Promise<void> {
   try {
-    if (!req.user) {
-      throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    }
-
     const file = req.file;
     if (!file) {
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'No image file provided');
     }
 
     const image = await refImageService.uploadRefImage(
-      req.user.userId,
-      { buffer: file.buffer, originalname: file.originalname },
-    );
-
-    const body: ApiResponse<ApiRefImage> = { data: image };
-    res.status(201).json(body);
-  } catch (err) {
-    next(err);
-  }
-}
-
-export async function uploadGlobalRefImage(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    if (!req.user) {
-      throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    }
-
-    const file = req.file;
-    if (!file) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'No image file provided');
-    }
-
-    const image = await refImageService.uploadGlobalRefImage(
-      req.user.userId,
       { buffer: file.buffer, originalname: file.originalname },
     );
 
@@ -86,10 +53,6 @@ export async function renameRefImage(
   next: NextFunction,
 ): Promise<void> {
   try {
-    if (!req.user) {
-      throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    }
-
     const imageId = parseInt(req.params.id as string, 10);
     if (isNaN(imageId)) {
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid image ID');
@@ -100,12 +63,7 @@ export async function renameRefImage(
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Validation failed', parsed.error.flatten());
     }
 
-    const image = await refImageService.renameRefImage(
-      imageId,
-      req.user.userId,
-      req.user.role,
-      parsed.data.name,
-    );
+    const image = await refImageService.renameRefImage(imageId, parsed.data.name);
 
     const body: ApiResponse<ApiRefImage> = { data: image };
     res.json(body);
@@ -120,20 +78,12 @@ export async function deleteRefImage(
   next: NextFunction,
 ): Promise<void> {
   try {
-    if (!req.user) {
-      throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    }
-
     const imageId = parseInt(req.params.id as string, 10);
     if (isNaN(imageId)) {
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid image ID');
     }
 
-    await refImageService.deleteRefImage(
-      imageId,
-      req.user.userId,
-      req.user.role,
-    );
+    await refImageService.deleteRefImage(imageId);
 
     res.status(204).send();
   } catch (err) {

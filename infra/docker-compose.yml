@@ -4,13 +4,11 @@ services:
       context: ..
       dockerfile: infra/Dockerfile
     ports:
-      - "32888:80"
+      - "${ORDINUS_PORT:-3001}:80"
     environment:
-      - JWT_SECRET=${JWT_SECRET}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-      - CORS_ORIGIN=http://localhost:32888
-      - ADMIN_INITIAL_PASSWORD=admin
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3001}
       - LOG_LEVEL=info
+      - THEMIS_URL=${THEMIS_URL:-}
     volumes:
       - gridfinity-data:/config
       - gridfinity-data-files:/data

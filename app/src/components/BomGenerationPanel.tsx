@@ -1,19 +1,25 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ApiBomGeneration, BOMItem } from '@gridfinity/shared';
-import { triggerBomGeneration, getBomGeneration, getFileDownloadUrl } from '../api/bomGeneration.api';
+import { triggerBomGeneration, getBomGeneration, getFileDownloadUrl, sendToThemis } from '../api/bomGeneration.api';
+import { useSettings } from '../contexts/SettingsContext.js';
 
 interface BomGenerationPanelProps {
   layoutId: number | null;
   layoutTitle: string;
   bomItems: BOMItem[];
-  accessToken: string | null;
 }
 
-export function BomGenerationPanel({ layoutId, layoutTitle, bomItems, accessToken }: BomGenerationPanelProps) {
+export function BomGenerationPanel({ layoutId, layoutTitle, bomItems }: BomGenerationPanelProps) {
   const [generation, setGeneration] = useState<ApiBomGeneration | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [themisState, setThemisState] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [themisProjectUrl, setThemisProjectUrl] = useState<string | null>(null);
+  const [themisNeedsProfiles, setThemisNeedsProfiles] = useState(false);
+
+  const { settings, health } = useSettings();
+  const themisUrl = settings.themis_url;
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) clearInterval(pollRef.current);
@@ -21,15 +27,15 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems, accessToke
   }, []);
 
   const fetchGeneration = useCallback(async () => {
-    if (!layoutId || !accessToken) return;
+    if (!layoutId) return;
     try {
-      const gen = await getBomGeneration(layoutId, accessToken);
+      const gen = await getBomGeneration(layoutId);
       setGeneration(gen);
       if (gen?.status !== 'generating') stopPolling();
     } catch {
       stopPolling();
     }
-  }, [layoutId, accessToken, stopPolling]);
+  }, [layoutId, stopPolling]);
 
   useEffect(() => {
     void fetchGeneration();
@@ -45,12 +51,38 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems, accessToke
     return stopPolling;
   }, [generation?.status, fetchGeneration, stopPolling]);
 
-  const handleGenerate = async () => {
-    if (!layoutId || !accessToken) return;
-    setLoading(true);
+  useEffect(() => {
+    if (generation?.themisProjectId && themisUrl) {
+      setThemisProjectUrl(`${themisUrl}/projects/${generation.themisProjectId}`);
+      setThemisState('sent');
+    }
+  }, [generation?.themisProjectId, themisUrl]);
+
+  const handleSendToThemis = async () => {
+    if (!layoutId) return;
+    setThemisState('sending');
     setError(null);
     try {
-      const gen = await triggerBomGeneration(layoutId, bomItems, accessToken);
+      const { projectUrl, needsFilamentProfiles } = await sendToThemis(layoutId);
+      setThemisProjectUrl(projectUrl);
+      setThemisNeedsProfiles(needsFilamentProfiles ?? false);
+      setThemisState('sent');
+      window.open(projectUrl, '_blank', 'noopener');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Send to Themis failed');
+      setThemisState('idle');
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!layoutId) return;
+    setLoading(true);
+    setError(null);
+    setThemisState('idle');
+    setThemisProjectUrl(null);
+    setThemisNeedsProfiles(false);
+    try {
+      const gen = await triggerBomGeneration(layoutId, bomItems);
       setGeneration(gen);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed');
@@ -72,11 +104,9 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems, accessToke
     : null;
 
   const handleDownload = async () => {
-    if (!downloadUrl || !accessToken) return;
+    if (!downloadUrl) return;
     try {
-      const response = await fetch(downloadUrl, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const response = await fetch(downloadUrl);
       if (!response.ok) {
         const data = await response.json().catch(() => ({})) as { error?: { message?: string } };
         setError(data?.error?.message ?? 'Download failed');
@@ -106,7 +136,8 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems, accessToke
           type="button"
           className="bom-gen-btn bom-gen-btn-primary"
           onClick={handleGenerate}
-          disabled={isGenerating || !layoutId}
+          disabled={isGenerating || !layoutId || health.laminus !== 'up'}
+          title={health.laminus !== 'up' ? 'Laminus is not reachable — configure it in ⚙ Settings' : undefined}
         >
           {isGenerating ? 'Generating\u2026' : hasGeneration ? 'Regenerate' : 'Generate'}
         </button>
@@ -118,7 +149,34 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems, accessToke
         >
           Download 3MF
         </button>
+        {themisUrl && (
+          themisState === 'sent' && themisProjectUrl ? (
+            <a
+              className="bom-gen-btn"
+              href={themisProjectUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open in Themis →
+            </a>
+          ) : (
+            <button
+              type="button"
+              className="bom-gen-btn"
+              disabled={!isReady || themisState === 'sending' || health.themis !== 'up'}
+              title={health.themis !== 'up' ? 'Themis is not reachable — configure it in ⚙ Settings' : undefined}
+              onClick={() => { void handleSendToThemis(); }}
+            >
+              {themisState === 'sending' ? 'Sending…' : 'Send to Themis'}
+            </button>
+          )
+        )}
       </div>
+      {themisNeedsProfiles && (
+        <div className="bom-gen-status">
+          Project sent to Themis. Assign filament profiles to parts before generating prints.
+        </div>
+      )}
       {isReady && generation?.generatedAt && (
         <div className="bom-gen-status">
           Generated {new Date(generation.generatedAt).toLocaleString()}

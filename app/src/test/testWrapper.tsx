@@ -81,7 +81,6 @@ export function createLibraryMockAdapter(
   libraryInfos?: Array<{
     id: string;
     name: string;
-    path: string;
     itemCount?: number;
   }>
 ): DataSourceAdapter {
@@ -91,7 +90,6 @@ export function createLibraryMockAdapter(
       return Object.keys(libraryItems).map((id) => ({
         id,
         name: id,
-        path: `/libraries/${id}/index.json`,
         itemCount: libraryItems[id].length,
       }));
     },

@@ -111,17 +111,6 @@ describe('checkQuota', () => {
     const exceeded = await checkQuota(client, 1);
     expect(exceeded).toBe(false);
   });
-
-  it('returns true when at quota limit from user_storage', async () => {
-    // Set quota to 2
-    await client.execute(
-      `INSERT INTO user_storage (user_id, max_user_stls) VALUES (1, 2)`,
-    );
-    await createUpload(client, { userId: 1, name: 'A', originalFilename: 'a.stl', filePath: '/a' });
-    await createUpload(client, { userId: 1, name: 'B', originalFilename: 'b.stl', filePath: '/b' });
-    const exceeded = await checkQuota(client, 1);
-    expect(exceeded).toBe(true);
-  });
 });
 
 describe('updateUploadStatus', () => {

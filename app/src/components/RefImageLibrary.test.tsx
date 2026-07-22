@@ -4,7 +4,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { ApiRefImage } from '@gridfinity/shared';
 import { RefImageLibrary } from './RefImageLibrary';
 import { useRefImagesQuery, useUploadRefImageMutation, useUploadGlobalRefImageMutation, useRenameRefImageMutation, useDeleteRefImageMutation } from '../hooks/useRefImages';
-import { useAuth } from '../contexts/AuthContext';
 import { RefImageCard } from './RefImageCard';
 
 vi.mock('../hooks/useRefImages', () => ({
@@ -13,10 +12,6 @@ vi.mock('../hooks/useRefImages', () => ({
   useUploadGlobalRefImageMutation: vi.fn(),
   useRenameRefImageMutation: vi.fn(),
   useDeleteRefImageMutation: vi.fn(),
-}));
-
-vi.mock('../contexts/AuthContext', () => ({
-  useAuth: vi.fn(),
 }));
 
 vi.mock('./RefImageCard', () => ({
@@ -74,22 +69,6 @@ describe('RefImageLibrary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    vi.mocked(useAuth).mockReturnValue({
-      user: {
-        id: 1,
-        email: 'test@test.com',
-        username: 'testuser',
-        role: 'user',
-        createdAt: ''
-      },
-      isAuthenticated: true,
-      isLoading: false,
-      login: vi.fn(),
-      register: vi.fn(),
-      logout: vi.fn(),
-      getAccessToken: vi.fn().mockReturnValue('token'),
-    });
-
     vi.mocked(useRefImagesQuery).mockReturnValue({
       data: [],
       isLoading: false,
@@ -122,29 +101,7 @@ describe('RefImageLibrary', () => {
       expect(screen.getByRole('button', { name: 'Upload Image' })).toBeInTheDocument();
     });
 
-    it('does NOT render "Upload as Shared" button for regular user', () => {
-      render(<RefImageLibrary />);
-
-      expect(screen.queryByRole('button', { name: 'Upload as Shared' })).not.toBeInTheDocument();
-    });
-
-    it('renders "Upload as Shared" button for admin user', () => {
-      vi.mocked(useAuth).mockReturnValue({
-        user: {
-          id: 1,
-          email: 'admin@test.com',
-          username: 'admin',
-          role: 'admin',
-          createdAt: ''
-        },
-        isAuthenticated: true,
-        isLoading: false,
-        login: vi.fn(),
-        register: vi.fn(),
-        logout: vi.fn(),
-        getAccessToken: vi.fn().mockReturnValue('token'),
-      });
-
+    it('renders "Upload as Shared" button', () => {
       render(<RefImageLibrary />);
 
       expect(screen.getByRole('button', { name: 'Upload as Shared' })).toBeInTheDocument();
@@ -188,13 +145,13 @@ describe('RefImageLibrary', () => {
 
       render(<RefImageLibrary />);
 
-      expect(screen.queryByText(/My Images/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Images \(/)).not.toBeInTheDocument();
       expect(screen.queryByText(/Shared Images/)).not.toBeInTheDocument();
     });
   });
 
   describe('Image sections', () => {
-    it('shows "My Images" section with personal image count', () => {
+    it('shows "Images" section with personal image count', () => {
       vi.mocked(useRefImagesQuery).mockReturnValue({
         data: [personalImage],
         isLoading: false,
@@ -204,7 +161,7 @@ describe('RefImageLibrary', () => {
 
       render(<RefImageLibrary />);
 
-      expect(screen.getByText('My Images (1)')).toBeInTheDocument();
+      expect(screen.getByText('Images (1)')).toBeInTheDocument();
     });
 
     it('shows "Shared Images" section when global images exist', () => {
@@ -243,12 +200,12 @@ describe('RefImageLibrary', () => {
 
       render(<RefImageLibrary />);
 
-      expect(screen.getByText('No personal images yet. Upload one above.')).toBeInTheDocument();
+      expect(screen.getByText('No images yet. Upload one above.')).toBeInTheDocument();
     });
   });
 
   describe('Collapsible sections', () => {
-    it('toggles "My Images" collapsed state on click', () => {
+    it('toggles "Images" collapsed state on click', () => {
       vi.mocked(useRefImagesQuery).mockReturnValue({
         data: [personalImage],
         isLoading: false,
@@ -258,7 +215,7 @@ describe('RefImageLibrary', () => {
 
       render(<RefImageLibrary />);
 
-      const myImagesTitle = screen.getByText('My Images (1)');
+      const myImagesTitle = screen.getByText('Images (1)');
       const grid = myImagesTitle.nextElementSibling;
 
       expect(grid).toHaveClass('expanded');
@@ -320,21 +277,6 @@ describe('RefImageLibrary', () => {
       };
 
       vi.mocked(useUploadRefImageMutation).mockReturnValue(pendingMutation as any);
-      vi.mocked(useAuth).mockReturnValue({
-        user: {
-          id: 1,
-          email: 'admin@test.com',
-          username: 'admin',
-          role: 'admin',
-          createdAt: ''
-        },
-        isAuthenticated: true,
-        isLoading: false,
-        login: vi.fn(),
-        register: vi.fn(),
-        logout: vi.fn(),
-        getAccessToken: vi.fn().mockReturnValue('token'),
-      });
 
       render(<RefImageLibrary />);
 
@@ -373,22 +315,6 @@ describe('RefImageLibrary', () => {
 
     it('uploads global image when Upload as Shared button is clicked', async () => {
       mockMutateAsync.mockResolvedValue(undefined);
-
-      vi.mocked(useAuth).mockReturnValue({
-        user: {
-          id: 1,
-          email: 'admin@test.com',
-          username: 'admin',
-          role: 'admin',
-          createdAt: ''
-        },
-        isAuthenticated: true,
-        isLoading: false,
-        login: vi.fn(),
-        register: vi.fn(),
-        logout: vi.fn(),
-        getAccessToken: vi.fn().mockReturnValue('token'),
-      });
 
       render(<RefImageLibrary />);
 
@@ -462,7 +388,7 @@ describe('RefImageLibrary', () => {
   });
 
   describe('RefImageCard integration', () => {
-    it('passes onDelete callback for personal images', () => {
+    it('passes onDelete and onRename callbacks for personal images', () => {
       vi.mocked(useRefImagesQuery).mockReturnValue({
         data: [personalImage],
         isLoading: false,
@@ -481,23 +407,7 @@ describe('RefImageLibrary', () => {
       expect(calls[0][0].onRename).toBeTypeOf('function');
     });
 
-    it('passes onDelete callback for global images when user is admin', () => {
-      vi.mocked(useAuth).mockReturnValue({
-        user: {
-          id: 1,
-          email: 'admin@test.com',
-          username: 'admin',
-          role: 'admin',
-          createdAt: ''
-        },
-        isAuthenticated: true,
-        isLoading: false,
-        login: vi.fn(),
-        register: vi.fn(),
-        logout: vi.fn(),
-        getAccessToken: vi.fn().mockReturnValue('token'),
-      });
-
+    it('passes onDelete and onRename callbacks for global images', () => {
       vi.mocked(useRefImagesQuery).mockReturnValue({
         data: [globalImage],
         isLoading: false,
@@ -515,44 +425,10 @@ describe('RefImageLibrary', () => {
       expect(calls[0][0].onDelete).toBeTypeOf('function');
       expect(calls[0][0].onRename).toBeTypeOf('function');
     });
-
-    it('does not pass onDelete callback for global images when user is not admin', () => {
-      vi.mocked(useRefImagesQuery).mockReturnValue({
-        data: [globalImage],
-        isLoading: false,
-        isError: false,
-        error: null,
-      } as any);
-
-      render(<RefImageLibrary />);
-
-      const calls = vi.mocked(RefImageCard).mock.calls;
-      expect(calls).toHaveLength(1);
-      expect(calls[0][0]).toMatchObject({
-        image: globalImage,
-        onDelete: undefined,
-        onRename: undefined,
-      });
-    });
-
-    it('passes onRename callback only for admin users', () => {
-      vi.mocked(useRefImagesQuery).mockReturnValue({
-        data: [globalImage],
-        isLoading: false,
-        isError: false,
-        error: null,
-      } as any);
-
-      render(<RefImageLibrary />);
-
-      const calls = vi.mocked(RefImageCard).mock.calls;
-      expect(calls).toHaveLength(1);
-      expect(calls[0][0].onRename).toBeUndefined();
-    });
   });
 
   describe('Keyboard accessibility', () => {
-    it('toggles "My Images" on Enter key', () => {
+    it('toggles "Images" on Enter key', () => {
       vi.mocked(useRefImagesQuery).mockReturnValue({
         data: [personalImage],
         isLoading: false,
@@ -562,7 +438,7 @@ describe('RefImageLibrary', () => {
 
       render(<RefImageLibrary />);
 
-      const myImagesTitle = screen.getByText('My Images (1)');
+      const myImagesTitle = screen.getByText('Images (1)');
       const grid = myImagesTitle.nextElementSibling;
 
       expect(grid).toHaveClass('expanded');
@@ -572,7 +448,7 @@ describe('RefImageLibrary', () => {
       expect(grid).toHaveClass('collapsed');
     });
 
-    it('toggles "My Images" on Space key', () => {
+    it('toggles "Images" on Space key', () => {
       vi.mocked(useRefImagesQuery).mockReturnValue({
         data: [personalImage],
         isLoading: false,
@@ -582,7 +458,7 @@ describe('RefImageLibrary', () => {
 
       render(<RefImageLibrary />);
 
-      const myImagesTitle = screen.getByText('My Images (1)');
+      const myImagesTitle = screen.getByText('Images (1)');
       const grid = myImagesTitle.nextElementSibling;
 
       expect(grid).toHaveClass('expanded');
@@ -622,7 +498,7 @@ describe('RefImageLibrary', () => {
 
       render(<RefImageLibrary />);
 
-      const myImagesTitle = screen.getByText('My Images (1)');
+      const myImagesTitle = screen.getByText('Images (1)');
       const grid = myImagesTitle.nextElementSibling;
 
       expect(grid).toHaveClass('expanded');

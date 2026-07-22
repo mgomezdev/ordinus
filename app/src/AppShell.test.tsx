@@ -1,13 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import React from 'react';
 
 // Mock WorkspaceContext
 vi.mock('./contexts/WorkspaceContext', () => ({
   WorkspaceProvider: ({ children }: { children: React.ReactNode }) => children,
   useWorkspace: () => ({
-    isAuthenticated: false,
-    isAdmin: false,
     layoutMeta: { id: null, name: '', status: null, owner: null, description: '' },
     isReadOnly: false,
     dialogs: { keyboard: false, save: false, rebind: false, admin: false, rebindTargetId: null },
@@ -24,10 +23,6 @@ vi.mock('./contexts/WorkspaceContext', () => ({
     spacerConfig: { horizontal: 'none', vertical: 'none' },
     handleSaveComplete: vi.fn(),
     handleLoadLayout: vi.fn(),
-    submittedCountQuery: { data: { submitted: 0 } },
-    // Additional fields from WorkspaceContextValue
-    user: null,
-    getAccessToken: vi.fn(),
     width: 168,
     setWidth: vi.fn(),
     depth: 168,
@@ -93,13 +88,23 @@ vi.mock('./contexts/WorkspaceContext', () => ({
   }),
 }));
 
+vi.mock('./contexts/CustomerContext', () => ({
+  CustomerProvider: ({ children }: { children: React.ReactNode }) => children,
+  useCustomers: () => ({
+    customers: [],
+    isLoading: false,
+    selectedCustomer: null,
+    setSelectedCustomerId: vi.fn(),
+    createCustomer: vi.fn(),
+    updateCustomer: vi.fn(),
+    deleteCustomer: vi.fn(),
+  }),
+}));
+
 vi.mock('./components/layouts/SaveLayoutDialog', () => ({ SaveLayoutDialog: () => null }));
 vi.mock('./components/RebindImageDialog', () => ({ RebindImageDialog: () => null }));
-vi.mock('./components/admin/AdminSubmissionsDialog', () => ({ AdminSubmissionsDialog: () => null }));
-vi.mock('./components/admin/SubmissionsBadge', () => ({ SubmissionsBadge: () => null }));
 vi.mock('./components/ConfirmDialog', () => ({ ConfirmDialog: () => null }));
 vi.mock('./components/KeyboardShortcutsHelp', () => ({ KeyboardShortcutsHelp: () => null }));
-vi.mock('./components/auth/UserMenu', () => ({ UserMenu: () => null }));
 
 import { AppShell } from './AppShell';
 

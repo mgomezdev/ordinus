@@ -9,10 +9,6 @@ export async function uploadReferenceImage(
   next: NextFunction,
 ): Promise<void> {
   try {
-    if (!req.user) {
-      throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    }
-
     const layoutId = parseInt(req.params.id as string, 10);
     if (isNaN(layoutId)) {
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
@@ -25,7 +21,7 @@ export async function uploadReferenceImage(
 
     const image = await referenceImageService.uploadReferenceImage(
       layoutId,
-      req.user.userId,
+      null,
       { buffer: file.buffer, originalname: file.originalname },
     );
 
@@ -42,10 +38,6 @@ export async function deleteReferenceImage(
   next: NextFunction,
 ): Promise<void> {
   try {
-    if (!req.user) {
-      throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Authentication required');
-    }
-
     const layoutId = parseInt(req.params.id as string, 10);
     if (isNaN(layoutId)) {
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
@@ -56,11 +48,7 @@ export async function deleteReferenceImage(
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid image ID');
     }
 
-    await referenceImageService.deleteReferenceImage(
-      layoutId,
-      imageId,
-      req.user.userId,
-    );
+    await referenceImageService.deleteReferenceImage(layoutId, imageId, null);
 
     res.status(204).send();
   } catch (err) {
