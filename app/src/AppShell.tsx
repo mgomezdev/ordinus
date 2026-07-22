@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
-import { useCustomers } from './contexts/CustomerContext';
 import { useSettings } from './contexts/SettingsContext.js';
+import { CustomerSelector } from './components/CustomerSelector';
 import { SaveLayoutDialog } from './components/layouts/SaveLayoutDialog';
 import { RebindImageDialog } from './components/RebindImageDialog';
 import { ConfirmDialog } from './components/ConfirmDialog';
@@ -20,29 +20,6 @@ function ServiceBubble({ name, status }: { name: string; status: ServiceStatus }
       <span style={{ width: 7, height: 7, borderRadius: '50%', background: dot, flexShrink: 0 }} />
       {name}
     </span>
-  );
-}
-
-function CustomerSelector() {
-  const { customers, selectedCustomer, setSelectedCustomerId } = useCustomers();
-
-  return (
-    <div className="customer-selector">
-      <label htmlFor="customer-select" className="customer-selector-label">
-        Customer:
-      </label>
-      <select
-        id="customer-select"
-        className="customer-selector-select"
-        value={selectedCustomer?.id ?? ''}
-        onChange={(e) => setSelectedCustomerId(e.target.value ? Number(e.target.value) : null)}
-      >
-        <option value="">— None —</option>
-        {customers.map((c) => (
-          <option key={c.id} value={c.id}>{c.name}</option>
-        ))}
-      </select>
-    </div>
   );
 }
 
