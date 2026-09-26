@@ -1,0 +1,141 @@
+name: ci
+
+# Ordinus already ran its own tests on push to main -- this adds the
+# pull-request trigger, folds publishing into the same workflow so it depends
+# on those tests, and adds the one cross-service check that matters here.
+#
+# Ordinus never talks to Laminus, so this only ever runs the `push` profile
+# (mock-laminus + mock-spoolman + themis + ordinus) against Concordia's e2e
+# suite -- proving this change's image still satisfies the four Themis
+# operations Ordinus calls (see themis/scripts/ordinus_contract.py).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test-server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run build --workspace=shared
+      - run: npm test --workspace=server
+
+  test-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run build --workspace=shared
+      - run: npm run test:run --workspace=app
+
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      # Built but not pushed: the e2e job loads it from this artifact, so a
+      # pull request is tested against its own image without publishing.
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/Dockerfile
+          push: false
+          load: true
+          tags: ordinus:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Export image
+        run: docker save ordinus:ci -o /tmp/ordinus-ci.tar
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ordinus-ci-image
+          path: /tmp/ordinus-ci.tar
+          retention-days: 1
+
+  # The Ordinus -> Themis edge: 4 containers. Laminus is not started; Ordinus
+  # never talks to it.
+  e2e-push:
+    needs: [image]
+    permissions:
+      contents: read
+      packages: read
+    uses: mgomezdev/concordia/.github/workflows/e2e.yml@main
+    with:
+      profile: push
+      image_artifact: ordinus-ci-image
+      ordinus_image: ordinus:ci
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  publish:
+    needs: [test-server, test-app, image, e2e-push]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Dual-push during the migration so anything still pulling from Docker
+      # Hub keeps working unchanged while CI moves to GHCR.
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/mgomezdev/gridfinity-customizer
+            ninjabuffalo/gridfinity-customizer
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || startsWith(github.ref, 'refs/tags/v') }}
+            type=ref,event=branch
+            type=sha,prefix=sha-
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
