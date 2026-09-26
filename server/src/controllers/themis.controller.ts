@@ -19,6 +19,7 @@ export async function sendToThemisHandler(req: Request, res: Response, next: Nex
       res.status(503).json({ error: { message: 'Themis URL is not configured in settings' } });
       return;
     }
+    const themisApiKey = await getSetting('themis_api_key') || undefined;
 
     const layoutId = parseInt(req.params['layoutId'] as string, 10);
     if (isNaN(layoutId)) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
@@ -51,7 +52,7 @@ export async function sendToThemisHandler(req: Request, res: Response, next: Nex
     let projectId = gen.themisProjectId;
     if (projectId !== null) {
       try {
-        const project = await getThemisProject(themisUrl, projectId);
+        const project = await getThemisProject(themisUrl, projectId, themisApiKey);
         existingItemFileIds = new Set(project.items.map((i) => i.file_id));
         existingLinkUrls = new Set(project.links.map((l) => l.url));
       } catch (err) {
@@ -70,7 +71,7 @@ export async function sendToThemisHandler(req: Request, res: Response, next: Nex
       if (seen.has(entry.filename)) continue;
       seen.add(entry.filename);
       const bytes = await fs.readFile(path.join(outDir, entry.filename));
-      const fileId = await uploadStlToThemis(themisUrl, bytes, entry.filename, folder);
+      const fileId = await uploadStlToThemis(themisUrl, bytes, entry.filename, folder, themisApiKey);
       fileIdMap.set(entry.filename, fileId);
       logger.info({ filename: entry.filename, fileId }, 'Uploaded STL to Themis');
     }
@@ -90,6 +91,7 @@ export async function sendToThemisHandler(req: Request, res: Response, next: Nex
         undefined,  // no username — auth removed
         layoutId,
         customerName,
+        themisApiKey,
       );
       logger.info({ projectId, layoutId }, 'Created Themis project');
 
@@ -104,13 +106,13 @@ export async function sendToThemisHandler(req: Request, res: Response, next: Nex
       const fileId = fileIdMap.get(entry.filename);
       if (fileId === undefined) continue;
       if (existingItemFileIds.has(fileId)) continue;
-      await addThemisProjectItem(themisUrl, projectId, fileId, entry.qty);
+      await addThemisProjectItem(themisUrl, projectId, fileId, entry.qty, themisApiKey);
     }
 
     const publicUrl = config.PUBLIC_URL;
     const backlinkUrl = `${publicUrl}/layouts/${layoutId}`;
     if (!existingLinkUrls.has(backlinkUrl)) {
-      await addThemisProjectLink(themisUrl, projectId, backlinkUrl, 'Ordinus layout');
+      await addThemisProjectLink(themisUrl, projectId, backlinkUrl, 'Ordinus layout', themisApiKey);
       logger.info({ projectId, layoutId }, 'Added Ordinus backlink to Themis project');
     }
 

@@ -70,7 +70,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.selectQueue = [];
   mocks.callOrder = [];
-  mocks.getSetting.mockResolvedValue(THEMIS);
+  mocks.getSetting.mockImplementation((key: string) => Promise.resolve(key === 'themis_url' ? THEMIS : ''));
   mocks.uploadStlToThemis.mockResolvedValue(10);
   mocks.createThemisProject.mockImplementation(async () => {
     mocks.callOrder.push('createThemisProject');
@@ -145,7 +145,7 @@ describe('sendToThemisHandler', () => {
     expect(mocks.createThemisProject).not.toHaveBeenCalled();
     expect(mocks.updateSet).not.toHaveBeenCalled();
     expect(mocks.addThemisProjectItem).toHaveBeenCalledTimes(1);
-    expect(mocks.addThemisProjectItem).toHaveBeenCalledWith(THEMIS, 5, 20, 1);
+    expect(mocks.addThemisProjectItem).toHaveBeenCalledWith(THEMIS, 5, 20, 1, undefined);
     expect(mocks.addThemisProjectLink).not.toHaveBeenCalled();
     expect(res.json).toHaveBeenCalledWith({ data: { projectUrl: `${THEMIS}/projects/5`, needsFilamentProfiles: true } });
   });

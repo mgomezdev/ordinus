@@ -10,14 +10,14 @@ interface SettingsContextValue {
 }
 
 const SettingsContext = createContext<SettingsContextValue>({
-  settings: { themis_url: '', laminus_url: '' },
+  settings: { themis_url: '', themis_api_key: '', laminus_url: '' },
   health: { themis: 'unconfigured', laminus: 'unconfigured' },
   saveSettings: async () => {},
   refreshHealth: () => {},
 });
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-  const [settings, setSettings] = useState<ServiceSettings>({ themis_url: '', laminus_url: '' });
+  const [settings, setSettings] = useState<ServiceSettings>({ themis_url: '', themis_api_key: '', laminus_url: '' });
   const [health, setHealth] = useState<ServicesHealth>({ themis: 'unconfigured', laminus: 'unconfigured' });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
