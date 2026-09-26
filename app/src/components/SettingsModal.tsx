@@ -16,6 +16,7 @@ function StatusDot({ status }: { status: ServiceStatus }) {
 export function SettingsModal({ onClose }: { onClose: () => void }) {
   const { settings, health, saveSettings } = useSettings();
   const [themisUrl, setThemisUrl] = useState(settings.themis_url);
+  const [themisApiKey, setThemisApiKey] = useState(settings.themis_api_key);
   const [laminusUrl, setLaminusUrl] = useState(settings.laminus_url);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +25,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     setSaving(true);
     setError(null);
     try {
-      await saveSettings({ themis_url: themisUrl, laminus_url: laminusUrl });
+      await saveSettings({ themis_url: themisUrl, themis_api_key: themisApiKey, laminus_url: laminusUrl });
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed');
@@ -63,6 +64,26 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
               placeholder="http://localhost:8000"
               value={themisUrl}
               onChange={e => setThemisUrl(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
+              Themis API Key
+            </label>
+            <input
+              type="password"
+              autoComplete="off"
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                padding: '7px 10px', borderRadius: 6,
+                border: '1px solid var(--border-primary)',
+                background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+                fontSize: 13, fontFamily: 'var(--font-body)',
+              }}
+              placeholder="Paste the key from Themis → Settings → API Keys"
+              value={themisApiKey}
+              onChange={e => setThemisApiKey(e.target.value)}
             />
           </div>
 

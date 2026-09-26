@@ -18,17 +18,19 @@ async function checkHealth(url: string, path: string): Promise<'up' | 'down'> {
 }
 
 router.get('/settings', async (_req: Request, res: Response) => {
-  const [themis_url, laminus_url] = await Promise.all([
+  const [themis_url, themis_api_key, laminus_url] = await Promise.all([
     getSetting('themis_url'),
+    getSetting('themis_api_key'),
     getSetting('laminus_url'),
   ]);
-  res.json({ themis_url, laminus_url });
+  res.json({ themis_url, themis_api_key, laminus_url });
 });
 
 router.patch('/settings', async (req: Request, res: Response) => {
-  const body = req.body as { themis_url?: string; laminus_url?: string };
+  const body = req.body as { themis_url?: string; themis_api_key?: string; laminus_url?: string };
   const ops: Promise<void>[] = [];
   if (body.themis_url !== undefined) ops.push(setSetting('themis_url', body.themis_url));
+  if (body.themis_api_key !== undefined) ops.push(setSetting('themis_api_key', body.themis_api_key));
   if (body.laminus_url !== undefined) ops.push(setSetting('laminus_url', body.laminus_url));
   await Promise.all(ops);
   res.status(204).end();
