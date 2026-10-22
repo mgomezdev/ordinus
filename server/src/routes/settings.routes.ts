@@ -41,7 +41,7 @@ router.get('/settings/health', async (_req: Request, res: Response) => {
   const [themis_url, laminus_url] = await Promise.all([getSetting('themis_url'), getSetting('laminus_url')]);
   const [themis, laminus]: [Status, Status] = await Promise.all([
     themis_url ? checkHealth(themis_url, '/api/v1/health') : Promise.resolve<Status>('unconfigured'),
-    laminus_url ? checkHealth(laminus_url, '/api/health') : Promise.resolve<Status>('unconfigured'),
+    laminus_url ? checkHealth(laminus_url, '/api/v1/health') : Promise.resolve<Status>('unconfigured'),
   ]);
   res.json({ themis, laminus });
 });

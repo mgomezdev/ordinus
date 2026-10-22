@@ -196,7 +196,7 @@ SSE stream: `GET /api/v1/generation/events` — clients listen here for completi
 GET /api/v1/settings/health
   → settings.routes.ts
   → reads themis_url + laminus_url from settings table
-  → server-side fetch to <url>/api/v1/health (Themis) and <url>/api/health (Laminus)
+  → server-side fetch to <url>/api/v1/health (Themis) and <url>/api/v1/health (Laminus)
   → returns { themis: 'up'|'down'|'unconfigured', laminus: 'up'|'down'|'unconfigured' }
 ```
 
