@@ -67,7 +67,11 @@ export async function createThemisProject(
     ...(customer ? { customer } : {}),
     source_app: 'ordinus',
     ...(sourceUser !== undefined && { source_user: sourceUser }),
-    ...(sourceLayoutId !== undefined && { source_layout_id: sourceLayoutId }),
+    ...(sourceLayoutId !== undefined && {
+      source_layout_id: sourceLayoutId,
+      // (source_app, external_ref) is unique in Themis: a retried create returns the existing project.
+      external_ref: `layout-${sourceLayoutId}`,
+    }),
   }, apiKey) as { id: number };
   return data.id;
 }
@@ -86,7 +90,7 @@ export async function addThemisProjectLink(
   }, apiKey);
 }
 
-/** Add an item to a Themis project. */
+/** Add an item to a Themis project. No filament ask is sent (undefined = deferred); it is chosen in Themis. */
 export async function addThemisProjectItem(
   themisUrl: string,
   projectId: number,
@@ -97,8 +101,6 @@ export async function addThemisProjectItem(
   await themisPost(`${themisUrl}/api/v1/projects/${projectId}/items`, {
     file_id: fileId,
     quantity,
-    filament_profile_uuid: '',
-    color_hex: '#FFFFFF',
   }, apiKey);
 }
 
