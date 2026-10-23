@@ -9,6 +9,8 @@ import { bomGenerations, libraries, libraryItems } from '../db/schema.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
 import { computeParamHash } from '../utils/generationParams.js';
+import { getSetting } from './settings.service.js';
+import { buildThreeMfViaLaminus } from './laminus.service.js';
 
 const DEFAULT_CUSTOMIZATION: BinCustomization = {
   wallPatternEnabled: false,
@@ -245,7 +247,6 @@ async function runGenerationPipeline(
 ): Promise<void> {
   const generatorDir = path.resolve(config.GRIDFINITY_GENERATOR_DIR);
   const generateBinScript = path.join(generatorDir, 'generate_bin.py');
-  const bundleScript = path.join(generatorDir, 'bundle_3mf.py');
 
   try {
     // Step 1: Copy static STLs
@@ -283,7 +284,7 @@ async function runGenerationPipeline(
       }
     }
 
-    // Step 3: Build manifest + bundle 3MF
+    // Step 3: Build manifest + combine into a 3MF via Laminus
     const manifest: BomGenerationManifestEntry[] = [
       ...staticConfigs.map((cfg) => ({
         filename: cfg.filename,
@@ -300,10 +301,17 @@ async function runGenerationPipeline(
         qty: cfg.qty,
       })),
     ];
-    const manifestPath = path.join(outDir, 'manifest.json');
+    const laminusUrl = await getSetting('laminus_url');
+    if (!laminusUrl) {
+      throw new AppError(ErrorCodes.INTERNAL_ERROR, 'Laminus URL is not configured in settings');
+    }
+    const stlsForPacking = await Promise.all(manifest.map(async (entry) => ({
+      filename: entry.filename,
+      bytes: await fs.readFile(path.join(outDir, entry.filename)),
+      qty: entry.qty,
+    })));
     const threeMfPath = path.join(outDir, `bom-${layoutId}.3mf`);
-    await fs.writeFile(manifestPath, JSON.stringify(manifest));
-    await runPython([bundleScript, manifestPath, outDir, threeMfPath]);
+    await fs.writeFile(threeMfPath, await buildThreeMfViaLaminus(laminusUrl, stlsForPacking));
 
     try {
       await db.update(bomGenerations)

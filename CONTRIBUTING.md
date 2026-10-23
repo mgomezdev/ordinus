@@ -47,7 +47,6 @@ gridfinity-customizer/
 │       └── errors.ts
 ├── generator/                  # Python + OpenSCAD bin generation
 │   ├── generate_bin.py         # Single bin STL generation
-│   ├── bundle_3mf.py           # BOM → full 3MF archive
 │   └── gridfinity_basic_cup.scad
 ├── infra/
 │   ├── Dockerfile              # Multi-stage: build → nginx+node+openscad runtime
@@ -156,7 +155,7 @@ POST /api/v1/bom/generate/:layoutId
   → bomGeneration.controller.ts :: generateHandler()
   → bomGeneration.service.ts :: triggerGeneration()
       → resolveItemSources()         (decide: copy static STL vs generate parametric)
-      → runGenerationPipeline()      (spawn generate_bin.py per item, then bundle_3mf.py)
+      → runGenerationPipeline()      (spawn generate_bin.py per item, then Laminus /api/v1/pack)
       → writes to GENERATED_STL_DIR
       → updates bom_generations table (status: pending → complete)
 ```
