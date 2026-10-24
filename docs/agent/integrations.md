@@ -24,4 +24,18 @@ Plain `fetch` wrapper, two timeouts: `REQUEST_TIMEOUT_MS` (30s, JSON calls) vs `
 
 ## Out of scope (per spec, still true)
 
-No auth between Ordinus and Themis (same local trust boundary). No filament pre-assignment from Ordinus. No progress streaming during send.
+No filament pre-assignment from Ordinus: items are added with an undefined (deferred) filament ask and the operator picks filament in Themis. No progress streaming during send.
+
+## Themis API contract (companion-app API, `themis/docs/companion-apps.md`)
+
+- **Auth**: `X-Api-Key` header from the `themis_api_key` setting. Key needs scopes `projects:write`, `projects:read`, `files:write`.
+- **Project create** sends `external_ref: layout-{id}` with `source_app: 'ordinus'`; `(source_app, external_ref)` is unique in Themis, so a retried create returns the existing project (200) instead of a duplicate.
+- **Items** send only `file_id` + `quantity`. The legacy `filament_profile_uuid` / `color_hex` fields were removed from Themis (filament is now the `filament_manufacturer/type/subtype/color` ask tuple; all undefined = deferred).
+
+## Laminus integration (STL → 3MF)
+
+Ordinus still generates/copies STLs itself (`generate_bin.py`); combining them into the layout's single multi-plate 3MF is done by Laminus (`services/laminus.service.ts::buildThreeMfViaLaminus`, called from `runGenerationPipeline`). The old `generator/bundle_3mf.py` was removed.
+
+Single call: `POST /api/v1/pack` with each **unique** STL once plus `items='[{"file","quantity"}]'` and an explicit bed (255×255×250 mm) → final multi-plate 3MF. Limits: 50 unique STLs, 500 total copies (both checked client-side → `LaminusError`). **Requires Laminus >= 0.11.0** (BIZ-337); older versions ignore `items` and produce one copy each.
+
+URL comes from the `laminus_url` setting (no env fallback); generation fails with a clear error if unset. Laminus calls time out at 150s (Laminus' own limit is 120s).
