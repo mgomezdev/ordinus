@@ -13,14 +13,9 @@ import { fileURLToPath } from 'url';
 import type { ApiUserStl } from '../../shared/src/types';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, '../../../..');
-const BINS_STANDARD_DIR = path.join(REPO_ROOT, 'packages/app/public/libraries/bins_standard');
 
 // bin_2x3 is a 2×3 unit bin — asymmetric enough for meaningful rotation tests
-const STL_PATH = path.join(BINS_STANDARD_DIR, 'bin_2x3.stl');
-
-const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@gridfinity.local';
-const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? 'admin';
+const STL_PATH = path.resolve(__dirname, '../fixtures/bin_2x3.stl');
 
 // Ordered mapping: server perspImageUrls are [p0, p90, p180, p270] matching library naming
 const IMAGE_MAP: Array<{ refFile: string; label: string }> = [
@@ -33,24 +28,13 @@ const IMAGE_MAP: Array<{ refFile: string; label: string }> = [
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
-async function loginAsAdmin(request: APIRequestContext): Promise<Record<string, string>> {
-  const res = await request.post('/api/v1/auth/login', {
-    data: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD },
-  });
-  expect(res.status(), 'admin login').toBe(200);
-  const { data } = await res.json() as { data: { accessToken: string } };
-  return { Authorization: `Bearer ${data.accessToken}` };
-}
-
 async function uploadStl(
   request: APIRequestContext,
-  auth: Record<string, string>,
   stlBuffer: Buffer,
   uploadFilename: string,
   displayName: string,
 ): Promise<ApiUserStl> {
   const res = await request.post('/api/v1/user-stls', {
-    headers: auth,
     multipart: {
       file: { name: uploadFilename, mimeType: 'model/stl', buffer: stlBuffer },
       name: displayName,
@@ -62,7 +46,6 @@ async function uploadStl(
 
 async function pollUntilReady(
   request: APIRequestContext,
-  auth: Record<string, string>,
   stlId: string,
   timeoutMs = 90_000,
 ): Promise<ApiUserStl> {
@@ -70,7 +53,7 @@ async function pollUntilReady(
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     await new Promise<void>(resolve => setTimeout(resolve, 2_000));
-    const res = await request.get(`/api/v1/user-stls/${stlId}`, { headers: auth });
+    const res = await request.get(`/api/v1/user-stls/${stlId}`);
     expect(res.status(), 'poll status').toBe(200);
     stl = await res.json() as ApiUserStl;
     if (stl.status === 'ready' || stl.status === 'error') break;
@@ -87,14 +70,13 @@ test.describe('User STL processing pipeline', () => {
   );
 
   test('upload bin_2x3.stl and verify all 5 preview images are generated', async ({ request }) => {
-    const auth = await loginAsAdmin(request);
     const stlBuffer = await readFile(STL_PATH);
-    const uploaded = await uploadStl(request, auth, stlBuffer, 'bin_2x3.stl', 'bin_2x3-e2e');
+    const uploaded = await uploadStl(request, stlBuffer, 'bin_2x3.stl', 'bin_2x3-e2e');
     const stlId = uploaded.id;
 
     test.info().annotations.push({ type: 'uploadedStlId', description: stlId });
 
-    const stl = await pollUntilReady(request, auth, stlId);
+    const stl = await pollUntilReady(request, stlId);
 
     expect(
       stl.status,
@@ -114,7 +96,7 @@ test.describe('User STL processing pipeline', () => {
     for (let i = 0; i < serverFilenames.length; i++) {
       const filename = serverFilenames[i];
       const label = labels[i];
-      const res = await request.get(`/api/v1/user-stls/${stlId}/images/${filename}`, { headers: auth });
+      const res = await request.get(`/api/v1/user-stls/${stlId}/images/${filename}`);
       expect(res.status(), `fetch ${label} image`).toBe(200);
       const buf = Buffer.from(await res.body());
       expect(buf.length, `${label} image should not be empty`).toBeGreaterThan(1000);
@@ -124,20 +106,19 @@ test.describe('User STL processing pipeline', () => {
       ).toBe(true);
     }
 
-    await request.delete(`/api/v1/user-stls/${stlId}`, { headers: auth });
+    await request.delete(`/api/v1/user-stls/${stlId}`);
   });
 
   test('dimension detection infers grid size from geometry when filename has no dimension hint', async ({ request }) => {
     // Upload bin_2x3.stl under an opaque filename so the server cannot use the name
     // as a hint — dimensions must come purely from geometry analysis.
-    const auth = await loginAsAdmin(request);
     const stlBuffer = await readFile(STL_PATH);
-    const uploaded = await uploadStl(request, auth, stlBuffer, 'model.stl', 'dim-detection-e2e');
+    const uploaded = await uploadStl(request, stlBuffer, 'model.stl', 'dim-detection-e2e');
     const stlId = uploaded.id;
 
     test.info().annotations.push({ type: 'uploadedStlId', description: stlId });
 
-    const stl = await pollUntilReady(request, auth, stlId);
+    const stl = await pollUntilReady(request, stlId);
 
     expect(
       stl.status,
@@ -152,6 +133,6 @@ test.describe('User STL processing pipeline', () => {
       `detected dimensions ${stl.gridX}x${stl.gridY} should be 2×3 in either orientation`,
     ).toBe(true);
 
-    await request.delete(`/api/v1/user-stls/${stlId}`, { headers: auth });
+    await request.delete(`/api/v1/user-stls/${stlId}`);
   });
 });

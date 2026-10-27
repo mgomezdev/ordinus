@@ -2,14 +2,6 @@ import { test, expect, type Page, type Route } from '@playwright/test';
 import { SavedConfigsPage } from '../pages/SavedConfigsPage';
 import type { ApiLayout } from '../../shared/src/types';
 
-// ── Auth mock helpers (same pattern as reference-images.spec.ts) ──
-
-const JWT_HEADER = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64');
-const JWT_PAYLOAD = Buffer.from(
-  JSON.stringify({ userId: 1, role: 'user', exp: 9999999999 }),
-).toString('base64');
-const FAKE_ACCESS_TOKEN = `${JWT_HEADER}.${JWT_PAYLOAD}.fakesig`;
-
 function makeLayout(overrides: Partial<ApiLayout> = {}): ApiLayout {
   return {
     id: 1,
@@ -36,36 +28,12 @@ const MOCK_LAYOUT_DETAIL = {
 };
 
 /**
- * Seed localStorage so AuthContext attempts silent refresh on mount,
- * and skip the walkthrough overlay which blocks clicks on first visit.
+ * Skip the walkthrough overlay which blocks clicks on first visit.
  * Must be called before page.goto() via addInitScript.
  */
-async function seedAuth(page: Page): Promise<void> {
+async function skipWalkthrough(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    localStorage.setItem('gridfinity_refresh_token', 'e2e-fake-refresh-token');
     localStorage.setItem('gridfinity-walkthrough-seen', 'true');
-  });
-}
-
-async function setupAuthMocks(page: Page): Promise<void> {
-  await page.route('**/api/v1/auth/refresh', async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        data: { accessToken: FAKE_ACCESS_TOKEN, refreshToken: 'fake-refresh' },
-      }),
-    });
-  });
-
-  await page.route('**/api/v1/auth/me', async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        data: { id: 1, username: 'testuser', email: 'test@example.com', role: 'user' },
-      }),
-    });
   });
 }
 
@@ -84,12 +52,10 @@ async function setupLayoutsMock(page: Page, layouts: ApiLayout[]): Promise<void>
 }
 
 /**
- * Navigate to the workspace first so auth can resolve, then click the nav tab.
- * RequireAuth redirects immediately if isAuthenticated=false (no isLoading check),
- * so auth must be resolved before navigating to the protected page.
+ * Navigate to the workspace, then click the nav tab.
  * Clicking the nav tab uses client-side navigation so React state is preserved.
  */
-async function gotoConfigsAuthenticated(page: Page): Promise<void> {
+async function gotoConfigs(page: Page): Promise<void> {
   await page.goto('/');
   const savedConfigsTab = page.locator('.nav-tab', { hasText: 'Saved Configs' });
   await savedConfigsTab.waitFor({ state: 'visible', timeout: 10000 });
@@ -99,28 +65,24 @@ async function gotoConfigsAuthenticated(page: Page): Promise<void> {
 
 // ── Tests ──
 
-test('unauthenticated user is redirected to home', async ({ page }) => {
-  // Mock refresh to fail — no valid session
-  await page.route('**/api/v1/auth/refresh', async (route: Route) => {
-    await route.fulfill({ status: 401, body: '{}' });
-  });
+test('saved configs page is reachable directly without signing in', async ({ page }) => {
+  await skipWalkthrough(page);
+  await setupLayoutsMock(page, []);
 
   await page.goto('/configs');
-  // RequireAuth redirects to /?authRequired=1
-  await expect(page).toHaveURL(/authRequired=1/);
-  await expect(page.locator('.nav-tab', { hasText: 'Workspace' })).toBeVisible();
+  await expect(page).toHaveURL(/\/configs$/);
+  await expect(page.locator('.nav-tab', { hasText: 'Saved Configs' })).toBeVisible();
 });
 
-test('shows list of saved layouts when authenticated', async ({ page }) => {
-  await setupAuthMocks(page);
-  await seedAuth(page);
+test('shows list of saved layouts', async ({ page }) => {
+  await skipWalkthrough(page);
   await setupLayoutsMock(page, [
     makeLayout({ id: 1, name: 'Layout One' }),
     makeLayout({ id: 2, name: 'Layout Two' }),
   ]);
 
   const configs = new SavedConfigsPage(page);
-  await gotoConfigsAuthenticated(page);
+  await gotoConfigs(page);
   await configs.waitForLoaded();
 
   await expect(configs.cards).toHaveCount(2);
@@ -129,12 +91,11 @@ test('shows list of saved layouts when authenticated', async ({ page }) => {
 });
 
 test('shows empty state when no layouts exist', async ({ page }) => {
-  await setupAuthMocks(page);
-  await seedAuth(page);
+  await skipWalkthrough(page);
   await setupLayoutsMock(page, []);
 
   const configs = new SavedConfigsPage(page);
-  await gotoConfigsAuthenticated(page);
+  await gotoConfigs(page);
   await configs.waitForLoaded();
 
   await expect(configs.emptyState).toBeVisible();
@@ -142,8 +103,7 @@ test('shows empty state when no layouts exist', async ({ page }) => {
 });
 
 test('edit button loads layout into workspace and navigates to /', async ({ page }) => {
-  await setupAuthMocks(page);
-  await seedAuth(page);
+  await skipWalkthrough(page);
   await setupLayoutsMock(page, [makeLayout({ id: 1, name: 'My Layout' })]);
 
   // Mock the detail fetch for the edit/load flow
@@ -160,7 +120,7 @@ test('edit button loads layout into workspace and navigates to /', async ({ page
   });
 
   const configs = new SavedConfigsPage(page);
-  await gotoConfigsAuthenticated(page);
+  await gotoConfigs(page);
   await configs.waitForLoaded();
 
   await configs.editButton('My Layout').click();
@@ -172,8 +132,7 @@ test('edit button loads layout into workspace and navigates to /', async ({ page
 });
 
 test('delete button requires confirmation then removes card', async ({ page }) => {
-  await setupAuthMocks(page);
-  await seedAuth(page);
+  await skipWalkthrough(page);
   await setupLayoutsMock(page, [makeLayout({ id: 1, name: 'To Delete' })]);
 
   await page.route('**/api/v1/layouts/1', async (route: Route) => {
@@ -185,7 +144,7 @@ test('delete button requires confirmation then removes card', async ({ page }) =
   });
 
   const configs = new SavedConfigsPage(page);
-  await gotoConfigsAuthenticated(page);
+  await gotoConfigs(page);
   await configs.waitForLoaded();
 
   // First click shows "Confirm" button, not immediate deletion
@@ -206,8 +165,7 @@ test('delete button requires confirmation then removes card', async ({ page }) =
 });
 
 test('duplicate button clones layout and shows new card', async ({ page }) => {
-  await setupAuthMocks(page);
-  await seedAuth(page);
+  await skipWalkthrough(page);
   let cloned = false;
   await page.route('**/api/v1/layouts', async (route: Route) => {
     await route.fulfill({
@@ -231,7 +189,7 @@ test('duplicate button clones layout and shows new card', async ({ page }) => {
   });
 
   const configs = new SavedConfigsPage(page);
-  await gotoConfigsAuthenticated(page);
+  await gotoConfigs(page);
   await configs.waitForLoaded();
 
   await configs.duplicateButton('Original').click();
