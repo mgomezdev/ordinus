@@ -45,11 +45,6 @@ export async function listAllFavorites(): Promise<FavoriteRow[]> {
   return db.select().from(favorites).orderBy(favorites.createdAt);
 }
 
-// Backward compat alias
-export async function listFavorites(_userId?: number): Promise<FavoriteRow[]> {
-  return listAllFavorites();
-}
-
 export async function createFavorite(
   data: CreateFavoriteData,
 ): Promise<FavoriteRow> {

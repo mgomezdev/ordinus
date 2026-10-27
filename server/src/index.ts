@@ -29,7 +29,7 @@ async function main(): Promise<void> {
     await resetToPending(client, id);
     const row = await getUploadById(client, id);
     if (row) {
-      const imageDir = getImageOutputDir(row.userId);
+      const imageDir = getImageOutputDir();
       void processUpload(id, row.filePath, imageDir, row.userId);
     }
   }
