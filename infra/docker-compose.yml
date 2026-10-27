@@ -8,7 +8,6 @@ services:
     environment:
       - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:3001}
       - LOG_LEVEL=info
-      - THEMIS_URL=${THEMIS_URL:-}
     volumes:
       - gridfinity-data:/config
       - gridfinity-data-files:/data
