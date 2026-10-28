@@ -53,17 +53,14 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // If stored customer no longer exists in list, clear selection
-  useEffect(() => {
-    if (!isLoading && selectedCustomerId !== null) {
-      const exists = customers.some((c) => c.id === selectedCustomerId);
-      if (!exists) {
-        setSelectedCustomerId(null);
-      }
-    }
-  }, [customers, isLoading, selectedCustomerId, setSelectedCustomerId]);
-
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId) ?? null;
+  const isStaleSelection = !isLoading && selectedCustomerId !== null && selectedCustomer === null;
+
+  // Stored customer no longer exists: selectedCustomer already derives to null,
+  // so only the persisted id needs clearing.
+  useEffect(() => {
+    if (isStaleSelection) localStorage.removeItem(STORAGE_KEY);
+  }, [isStaleSelection]);
 
   const createMutation = useMutation({
     mutationFn: (name: string) => createCustomerApi(name),

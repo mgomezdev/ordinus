@@ -86,7 +86,7 @@ export async function uploadHandler(req: Request, res: Response, next: NextFunct
       visibility,
     });
 
-    const imageDir = getImageOutputDir(null);
+    const imageDir = getImageOutputDir();
     void processUpload(uploadId, destPath, imageDir, null);
 
     const row = await getUploadById(client, uploadId);
@@ -198,7 +198,7 @@ export async function replaceFileHandler(req: Request, res: Response, next: Next
     });
     await resetToPending(client, row.id);
 
-    const imageDir = getImageOutputDir(null);
+    const imageDir = getImageOutputDir();
     void processUpload(row.id, destPath, imageDir, null);
 
     const updated = await getUploadById(client, row.id);
@@ -214,7 +214,7 @@ export async function reprocessHandler(req: Request, res: Response, next: NextFu
     if (!row) return res.status(404).json({ error: 'Not found' });
 
     await resetToPending(client, row.id);
-    const imageDir = getImageOutputDir(null);
+    const imageDir = getImageOutputDir();
     void processUpload(row.id, row.filePath, imageDir, null);
 
     return res.status(202).json({ message: 'Reprocessing started' });

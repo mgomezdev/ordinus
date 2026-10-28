@@ -347,8 +347,7 @@ export const bomGenerationsRelations = relations(bomGenerations, ({ one }) => ({
   }),
 }));
 
-export const favoritesRelations = relations(favorites, ({ }) => ({
-}));
+export const favoritesRelations = relations(favorites, () => ({}));
 
 export const userStlUploadsRelations = relations(userStlUploads, ({ many }) => ({
   customerParts: many(customerParts),

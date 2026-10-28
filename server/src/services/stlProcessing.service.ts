@@ -78,6 +78,6 @@ export function processUpload(
   });
 }
 
-export function getImageOutputDir(_userId: number | null): string {
+export function getImageOutputDir(): string {
   return path.join(config.USER_STL_IMAGE_DIR, 'global');
 }

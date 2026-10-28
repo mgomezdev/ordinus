@@ -14,7 +14,7 @@ import { logger } from '../logger.js';
 
 export async function sendToThemisHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const themisUrl = (await getSetting('themis_url')) || config.THEMIS_URL;
+    const themisUrl = await getSetting('themis_url');
     if (!themisUrl) {
       res.status(503).json({ error: { message: 'Themis URL is not configured in settings' } });
       return;

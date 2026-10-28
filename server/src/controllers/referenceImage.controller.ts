@@ -48,7 +48,7 @@ export async function deleteReferenceImage(
       throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid image ID');
     }
 
-    await referenceImageService.deleteReferenceImage(layoutId, imageId, null);
+    await referenceImageService.deleteReferenceImage(layoutId, imageId);
 
     res.status(204).send();
   } catch (err) {
