@@ -37,7 +37,7 @@ test.describe('Zoom and Pan Controls', () => {
 
   test.describe('Zoom Control Buttons', () => {
     test('zoom controls toolbar is visible', async ({ page }) => {
-      const toolbar = page.locator('[role="toolbar"]');
+      const toolbar = page.getByRole('toolbar', { name: 'Zoom controls' });
       await expect(toolbar).toBeVisible();
     });
 

@@ -4,44 +4,14 @@ import { LibraryPage } from '../pages/LibraryPage';
 import { dragToGridCell } from '../utils/drag-drop';
 import type { FavoriteItem } from '../../src/types/gridfinity';
 
-// --- Mock auth helpers ---
-
-// Fake JWT that AuthContext.tsx can decode via atob(payload)
-const JWT_HEADER = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64');
-const JWT_PAYLOAD = Buffer.from(JSON.stringify({ userId: 1, role: 'user', exp: 9999999999 })).toString('base64');
-const FAKE_ACCESS_TOKEN = `${JWT_HEADER}.${JWT_PAYLOAD}.fakesig`;
-const FAKE_REFRESH_TOKEN = 'e2e-fake-refresh-token';
+// The library's favorites tab is labelled with a heart glyph.
+const FAVORITES_TAB_LABEL = '♥';
 
 /**
- * Sets up API route interception for auth + favorites.
+ * Sets up API route interception for favorites so each test starts isolated.
  * Returns a mutable favorites array that tests can modify.
  */
 async function setupApiMocks(page: Page, favorites: FavoriteItem[] = []) {
-  // Auth refresh — makes AuthContext think we're logged in
-  await page.route('**/api/v1/auth/refresh', async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        data: {
-          accessToken: FAKE_ACCESS_TOKEN,
-          refreshToken: FAKE_REFRESH_TOKEN,
-        },
-      }),
-    });
-  });
-
-  // Auth me — returns the current user after refresh
-  await page.route('**/api/v1/auth/me', async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        data: { id: 1, username: 'testuser', email: 'test@example.com', role: 'user' },
-      }),
-    });
-  });
-
   // GET favorites
   await page.route('**/api/v1/favorites', async (route: Route) => {
     if (route.request().method() === 'GET') {
@@ -89,57 +59,32 @@ async function setupApiMocks(page: Page, favorites: FavoriteItem[] = []) {
         favorites.splice(idx, 1);
       }
       await route.fulfill({ status: 204 });
-    } else if (route.request().method() === 'PATCH') {
-      // Update favorite (e.g., rename)
-      const url = route.request().url();
-      const idStr = url.split('/').pop();
-      const id = Number(idStr);
-      const body = await route.request().patchDataJSON();
-      const fav = favorites.find(f => f.id === id);
-      if (fav && body.name) {
-        fav.name = body.name;
-      }
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ data: fav }),
-      });
     } else {
       await route.continue();
     }
   });
 
-  return favorites;
-}
-
-/**
- * Seed localStorage with a refresh token so AuthContext tries to refresh on mount.
- */
-async function seedAuth(page: Page) {
-  await page.addInitScript(() => {
-    localStorage.setItem('gridfinity_refresh_token', 'e2e-fake-refresh-token');
+  // PATCH /favorites/:id/name — rename
+  await page.route('**/api/v1/favorites/*/name', async (route: Route) => {
+    if (route.request().method() !== 'PATCH') {
+      await route.continue();
+      return;
+    }
+    const id = Number(route.request().url().split('/').at(-2));
+    const body = route.request().postDataJSON() as { name?: string };
+    const fav = favorites.find(f => Number(f.id) === id);
+    if (fav && body.name) {
+      fav.name = body.name;
+    }
+    await route.fulfill({ status: 204 });
   });
+
+  return favorites;
 }
 
 // --- Tests ---
 
-test.describe('Favorites — Unauthenticated', () => {
-  let gridPage: GridPage;
-
-  test.beforeEach(async ({ page }) => {
-    gridPage = new GridPage(page);
-    await gridPage.goto();
-    await gridPage.waitForGridReady();
-  });
-
-  test('Favorites tab is not shown when not authenticated', async ({ page }) => {
-    // The Favorites tab is only rendered for authenticated users
-    const favoritesTab = page.locator('.library-cat-tab', { hasText: 'Favorites' });
-    await expect(favoritesTab).not.toBeVisible();
-  });
-});
-
-test.describe('Favorites — Authenticated', () => {
+test.describe('Favorites', () => {
   let gridPage: GridPage;
   let libraryPage: LibraryPage;
 
@@ -148,7 +93,6 @@ test.describe('Favorites — Authenticated', () => {
     libraryPage = new LibraryPage(page);
 
     await setupApiMocks(page);
-    await seedAuth(page);
 
     await gridPage.goto();
     await gridPage.waitForGridReady();
@@ -202,7 +146,7 @@ test.describe('Favorites — Authenticated', () => {
     await page.waitForTimeout(200);
 
     // Switch to Favorites tab
-    const favoritesTab = page.locator('.library-cat-tab', { hasText: 'Favorites' });
+    const favoritesTab = page.locator('.library-cat-tab', { hasText: FAVORITES_TAB_LABEL });
     await expect(favoritesTab).toBeVisible();
     await favoritesTab.click();
 
@@ -233,7 +177,7 @@ test.describe('Favorites — Authenticated', () => {
     await libraryPage.waitForLibraryReady();
 
     // Switch to Favorites tab
-    const favoritesTab = page.locator('.library-cat-tab', { hasText: 'Favorites' });
+    const favoritesTab = page.locator('.library-cat-tab', { hasText: FAVORITES_TAB_LABEL });
     await expect(favoritesTab).toBeVisible();
     await favoritesTab.click();
 
@@ -258,7 +202,7 @@ test.describe('Favorites — Authenticated', () => {
     await page.waitForTimeout(200);
 
     // Switch to Favorites tab
-    const favoritesTab = page.locator('.library-cat-tab', { hasText: 'Favorites' });
+    const favoritesTab = page.locator('.library-cat-tab', { hasText: FAVORITES_TAB_LABEL });
     await favoritesTab.click();
 
     // Get initial placed item count
@@ -287,7 +231,7 @@ test.describe('Favorites — Authenticated', () => {
     await page.waitForTimeout(200);
 
     // Switch to Favorites tab
-    const favoritesTab = page.locator('.library-cat-tab', { hasText: 'Favorites' });
+    const favoritesTab = page.locator('.library-cat-tab', { hasText: FAVORITES_TAB_LABEL });
     await favoritesTab.click();
 
     // Get initial placed item count
@@ -325,13 +269,13 @@ test.describe('Favorites — Authenticated', () => {
     await page.waitForTimeout(200);
 
     // Switch to Favorites tab
-    const favoritesTab = page.locator('.library-cat-tab', { hasText: 'Favorites' });
+    const favoritesTab = page.locator('.library-cat-tab', { hasText: FAVORITES_TAB_LABEL });
     await favoritesTab.click();
 
     // Double-click on the favorite name to edit it
     const favoriteCard = page.locator('.favorite-card').first();
     const cardNameSpan = favoriteCard.locator('.favorite-card-name span');
-    await cardNameSpan.dblClick();
+    await cardNameSpan.dblclick();
 
     // Fill in new name
     const nameInput = favoriteCard.locator('.favorite-card-name-input');
@@ -349,7 +293,7 @@ test.describe('Favorites — Authenticated', () => {
     await libraryPage.waitForLibraryReady();
 
     // Switch to Favorites tab again
-    const favoritesTab2 = page.locator('.library-cat-tab', { hasText: 'Favorites' });
+    const favoritesTab2 = page.locator('.library-cat-tab', { hasText: FAVORITES_TAB_LABEL });
     await favoritesTab2.click();
 
     // The favorite should still have the new name
