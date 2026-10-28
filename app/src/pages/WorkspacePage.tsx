@@ -344,6 +344,7 @@ export function WorkspacePage() {
       <GridSummary
         gridX={gridResult.gridX} gridY={gridResult.gridY}
         gapWidth={gridResult.gapWidth} gapDepth={gridResult.gapDepth}
+        spacerConfig={spacerConfig}
         unit={unitSystem} imperialFormat={imperialFormat}
       />
     </>

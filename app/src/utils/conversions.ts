@@ -3,7 +3,7 @@ import type { UnitSystem, GridResult } from '../types/gridfinity';
 const GRIDFINITY_UNIT_MM = 42;
 const MM_PER_INCH = 25.4;
 
-const FRACTION_DENOMINATORS = [16, 8, 4, 2] as const;
+const FRACTION_DENOMINATORS = [32, 16, 8, 4, 2] as const;
 
 function gcd(a: number, b: number): number {
   a = Math.abs(a);
@@ -20,7 +20,7 @@ export function decimalToFraction(decimal: number): string {
   const whole = Math.floor(decimal);
   const fractionalPart = decimal - whole;
 
-  if (fractionalPart < 0.03125) {
+  if (fractionalPart < 1 / 64) {
     return whole.toString();
   }
 
