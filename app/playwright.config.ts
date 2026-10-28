@@ -3,7 +3,7 @@ import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const isDocker = process.env.TARGET === 'docker';
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 export default defineConfig({
   testDir: './e2e/tests',

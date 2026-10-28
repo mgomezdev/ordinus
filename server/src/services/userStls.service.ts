@@ -85,10 +85,6 @@ export async function listByCustomer(client: Client, customerId: number): Promis
   return result.rows.map(rowToUpload);
 }
 
-// Keep for backward compat — now just calls listAll
-export async function listByUser(client: Client, _userId: number): Promise<UploadRow[]> {
-  return listAll(client);
-}
 
 export async function listPublic(client: Client): Promise<UploadRow[]> {
   const result = await client.execute({
@@ -176,10 +172,6 @@ export async function getPendingAndProcessingIds(client: Client): Promise<string
   return result.rows.map((r) => String(r.id));
 }
 
-// No longer needed — no quota tracking without users
-export async function checkQuota(_client: Client, _userId: number | null): Promise<boolean> {
-  return false;
-}
 
 function rowToUpload(row: Record<string, unknown>): UploadRow {
   return {

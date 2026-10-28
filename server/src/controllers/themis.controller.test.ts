@@ -86,13 +86,10 @@ beforeEach(() => {
 
 describe('sendToThemisHandler', () => {
   it('returns 503 when Themis URL is not configured', async () => {
-    mocks.getSetting.mockResolvedValue(null);
-    const origUrl = process.env['THEMIS_URL'];
-    delete process.env['THEMIS_URL'];
+    mocks.getSetting.mockResolvedValue('');
     const res = makeRes();
     await sendToThemisHandler(makeReq(), res, vi.fn() as NextFunction);
     expect(res.status).toHaveBeenCalledWith(503);
-    if (origUrl !== undefined) process.env['THEMIS_URL'] = origUrl;
   });
 
   it('persists the new Themis project id before adding items, so a crash mid-send can resume it', async () => {

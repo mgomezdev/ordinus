@@ -21,28 +21,29 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [health, setHealth] = useState<ServicesHealth>({ themis: 'unconfigured', laminus: 'unconfigured' });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  async function pollHealth() {
-    try { setHealth(await getServicesHealth()); } catch { /* ignore */ }
+  function pollHealth() {
+    getServicesHealth().then(setHealth).catch(() => { /* ignore */ });
   }
 
   useEffect(() => {
     getSettings().then(setSettings).catch(() => {});
-    void pollHealth();
-    intervalRef.current = setInterval(() => { void pollHealth(); }, 15000);
+    pollHealth();
+    intervalRef.current = setInterval(pollHealth, 15000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, []);
 
   async function saveSettings(patch: Partial<ServiceSettings>) {
     await patchSettings(patch);
     setSettings(prev => ({ ...prev, ...patch }));
-    void pollHealth();
+    pollHealth();
   }
 
   return (
-    <SettingsContext.Provider value={{ settings, health, saveSettings, refreshHealth: () => { void pollHealth(); } }}>
+    <SettingsContext.Provider value={{ settings, health, saveSettings, refreshHealth: pollHealth }}>
       {children}
     </SettingsContext.Provider>
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSettings() { return useContext(SettingsContext); }

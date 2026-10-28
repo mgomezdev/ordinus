@@ -4,10 +4,11 @@ name: ci
 # pull-request trigger, folds publishing into the same workflow so it depends
 # on those tests, and adds the one cross-service check that matters here.
 #
-# Ordinus never talks to Laminus, so this only ever runs the `push` profile
-# (mock-laminus + mock-spoolman + themis + ordinus) against Concordia's e2e
-# suite -- proving this change's image still satisfies the four Themis
-# operations Ordinus calls (see themis/scripts/ordinus_contract.py).
+# This runs the `push` profile (mock-laminus + mock-spoolman + themis +
+# ordinus) against Concordia's e2e suite -- proving this change's image still
+# satisfies the Themis operations Ordinus calls (see
+# themis/scripts/ordinus_contract.py). Ordinus reads its Themis and Laminus
+# URLs from app settings, which the suite sets via PATCH /api/v1/settings.
 
 on:
   pull_request:
@@ -74,8 +75,8 @@ jobs:
           path: /tmp/ordinus-ci.tar
           retention-days: 1
 
-  # The Ordinus -> Themis edge: 4 containers. Laminus is not started; Ordinus
-  # never talks to it.
+  # The Ordinus -> Themis edge: 4 containers. Laminus is the mock; Ordinus
+  # packs its 3MF through it.
   e2e-push:
     needs: [image]
     permissions:

@@ -4,10 +4,10 @@ Ordinus is the upstream design tool; Themis is the downstream print-farm/product
 
 ## Flow (`controllers/themis.controller.ts::sendToThemisHandler`, `POST /api/v1/bom/:layoutId/send-to-themis`)
 
-1. Resolve `THEMIS_URL` from settings (DB) falling back to `config.THEMIS_URL` (env); 503 if neither is set.
+1. Resolve the Themis URL from the `themis_url` setting (no env fallback); 503 if unset.
 2. Load the layout and its `bomGenerations` row; 409 if generation status isn't `ready`.
 3. **Resume-or-create**: if `bomGenerations.themisProjectId` is already set, `GET` that project from Themis and read its existing `items`/`links` to compute what's already been sent. A `ThemisTimeoutError` here is re-thrown (ambiguous — don't assume the project is gone); any other failure (e.g. 404, project deleted) falls back to creating a new project.
-4. Upload each unique STL filename in the manifest to `{THEMIS_URL}/api/v1/files/upload`. Themis dedups by content-hash **within the target folder**, so re-uploading an already-known file is a cheap no-op there, not a real duplicate write.
+4. Upload each unique STL filename in the manifest to `{themis_url}/api/v1/files/upload`. Themis dedups by content-hash **within the target folder**, so re-uploading an already-known file is a cheap no-op there, not a real duplicate write.
 5. If no existing project, create one (`source_app: 'ordinus'`, `source_layout_id`, customer name if the layout has one) and persist `themisProjectId` to `bomGenerations` **immediately** — before adding items/links — so a later failure in this same call resumes cleanly on retry instead of orphaning the project.
 6. Add project items for manifest entries not already present (by `file_id`, from step 3's set).
 7. Add an "Ordinus layout" backlink (`{PUBLIC_URL}/layouts/:layoutId`) if not already present.

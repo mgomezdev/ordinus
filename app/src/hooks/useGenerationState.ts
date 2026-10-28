@@ -20,7 +20,9 @@ const POLL_INTERVAL_MS = 10_000;
 export function useGenerationState(apiBase: string): UseGenerationStateReturn {
   const [entries, setEntries] = useState<Map<string, GenerationEntry>>(new Map());
   const entriesRef = useRef(entries);
-  entriesRef.current = entries;
+  useEffect(() => {
+    entriesRef.current = entries;
+  }, [entries]);
 
   const onEvent = useCallback((event: GenerationEvent) => {
     setEntries((prev) => {

@@ -4,10 +4,9 @@ import { runMigrations } from '../db/migrate.js';
 import {
   createUpload,
   getUploadById,
-  listByUser,
   updateUploadStatus,
   deleteUpload,
-  checkQuota,
+  listAll,
 } from './userStls.service.js';
 
 let client: ReturnType<typeof createClient>;
@@ -71,13 +70,13 @@ describe('getUploadById', () => {
   });
 });
 
-describe('listByUser', () => {
+describe('listAll', () => {
   it('returns empty array when no uploads', async () => {
-    const rows = await listByUser(client, 1);
+    const rows = await listAll(client);
     expect(rows).toHaveLength(0);
   });
 
-  it('returns uploads for the user in descending order', async () => {
+  it('returns uploads in descending order', async () => {
     const now = Date.now();
     await createUpload(client, {
       id: 'older-id',
@@ -98,18 +97,11 @@ describe('listByUser', () => {
       originalFilename: 'b.stl',
       filePath: '/b',
     });
-    const rows = await listByUser(client, 1);
+    const rows = await listAll(client);
     expect(rows).toHaveLength(2);
     // Most recent first (Second was inserted with a later timestamp)
     expect(rows[0].name).toBe('Second');
     expect(rows[1].name).toBe('First');
-  });
-});
-
-describe('checkQuota', () => {
-  it('returns false when under quota', async () => {
-    const exceeded = await checkQuota(client, 1);
-    expect(exceeded).toBe(false);
   });
 });
 

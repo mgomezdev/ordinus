@@ -15,7 +15,6 @@ const envSchema = z.object({
   GENERATED_STL_DIR: z.string().default('./data/generated'),
   THUMBNAIL_DIR: z.string().default('./data/thumbnails'),
   LIBRARY_BUILDER_DIR: z.string().default('../tools/library-builder'),
-  THEMIS_URL: z.string().url().optional(),
   PUBLIC_URL: z.string().default('http://localhost:3001'),
 });
 
