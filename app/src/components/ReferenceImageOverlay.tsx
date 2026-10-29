@@ -170,6 +170,15 @@ export const ReferenceImageOverlay = memo(function ReferenceImageOverlay({
     transformOrigin: 'top left',
   };
 
+  // An aligned image overflows the grid, so pin its toolbar to the grid's
+  // top-left corner instead of the (possibly off-screen) image corner
+  const toolbarStyle: React.CSSProperties | undefined = image.isAligned
+    ? {
+      left: `${(-Math.min(0, image.x) / image.width) * 100}%`,
+      top: `${(-Math.min(0, image.y) / image.height) * 100}%`,
+    }
+    : undefined;
+
   const opacityPercentage = Math.round(image.opacity * 100);
   const scalePercentage = Math.round(image.scale * 100);
 
@@ -183,6 +192,7 @@ export const ReferenceImageOverlay = memo(function ReferenceImageOverlay({
       {isSelected && (
         <div
           className="reference-image-overlay__toolbar"
+          style={toolbarStyle}
           onPointerDown={handleToolbarPointerDown}
         >
           <label className="reference-image-overlay__toolbar-label">

@@ -1252,5 +1252,18 @@ describe('ReferenceImageOverlay', () => {
       fireEvent.click(getByRole('button', { name: /remove alignment/i }));
       expect(onClearAlignment).toHaveBeenCalledTimes(1);
     });
+  
+    it('pins the toolbar to the grid corner when the aligned image overflows', () => {
+      const { container } = render(
+        <ReferenceImageOverlay
+          image={createMockImage({ isAligned: true, x: -25, y: -10, width: 200, height: 125 })}
+          {...defaultProps}
+          isSelected
+        />
+      );
+      const toolbar = container.querySelector('.reference-image-overlay__toolbar') as HTMLElement;
+      expect(toolbar.style.left).toBe('12.5%');
+      expect(toolbar.style.top).toBe('8%');
+    });
   });
 });
