@@ -2998,7 +2998,10 @@
 /* Reference Image Overlay */
 .reference-image-overlay {
   position: absolute;
-  z-index: 2;
+  /* No stacking context: the photo paints beneath bins (z-index 1+) so they
+     stay clickable/draggable on top, while the toolbar (z-index 10) still
+     rises above them */
+  z-index: auto;
   box-sizing: border-box;
   overflow: visible;
 }
@@ -3023,6 +3026,11 @@
 
 .reference-image-overlay--locked.reference-image-overlay--interactive {
   cursor: not-allowed;
+}
+
+/* An aligned photo is the grid background; don't show "not allowed" over every cell */
+.reference-image-overlay--aligned.reference-image-overlay--interactive {
+  cursor: default;
 }
 
 .reference-image-overlay--locked .reference-image-overlay__content {
