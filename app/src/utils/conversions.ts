@@ -3,7 +3,10 @@ import type { UnitSystem, GridResult } from '../types/gridfinity';
 const GRIDFINITY_UNIT_MM = 42;
 const MM_PER_INCH = 25.4;
 
-const FRACTION_DENOMINATORS = [16, 8, 4, 2] as const;
+const FRACTION_DENOMINATORS = [32, 16, 8, 4, 2] as const;
+const FINEST_FRACTION = FRACTION_DENOMINATORS[0];
+// Absorbs float error (e.g. 0.49999999999) so exact values don't floor a step low
+const FLOOR_EPSILON = 1e-9;
 
 function gcd(a: number, b: number): number {
   a = Math.abs(a);
@@ -20,7 +23,7 @@ export function decimalToFraction(decimal: number): string {
   const whole = Math.floor(decimal);
   const fractionalPart = decimal - whole;
 
-  if (fractionalPart < 0.03125) {
+  if (fractionalPart < 1 / 64) {
     return whole.toString();
   }
 
@@ -55,6 +58,25 @@ export function decimalToFraction(decimal: number): string {
   }
 
   return `${whole} ${reducedNum}/${reducedDenom}`;
+}
+
+export function floorToFraction(decimal: number): string {
+  const total = Math.floor(decimal * FINEST_FRACTION + FLOOR_EPSILON);
+  const whole = Math.floor(total / FINEST_FRACTION);
+  const numerator = total % FINEST_FRACTION;
+
+  if (numerator === 0) {
+    return whole.toString();
+  }
+
+  const divisor = gcd(numerator, FINEST_FRACTION);
+  const fraction = `${numerator / divisor}/${FINEST_FRACTION / divisor}`;
+  return whole === 0 ? fraction : `${whole} ${fraction}`;
+}
+
+export function floorToDecimalPlaces(value: number, places: number): string {
+  const factor = 10 ** places;
+  return (Math.floor(value * factor + FLOOR_EPSILON) / factor).toFixed(places);
 }
 
 export function fractionToDecimal(fraction: string): number {
