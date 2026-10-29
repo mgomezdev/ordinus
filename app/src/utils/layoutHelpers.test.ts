@@ -117,4 +117,22 @@ describe('buildPayload', () => {
     const result = buildPayload('Name', '', 4, 4, 168, 168, BASE_SPACER, [], []);
     expect('refImagePlacements' in result).toBe(false);
   });
+
+  it('includes corner alignment (corners + warped image) when present', () => {
+    const corners = [
+      { x: 0.1, y: 0.1 }, { x: 0.9, y: 0.12 }, { x: 0.88, y: 0.9 }, { x: 0.12, y: 0.88 },
+    ] as RefImagePlacement['corners'];
+    const ri = makeRefImage({ corners, warpedImageUrl: 'ref-warp/x.webp', x: -12, width: 124 });
+    const result = buildPayload('Name', '', 4, 4, 168, 168, BASE_SPACER, [], [ri]);
+    const mapped = result.refImagePlacements![0];
+    expect(mapped.corners).toEqual(corners);
+    expect(mapped.warpedImageUrl).toBe('ref-warp/x.webp');
+    expect(mapped.x).toBe(-12);
+  });
+
+  it('sends null alignment for unaligned images', () => {
+    const result = buildPayload('Name', '', 4, 4, 168, 168, BASE_SPACER, [], [makeRefImage()]);
+    expect(result.refImagePlacements![0].corners).toBeNull();
+    expect(result.refImagePlacements![0].warpedImageUrl).toBeNull();
+  });
 });

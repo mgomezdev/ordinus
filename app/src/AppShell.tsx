@@ -5,6 +5,7 @@ import { useSettings } from './contexts/SettingsContext.js';
 import { CustomerSelector } from './components/CustomerSelector';
 import { SaveLayoutDialog } from './components/layouts/SaveLayoutDialog';
 import { RebindImageDialog } from './components/RebindImageDialog';
+import { RefImageAlignDialog } from './components/RefImageAlignDialog';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 import { SettingsModal } from './components/SettingsModal';
@@ -177,6 +178,8 @@ function AppShellInner() {
         onClose={closeRebind}
         onSelect={handleRebindSelect}
       />
+
+      <RefImageAlignDialog />
 
       <ConfirmDialog {...confirmDialogProps} />
 

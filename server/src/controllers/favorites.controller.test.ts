@@ -10,7 +10,6 @@ const mockRename = vi.fn();
 
 vi.mock('../services/favorites.service.js', () => ({
   listAllFavorites: (...args: unknown[]) => mockList(...args),
-  listFavorites: (...args: unknown[]) => mockList(...args),
   createFavorite: (...args: unknown[]) => mockCreate(...args),
   deleteFavorite: (...args: unknown[]) => mockDelete(...args),
   renameFavorite: (...args: unknown[]) => mockRename(...args),

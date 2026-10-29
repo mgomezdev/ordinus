@@ -4,14 +4,6 @@ import { LibraryPage } from '../pages/LibraryPage';
 import { pointerDragDrop, dragToGridCell } from '../utils/drag-drop';
 import type { ApiRefImage } from '../../shared/src/types';
 
-// --- Mock auth helpers ---
-
-// Fake JWT that AuthContext.tsx can decode via atob(payload)
-const JWT_HEADER = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64');
-const JWT_PAYLOAD = Buffer.from(JSON.stringify({ userId: 1, role: 'user', exp: 9999999999 })).toString('base64');
-const FAKE_ACCESS_TOKEN = `${JWT_HEADER}.${JWT_PAYLOAD}.fakesig`;
-const FAKE_REFRESH_TOKEN = 'e2e-fake-refresh-token';
-
 // 1x1 red pixel PNG
 const PNG_BUFFER = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
@@ -42,35 +34,10 @@ function makeMockImage(name: string, isGlobal = false): ApiRefImage {
 }
 
 /**
- * Sets up API route interception for auth + ref-images.
+ * Sets up API route interception for ref-images so each test starts isolated.
  * Returns a mutable images array that tests can modify.
  */
 async function setupApiMocks(page: Page, images: ApiRefImage[] = [MOCK_IMAGE]) {
-  // Auth refresh — makes AuthContext think we're logged in
-  await page.route('**/api/v1/auth/refresh', async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        data: {
-          accessToken: FAKE_ACCESS_TOKEN,
-          refreshToken: FAKE_REFRESH_TOKEN,
-        },
-      }),
-    });
-  });
-
-  // Auth me — returns the current user after refresh
-  await page.route('**/api/v1/auth/me', async (route: Route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        data: { id: 1, username: 'testuser', email: 'test@example.com', role: 'user' },
-      }),
-    });
-  });
-
   // GET ref images
   await page.route('**/api/v1/ref-images', async (route: Route) => {
     if (route.request().method() === 'GET') {
@@ -125,34 +92,9 @@ async function setupApiMocks(page: Page, images: ApiRefImage[] = [MOCK_IMAGE]) {
   return images;
 }
 
-/**
- * Seed localStorage with a refresh token so AuthContext tries to refresh on mount.
- */
-async function seedAuth(page: Page) {
-  await page.addInitScript(() => {
-    localStorage.setItem('gridfinity_refresh_token', 'e2e-fake-refresh-token');
-  });
-}
-
 // --- Tests ---
 
-test.describe('Reference Images — Unauthenticated', () => {
-  let gridPage: GridPage;
-
-  test.beforeEach(async ({ page }) => {
-    gridPage = new GridPage(page);
-    await gridPage.goto();
-    await gridPage.waitForGridReady();
-  });
-
-  test('Images tab is not shown when not authenticated', async ({ page }) => {
-    // The Images tab is only rendered for authenticated users
-    const imagesTab = page.locator('.library-cat-tab', { hasText: 'Images' });
-    await expect(imagesTab).not.toBeVisible();
-  });
-});
-
-test.describe('Reference Images — Authenticated', () => {
+test.describe('Reference Images', () => {
   let gridPage: GridPage;
   let libraryPage: LibraryPage;
 
@@ -161,7 +103,6 @@ test.describe('Reference Images — Authenticated', () => {
     libraryPage = new LibraryPage(page);
 
     await setupApiMocks(page);
-    await seedAuth(page);
 
     await gridPage.goto();
     await gridPage.waitForGridReady();
@@ -179,12 +120,12 @@ test.describe('Reference Images — Authenticated', () => {
     await expect(page.locator('button', { hasText: 'Upload Image' })).toBeVisible();
   });
 
-  test('displays images from API in "My Images" section', async ({ page }) => {
+  test('displays images from API in the personal "Images" section', async ({ page }) => {
     const imagesTab = page.locator('.library-cat-tab', { hasText: 'Images' });
     await imagesTab.click();
 
-    // Should show "My Images" section with the mock image
-    await expect(page.locator('text=My Images (1)')).toBeVisible();
+    // Should show the personal "Images" section with the mock image
+    await expect(page.locator('.ref-image-section-title', { hasText: /^\W*Images \(1\)/ })).toBeVisible();
 
     // The image card should be visible with the mock image name
     const card = page.locator('.ref-image-card').first();

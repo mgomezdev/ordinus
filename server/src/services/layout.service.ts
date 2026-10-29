@@ -1,16 +1,58 @@
 import { eq, and, lt, desc, sql, or, inArray } from 'drizzle-orm';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
 import { logger } from '../logger.js';
-import type { ApiLayout, ApiLayoutDetail, ApiRefImagePlacement, BinCustomization } from '@gridfinity/shared';
+import type { ApiLayout, ApiLayoutDetail, ApiRefImagePlacement, BinCustomization, Quad } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
 import { layouts, placedItems, referenceImages, refImages, customers } from '../db/schema.js';
 import * as referenceImageService from './referenceImage.service.js';
 import { formatLayout, formatPlacedItem } from './formatters.js';
 import * as layoutThumbnailService from './layoutThumbnail.service.js';
+import { releaseWarps } from './refImageWarp.service.js';
 
 interface CursorData {
   createdAt: string;
   id: number;
+}
+
+async function layoutWarpPaths(layoutId: number): Promise<Array<string | null>> {
+  const rows = await db
+    .select({ warpedFilePath: referenceImages.warpedFilePath })
+    .from(referenceImages)
+    .where(eq(referenceImages.layoutId, layoutId));
+  return rows.map(r => r.warpedFilePath);
+}
+
+function parseCorners(raw: string | null): Quad | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as Quad;
+  } catch {
+    return null;
+  }
+}
+
+function formatRefPlacement(
+  row: typeof referenceImages.$inferSelect,
+  imageUrl: string | null,
+): ApiRefImagePlacement {
+  const corners = parseCorners(row.corners);
+  return {
+    id: row.id,
+    layoutId: row.layoutId,
+    refImageId: row.refImageId,
+    name: row.name,
+    imageUrl,
+    x: row.x,
+    y: row.y,
+    width: row.width,
+    height: row.height,
+    opacity: row.opacity,
+    scale: row.scale,
+    isLocked: row.isLocked,
+    rotation: row.rotation,
+    corners,
+    warpedImageUrl: corners ? row.warpedFilePath : null,
+  };
 }
 
 function encodeCursor(data: CursorData): string {
@@ -139,21 +181,9 @@ export async function getLayoutById(
     .where(eq(referenceImages.layoutId, layoutId))
     .orderBy(referenceImages.id);
 
-  const refImagePlacements: ApiRefImagePlacement[] = refPlacementRows.map(row => ({
-    id: row.ri.id,
-    layoutId: row.ri.layoutId,
-    refImageId: row.ri.refImageId,
-    name: row.ri.name,
-    imageUrl: row.ri.refImageId !== null ? (row.refImgPath ?? null) : null,
-    x: row.ri.x,
-    y: row.ri.y,
-    width: row.ri.width,
-    height: row.ri.height,
-    opacity: row.ri.opacity,
-    scale: row.ri.scale,
-    isLocked: row.ri.isLocked,
-    rotation: row.ri.rotation,
-  }));
+  const refImagePlacements: ApiRefImagePlacement[] = refPlacementRows.map(row =>
+    formatRefPlacement(row.ri, row.ri.refImageId !== null ? (row.refImgPath ?? null) : null),
+  );
 
   return {
     ...formatLayout(layout, customerName ?? undefined),
@@ -193,6 +223,8 @@ interface CreateLayoutData {
     scale: number;
     isLocked: boolean;
     rotation: number;
+    corners?: Quad | null;
+    warpedImageUrl?: string | null;
   }>;
 }
 
@@ -263,6 +295,8 @@ export async function createLayout(
       scale: p.scale,
       isLocked: p.isLocked,
       rotation: p.rotation,
+      corners: p.corners ? JSON.stringify(p.corners) : null,
+      warpedFilePath: p.corners ? (p.warpedImageUrl ?? null) : null,
       createdAt: now,
     }));
 
@@ -272,21 +306,7 @@ export async function createLayout(
       .returning();
 
     for (const row of insertedRefs) {
-      refPlacementPlacements.push({
-        id: row.id,
-        layoutId: row.layoutId,
-        refImageId: row.refImageId,
-        name: row.name,
-        imageUrl: null, // Will be resolved on load
-        x: row.x,
-        y: row.y,
-        width: row.width,
-        height: row.height,
-        opacity: row.opacity,
-        scale: row.scale,
-        isLocked: row.isLocked,
-        rotation: row.rotation,
-      });
+      refPlacementPlacements.push(formatRefPlacement(row, null)); // imageUrl resolved on load
     }
   }
 
@@ -366,6 +386,7 @@ export async function updateLayout(
   let updatedRows: Array<typeof layouts.$inferSelect>;
   let insertedItems: Array<typeof placedItems.$inferSelect> = [];
   const refPlacementPlacements: ApiRefImagePlacement[] = [];
+  const previousWarps = await layoutWarpPaths(layoutId);
   await db.run(sql`BEGIN`);
   try {
     updatedRows = await db
@@ -432,6 +453,8 @@ export async function updateLayout(
         scale: p.scale,
         isLocked: p.isLocked,
         rotation: p.rotation,
+        corners: p.corners ? JSON.stringify(p.corners) : null,
+        warpedFilePath: p.corners ? (p.warpedImageUrl ?? null) : null,
         createdAt: now,
       }));
 
@@ -441,21 +464,7 @@ export async function updateLayout(
         .returning();
 
       for (const row of insertedRefs) {
-        refPlacementPlacements.push({
-          id: row.id,
-          layoutId: row.layoutId,
-          refImageId: row.refImageId,
-          name: row.name,
-          imageUrl: null,
-          x: row.x,
-          y: row.y,
-          width: row.width,
-          height: row.height,
-          opacity: row.opacity,
-          scale: row.scale,
-          isLocked: row.isLocked,
-          rotation: row.rotation,
-        });
+        refPlacementPlacements.push(formatRefPlacement(row, null));
       }
     }
     await db.run(sql`COMMIT`);
@@ -463,6 +472,9 @@ export async function updateLayout(
     await db.run(sql`ROLLBACK`);
     throw err;
   }
+
+  // Re-aligned or unaligned images leave their old warp behind
+  await releaseWarps(previousWarps);
 
   let thumbnailFilename: string | undefined;
   try {
@@ -550,9 +562,11 @@ export async function deleteLayout(
   }
 
   await layoutThumbnailService.deleteThumbnail(layoutId);
+  const warps = await layoutWarpPaths(layoutId);
 
   // Delete layout (CASCADE will delete placed_items)
   await db.delete(layouts).where(eq(layouts.id, layoutId));
+  await releaseWarps(warps);
 }
 
 export async function cloneLayout(
@@ -644,6 +658,8 @@ export async function cloneLayout(
       scale: p.scale,
       isLocked: p.isLocked,
       rotation: p.rotation,
+      corners: p.corners,
+      warpedFilePath: p.warpedFilePath,
       createdAt: now,
     }));
 
@@ -653,21 +669,7 @@ export async function cloneLayout(
       .returning();
 
     for (const row of insertedRefs) {
-      refPlacementResults.push({
-        id: row.id,
-        layoutId: row.layoutId,
-        refImageId: row.refImageId,
-        name: row.name,
-        imageUrl: null,
-        x: row.x,
-        y: row.y,
-        width: row.width,
-        height: row.height,
-        opacity: row.opacity,
-        scale: row.scale,
-        isLocked: row.isLocked,
-        rotation: row.rotation,
-      });
+      refPlacementResults.push(formatRefPlacement(row, null));
     }
   }
 

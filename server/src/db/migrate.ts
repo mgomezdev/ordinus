@@ -1,6 +1,8 @@
 import type { Client } from '@libsql/client';
 import * as m001 from './migrations/001_baseline.js';
 import * as m002 from './migrations/002_settings.js';
+import * as m003 from './migrations/003_themis_api_key.js';
+import * as m004 from './migrations/004_ref_image_alignment.js';
 
 interface Migration {
   version: number;
@@ -9,7 +11,7 @@ interface Migration {
   down: (client: Client) => Promise<void>;
 }
 
-const MIGRATIONS: Migration[] = [m001, m002].sort((a, b) => a.version - b.version);
+const MIGRATIONS: Migration[] = [m001, m002, m003, m004].sort((a, b) => a.version - b.version);
 
 async function ensureTable(client: Client): Promise<void> {
   await client.execute(`

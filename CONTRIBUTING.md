@@ -47,7 +47,6 @@ gridfinity-customizer/
 │       └── errors.ts
 ├── generator/                  # Python + OpenSCAD bin generation
 │   ├── generate_bin.py         # Single bin STL generation
-│   ├── bundle_3mf.py           # BOM → full 3MF archive
 │   └── gridfinity_basic_cup.scad
 ├── infra/
 │   ├── Dockerfile              # Multi-stage: build → nginx+node+openscad runtime
@@ -156,7 +155,7 @@ POST /api/v1/bom/generate/:layoutId
   → bomGeneration.controller.ts :: generateHandler()
   → bomGeneration.service.ts :: triggerGeneration()
       → resolveItemSources()         (decide: copy static STL vs generate parametric)
-      → runGenerationPipeline()      (spawn generate_bin.py per item, then bundle_3mf.py)
+      → runGenerationPipeline()      (spawn generate_bin.py per item, then Laminus /api/v1/pack)
       → writes to GENERATED_STL_DIR
       → updates bom_generations table (status: pending → complete)
 ```
@@ -196,7 +195,7 @@ SSE stream: `GET /api/v1/generation/events` — clients listen here for completi
 GET /api/v1/settings/health
   → settings.routes.ts
   → reads themis_url + laminus_url from settings table
-  → server-side fetch to <url>/api/v1/health (Themis) and <url>/api/health (Laminus)
+  → server-side fetch to <url>/api/v1/health (Themis) and <url>/api/v1/health (Laminus)
   → returns { themis: 'up'|'down'|'unconfigured', laminus: 'up'|'down'|'unconfigured' }
 ```
 
@@ -311,7 +310,6 @@ Defined and validated in `server/src/config.ts` via Zod:
 | `GENERATED_STL_DIR` | `./data/generated` | Generated bin STLs + 3MF archives |
 | `THUMBNAIL_DIR` | `./data/thumbnails` | Layout SVG thumbnails |
 | `CORS_ORIGIN` | `http://localhost:5173` | Allowed CORS origin |
-| `THEMIS_URL` | *(unset)* | Deprecated — use settings DB table instead |
 | `MAX_STL_WORKERS` | `2` | Python generation worker concurrency |
 | `LOG_LEVEL` | `info` | Pino log level |
 
@@ -341,5 +339,5 @@ Import these from `@gridfinity/shared` in both server and frontend code rather t
 
 - **No active auth.** The `users` and `refresh_tokens` tables and JWT env vars exist for backward compatibility but all routes are unauthenticated.
 - **Two generation systems.** Per-item preview (`/api/v1/generation`) and full BOM 3MF export (`/api/v1/bom`) are separate pipelines. Don't confuse them.
-- **Settings not env.** Themis URL and Laminus URL are stored in the `settings` DB table, not env vars. `THEMIS_URL` env is still read as a seed value for the initial row but the DB value takes precedence afterward.
+- **Settings not env.** Themis URL and Laminus URL are stored in the `settings` DB table, not env vars. There is no env fallback for either; set them in the Settings dialog or via `PATCH /api/v1/settings`.
 - **Docker DB path.** In Docker, the DB lives at `/config/gridfinity.db` (named volume `ordinus-config`). Locally it defaults to `./data/gridfinity.db`.

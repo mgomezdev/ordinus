@@ -15,6 +15,8 @@ interface ReferenceImageOverlayProps {
   isBroken?: boolean;
   imageUrl?: string | null;
   onRebind?: () => void;
+  onAlignCorners?: () => void;
+  onClearAlignment?: () => void;
 }
 
 interface DragStartCoords {
@@ -38,6 +40,8 @@ export const ReferenceImageOverlay = memo(function ReferenceImageOverlay({
   isBroken,
   imageUrl,
   onRebind,
+  onAlignCorners,
+  onClearAlignment,
 }: ReferenceImageOverlayProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [imageLoadError, setImageLoadError] = useState(false);
@@ -102,9 +106,10 @@ export const ReferenceImageOverlay = memo(function ReferenceImageOverlay({
       const newX = coords.startImageX + deltaXPercent;
       const newY = coords.startImageY + deltaYPercent;
 
-      // Clamp to 0-100 range
-      const clampedX = Math.max(0, Math.min(100, newX));
-      const clampedY = Math.max(0, Math.min(100, newY));
+      // Clamp to 0-100 range; aligned images may legitimately start above/left of the grid
+      const minPos = image.isAligned ? -100 : 0;
+      const clampedX = Math.max(minPos, Math.min(100, newX));
+      const clampedY = Math.max(minPos, Math.min(100, newY));
 
       onPositionChange(clampedX, clampedY);
     };
@@ -128,7 +133,7 @@ export const ReferenceImageOverlay = memo(function ReferenceImageOverlay({
       document.removeEventListener('pointerup', handlePointerUp);
       document.removeEventListener('pointercancel', handlePointerCancel);
     };
-  }, [isDragging, onPositionChange]);
+  }, [isDragging, onPositionChange, image.isAligned]);
 
   const baseClassName = 'reference-image-overlay';
   const interactiveClassName = `${baseClassName}--interactive`;
@@ -165,6 +170,15 @@ export const ReferenceImageOverlay = memo(function ReferenceImageOverlay({
     transformOrigin: 'top left',
   };
 
+  // An aligned image overflows the grid, so pin its toolbar to the grid's
+  // top-left corner instead of the (possibly off-screen) image corner
+  const toolbarStyle: React.CSSProperties | undefined = image.isAligned
+    ? {
+      left: `${(-Math.min(0, image.x) / image.width) * 100}%`,
+      top: `${(-Math.min(0, image.y) / image.height) * 100}%`,
+    }
+    : undefined;
+
   const opacityPercentage = Math.round(image.opacity * 100);
   const scalePercentage = Math.round(image.scale * 100);
 
@@ -178,6 +192,7 @@ export const ReferenceImageOverlay = memo(function ReferenceImageOverlay({
       {isSelected && (
         <div
           className="reference-image-overlay__toolbar"
+          style={toolbarStyle}
           onPointerDown={handleToolbarPointerDown}
         >
           <label className="reference-image-overlay__toolbar-label">
@@ -194,20 +209,22 @@ export const ReferenceImageOverlay = memo(function ReferenceImageOverlay({
               aria-label={`Opacity: ${opacityPercentage}%`}
             />
           </label>
-          <label className="reference-image-overlay__toolbar-label">
-            Scale
-            <input
-              id="scale-slider"
-              type="range"
-              min="10"
-              max="500"
-              value={scalePercentage}
-              onChange={handleScaleChange}
-              className="reference-image-overlay__toolbar-slider"
-              title={`Scale: ${scalePercentage}%`}
-              aria-label={`Scale: ${scalePercentage}%`}
-            />
-          </label>
+          {!image.isAligned && (
+            <label className="reference-image-overlay__toolbar-label">
+              Scale
+              <input
+                id="scale-slider"
+                type="range"
+                min="10"
+                max="500"
+                value={scalePercentage}
+                onChange={handleScaleChange}
+                className="reference-image-overlay__toolbar-slider"
+                title={`Scale: ${scalePercentage}%`}
+                aria-label={`Scale: ${scalePercentage}%`}
+              />
+            </label>
+          )}
           <button
             className="reference-image-overlay__toolbar-btn reference-image-overlay__toolbar-btn--lock"
             onClick={onToggleLock}
@@ -216,7 +233,7 @@ export const ReferenceImageOverlay = memo(function ReferenceImageOverlay({
           >
             {image.isLocked ? 'Unlock' : 'Lock'}
           </button>
-          {onRotateCcw && (
+          {onRotateCcw && !image.isAligned && (
             <button
               className="reference-image-overlay__toolbar-btn reference-image-overlay__toolbar-btn--rotate"
               onClick={onRotateCcw}
@@ -226,7 +243,7 @@ export const ReferenceImageOverlay = memo(function ReferenceImageOverlay({
               &#8634;
             </button>
           )}
-          {onRotateCw && (
+          {onRotateCw && !image.isAligned && (
             <button
               className="reference-image-overlay__toolbar-btn reference-image-overlay__toolbar-btn--rotate"
               onClick={onRotateCw}
@@ -234,6 +251,26 @@ export const ReferenceImageOverlay = memo(function ReferenceImageOverlay({
               aria-label="Rotate clockwise"
             >
               &#8635;
+            </button>
+          )}
+          {onAlignCorners && !isBroken && (
+            <button
+              className="reference-image-overlay__toolbar-btn reference-image-overlay__toolbar-btn--align"
+              onClick={onAlignCorners}
+              title="Mark the grid's 4 corners on this photo to straighten it onto the grid"
+              aria-label={image.isAligned ? 'Edit corners' : 'Align corners'}
+            >
+              {image.isAligned ? 'Edit corners' : 'Align corners'}
+            </button>
+          )}
+          {image.isAligned && onClearAlignment && (
+            <button
+              className="reference-image-overlay__toolbar-btn"
+              onClick={onClearAlignment}
+              title="Show the original photo instead of the aligned one"
+              aria-label="Remove alignment"
+            >
+              Unalign
             </button>
           )}
           {isBroken && onRebind && (
@@ -291,7 +328,7 @@ export const ReferenceImageOverlay = memo(function ReferenceImageOverlay({
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'contain',
+              objectFit: image.isAligned ? 'fill' : 'contain',
               userSelect: 'none',
             }}
           />

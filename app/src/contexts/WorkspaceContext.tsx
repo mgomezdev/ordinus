@@ -23,6 +23,7 @@ import { useLibraries } from '../hooks/useLibraries';
 import { useLibraryData } from '../hooks/useLibraryData';
 import { useCategoryData } from '../hooks/useCategoryData';
 import { useRefImagePlacements } from '../hooks/useRefImagePlacements';
+import { useReleaseDroppedWarps } from '../hooks/useReleaseDroppedWarps';
 import {
   useCloneLayoutMutation,
 } from '../hooks/useLayouts';
@@ -114,6 +115,8 @@ interface WorkspaceContextValue {
   updateRefImageRotation: UseRefImagePlacementsReturn['updateRotation'];
   toggleRefImageLock: UseRefImagePlacementsReturn['toggleLock'];
   rebindRefImage: UseRefImagePlacementsReturn['rebindImage'];
+  applyRefImageAlignment: UseRefImagePlacementsReturn['applyAlignment'];
+  clearRefImageAlignment: UseRefImagePlacementsReturn['clearAlignment'];
   loadRefImagePlacements: UseRefImagePlacementsReturn['loadPlacements'];
   clearRefImages: UseRefImagePlacementsReturn['clearAll'];
   referenceImagesForGrid: ReferenceImage[];
@@ -248,9 +251,13 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     updateRotation: updateRefImageRotation,
     toggleLock: toggleRefImageLock,
     rebindImage: rebindRefImage,
+    applyAlignment: applyRefImageAlignment,
+    clearAlignment: clearRefImageAlignment,
     loadPlacements: loadRefImagePlacements,
     clearAll: clearRefImages,
   } = useRefImagePlacements();
+
+  useReleaseDroppedWarps(refImagePlacements);
 
   // Derived grid
   const gridResult = useMemo(() => calculateGrid(width, depth, unitSystem), [width, depth, unitSystem]);
@@ -294,6 +301,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         id: p.id, name: p.name, dataUrl: '',
         x: p.x, y: p.y, width: p.width, height: p.height,
         opacity: p.opacity, scale: p.scale, isLocked: p.isLocked, rotation: p.rotation,
+        isAligned: Boolean(p.corners && p.warpedImageUrl),
       })),
     [refImagePlacements],
   );
@@ -475,6 +483,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     updateRefImageRotation,
     toggleRefImageLock,
     rebindRefImage,
+    applyRefImageAlignment,
+    clearRefImageAlignment,
     loadRefImagePlacements,
     clearRefImages,
     referenceImagesForGrid,

@@ -1,5 +1,6 @@
 export interface ServiceSettings {
   themis_url: string;
+  themis_api_key: string;
   laminus_url: string;
 }
 

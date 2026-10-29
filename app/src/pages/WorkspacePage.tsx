@@ -22,6 +22,10 @@ import { MobileActionBar } from '../components/MobileActionBar';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3001/api/v1';
 
+function imageUrlFor(path: string | null | undefined): string | null {
+  return path ? `${API_BASE_URL}/images/${path}` : null;
+}
+
 const LIBRARY_MIN_WIDTH = 160;
 const LIBRARY_MAX_WIDTH = 520;
 const LIBRARY_DEFAULT_WIDTH = 260;
@@ -42,7 +46,7 @@ export function WorkspacePage() {
     layoutMeta, isDirty,
     refImagePlacements, addRefImagePlacement, removeRefImagePlacement,
     updateRefImagePosition, updateRefImageScale, updateRefImageOpacity,
-    updateRefImageRotation, toggleRefImageLock,
+    updateRefImageRotation, toggleRefImageLock, clearRefImageAlignment,
     referenceImagesForGrid,
     getItemById, getLibraryMeta,
     handleClearAll, handleReset,
@@ -113,7 +117,7 @@ export function WorkspacePage() {
     for (const p of refImagePlacements) {
       map.set(p.id, {
         isBroken: p.refImageId === null,
-        imageUrl: p.imageUrl ? `${API_BASE_URL}/images/${p.imageUrl}` : null,
+        imageUrl: imageUrlFor(p.warpedImageUrl && p.corners ? p.warpedImageUrl : p.imageUrl),
       });
     }
     return map;
@@ -222,6 +226,10 @@ export function WorkspacePage() {
 
   const handleRebindImage = useCallback((id: string) => {
     dialogDispatch({ type: 'OPEN_REBIND', targetId: id });
+  }, [dialogDispatch]);
+
+  const handleAlignImage = useCallback((id: string) => {
+    dialogDispatch({ type: 'OPEN_ALIGN', targetId: id });
   }, [dialogDispatch]);
 
   const toggleImageViewMode = useCallback(() => {
@@ -344,6 +352,7 @@ export function WorkspacePage() {
       <GridSummary
         gridX={gridResult.gridX} gridY={gridResult.gridY}
         gapWidth={gridResult.gapWidth} gapDepth={gridResult.gapDepth}
+        spacerConfig={spacerConfig}
         unit={unitSystem} imperialFormat={imperialFormat}
       />
     </>
@@ -443,6 +452,8 @@ export function WorkspacePage() {
             onImageRotateCcw={(id) => updateRefImageRotation(id, 'ccw')}
             refImageMetadata={refImageMetadata}
             onRefImageRebind={handleRebindImage}
+            onRefImageAlign={handleAlignImage}
+            onRefImageClearAlignment={clearRefImageAlignment}
             snapPreview={snapPreview}
             onSnapChange={setRawSnapPreview}
           />

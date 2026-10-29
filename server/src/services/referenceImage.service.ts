@@ -78,7 +78,6 @@ export async function uploadReferenceImage(
 export async function deleteReferenceImage(
   layoutId: number,
   imageId: number,
-  _userId?: number | null,
 ): Promise<void> {
   // Verify layout exists
   const layoutRows = await db

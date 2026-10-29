@@ -187,6 +187,8 @@ export const referenceImages = sqliteTable('reference_images', {
   scale: real('scale').notNull().default(1.0),
   isLocked: integer('is_locked', { mode: 'boolean' }).notNull().default(false),
   rotation: integer('rotation').notNull().default(0),
+  corners: text('corners'), // JSON Quad (normalised 0–1 on the original image)
+  warpedFilePath: text('warped_file_path'),
   createdAt: text('created_at').notNull().default(''),
 }, (table) => [
   index('idx_reference_images_layout').on(table.layoutId),
@@ -347,8 +349,7 @@ export const bomGenerationsRelations = relations(bomGenerations, ({ one }) => ({
   }),
 }));
 
-export const favoritesRelations = relations(favorites, ({ }) => ({
-}));
+export const favoritesRelations = relations(favorites, () => ({}));
 
 export const userStlUploadsRelations = relations(userStlUploads, ({ many }) => ({
   customerParts: many(customerParts),

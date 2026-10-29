@@ -9,6 +9,7 @@ import { reseedLibraryData } from './db/reseedLibraries.js';
 import { getPendingAndProcessingIds, getUploadById, resetToPending } from './services/userStls.service.js';
 import { processUpload, getImageOutputDir } from './services/stlProcessing.service.js';
 import { startCleanup } from './services/generationCleanup.service.js';
+import { startWarpCleanup } from './services/refImageWarp.service.js';
 
 async function main(): Promise<void> {
   // Run migrations
@@ -29,7 +30,7 @@ async function main(): Promise<void> {
     await resetToPending(client, id);
     const row = await getUploadById(client, id);
     if (row) {
-      const imageDir = getImageOutputDir(row.userId);
+      const imageDir = getImageOutputDir();
       void processUpload(id, row.filePath, imageDir, row.userId);
     }
   }
@@ -38,6 +39,7 @@ async function main(): Promise<void> {
   await reseedLibraryData(client, logger);
   startCleanup();
   logger.info('Generation cleanup service started');
+  startWarpCleanup();
 
   // Seed default users on first boot only (when users table is empty)
   const userCount = await client.execute('SELECT COUNT(*) as count FROM users');

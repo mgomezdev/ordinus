@@ -57,4 +57,11 @@ describe('DB migrations', () => {
     const names = cols.rows.map((r) => (r as Record<string, unknown>).name);
     expect(names).toContain('stl_file');
   });
+
+  it('reference_images has alignment columns (corners, warped_file_path)', async () => {
+    const cols = await client.execute('PRAGMA table_info(reference_images)');
+    const names = cols.rows.map((r) => (r as Record<string, unknown>).name);
+    expect(names).toContain('corners');
+    expect(names).toContain('warped_file_path');
+  });
 });

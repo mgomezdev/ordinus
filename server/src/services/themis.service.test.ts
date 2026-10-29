@@ -58,6 +58,22 @@ describe('createThemisProject', () => {
     expect(body.source_layout_id).toBe(42);
   });
 
+  it('sends a stable external_ref per layout so a retried create returns the same project', async () => {
+    global.fetch = mockFetch({ id: 7, name: 'My Layout' });
+    await createThemisProject(THEMIS, 'My Layout', 'Imported from Ordinus', undefined, 42);
+    const [, opts] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+    expect(body.external_ref).toBe('layout-42');
+  });
+
+  it('omits external_ref when there is no layout id', async () => {
+    global.fetch = mockFetch({ id: 7, name: 'My Layout' });
+    await createThemisProject(THEMIS, 'My Layout', '');
+    const [, opts] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(opts.body as string) as Record<string, unknown>;
+    expect(body).not.toHaveProperty('external_ref');
+  });
+
   it('throws if Themis returns non-ok', async () => {
     global.fetch = mockFetch({}, 500);
     await expect(createThemisProject(THEMIS, 'X', '')).rejects.toThrow('500');
@@ -73,7 +89,9 @@ describe('addThemisProjectItem', () => {
     const body = JSON.parse(opts.body as string) as Record<string, unknown>;
     expect(body.file_id).toBe(42);
     expect(body.quantity).toBe(3);
-    expect(body.filament_profile_uuid).toBe('');
+    // Filament ask stays undefined (deferred) — the operator picks filament in Themis.
+    expect(body).not.toHaveProperty('filament_profile_uuid');
+    expect(body).not.toHaveProperty('color_hex');
   });
 
   it('throws if Themis returns non-ok', async () => {
