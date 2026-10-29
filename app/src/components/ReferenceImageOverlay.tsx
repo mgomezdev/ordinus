@@ -140,6 +140,7 @@ export const ReferenceImageOverlay = memo(function ReferenceImageOverlay({
   const draggingClassName = isDragging ? `${baseClassName}--dragging` : '';
   const lockedClassName = image.isLocked ? `${baseClassName}--locked` : '';
   const selectedClassName = isSelected ? `${baseClassName}--selected` : '';
+  const alignedClassName = image.isAligned ? `${baseClassName}--aligned` : '';
 
   const className = [
     baseClassName,
@@ -147,6 +148,7 @@ export const ReferenceImageOverlay = memo(function ReferenceImageOverlay({
     draggingClassName,
     lockedClassName,
     selectedClassName,
+    alignedClassName,
   ]
     .filter(Boolean)
     .join(' ');
