@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   decimalToFraction,
+  floorToFraction,
+  floorToDecimalPlaces,
   fractionToDecimal,
   mmToInches,
   inchesToMm,
@@ -36,14 +38,22 @@ describe('conversions', () => {
     });
 
     it('should handle values very close to whole numbers', () => {
-      expect(decimalToFraction(0.99)).toBe('1'); // Rounds to 1
+      expect(decimalToFraction(0.995)).toBe('1'); // Rounds to 1
       expect(decimalToFraction(1.01)).toBe('1'); // Rounds to 1
-      expect(decimalToFraction(2.98)).toBe('3'); // Rounds to 3
+      expect(decimalToFraction(2.99)).toBe('3'); // Rounds to 3
+      expect(decimalToFraction(2.98)).toBe('2 31/32');
     });
 
     it('should handle very small fractional parts', () => {
-      expect(decimalToFraction(5.03)).toBe('5'); // Less than 1/16, rounds down
-      expect(decimalToFraction(5.01)).toBe('5');
+      expect(decimalToFraction(5.01)).toBe('5'); // Less than 1/64, rounds down
+      expect(decimalToFraction(5.03)).toBe('5 1/32');
+    });
+
+    it('should handle 1/32 increments', () => {
+      expect(decimalToFraction(0.03125)).toBe('1/32');
+      expect(decimalToFraction(0.09375)).toBe('3/32');
+      expect(decimalToFraction(0.96875)).toBe('31/32');
+      expect(decimalToFraction(2.34375)).toBe('2 11/32');
     });
 
     it('should handle 1/16 increments', () => {
@@ -66,10 +76,36 @@ describe('conversions', () => {
     });
 
     it('should round to nearest supported fraction', () => {
-      // Note: 0.33 is actually closest to 5/16 (0.3125), not 1/4 (0.25)
-      expect(decimalToFraction(0.33)).toBe('5/16');
-      // 0.66 is closest to 11/16 (0.6875), not 1/2 (0.5)
-      expect(decimalToFraction(0.66)).toBe('11/16');
+      // 0.33 is closest to 11/32 (0.34375)
+      expect(decimalToFraction(0.33)).toBe('11/32');
+      // 0.66 is closest to 21/32 (0.65625)
+      expect(decimalToFraction(0.66)).toBe('21/32');
+    });
+  });
+
+  describe('floorToFraction', () => {
+    it.each([
+      [0, '0'],
+      [0.99, '31/32'],
+      [2.98, '2 31/32'],
+      [0.5, '1/2'],
+      [0.49999999999, '1/2'],
+      [0.03, '0'],
+      [1.2, '1 3/16'],
+    ])('floors %s to %s', (value, expected) => {
+      expect(floorToFraction(value)).toBe(expected);
+    });
+  });
+
+  describe('floorToDecimalPlaces', () => {
+    it('floors instead of rounding', () => {
+      expect(floorToDecimalPlaces(2.98, 1)).toBe('2.9');
+      expect(floorToDecimalPlaces(2.95, 1)).toBe('2.9');
+    });
+
+    it('keeps exact values', () => {
+      expect(floorToDecimalPlaces(3, 1)).toBe('3.0');
+      expect(floorToDecimalPlaces(0.1 + 0.2, 1)).toBe('0.3');
     });
   });
 

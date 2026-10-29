@@ -1,11 +1,12 @@
-import type { UnitSystem, ImperialFormat } from '../types/gridfinity';
-import { decimalToFraction } from '../utils/conversions';
+import type { UnitSystem, ImperialFormat, GridSpacerConfig } from '../types/gridfinity';
+import { formatGapPair } from '../utils/gapDisplay';
 
 interface GridSummaryProps {
   gridX: number;
   gridY: number;
   gapWidth: number;
   gapDepth: number;
+  spacerConfig: GridSpacerConfig;
   unit: UnitSystem;
   imperialFormat: ImperialFormat;
 }
@@ -15,6 +16,7 @@ export function GridSummary({
   gridY,
   gapWidth,
   gapDepth,
+  spacerConfig,
   unit,
   imperialFormat,
 }: GridSummaryProps) {
@@ -26,19 +28,7 @@ export function GridSummary({
     );
   }
 
-  const unitLabel = unit === 'metric' ? 'mm' : 'in';
-  const formatGap = (gap: number) => {
-    if (unit === 'metric') {
-      return gap.toFixed(1);
-    }
-    return imperialFormat === 'fractional'
-      ? decimalToFraction(gap)
-      : gap.toFixed(2);
-  };
-
-  const gapDisplay = gapWidth === gapDepth
-    ? `${formatGap(gapWidth)} ${unitLabel}`
-    : `${formatGap(gapWidth)} x ${formatGap(gapDepth)} ${unitLabel}`;
+  const gapDisplay = formatGapPair(gapWidth, gapDepth, spacerConfig, unit, imperialFormat);
 
   return (
     <div className="grid-summary">
