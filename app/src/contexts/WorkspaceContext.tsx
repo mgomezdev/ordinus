@@ -114,6 +114,8 @@ interface WorkspaceContextValue {
   updateRefImageRotation: UseRefImagePlacementsReturn['updateRotation'];
   toggleRefImageLock: UseRefImagePlacementsReturn['toggleLock'];
   rebindRefImage: UseRefImagePlacementsReturn['rebindImage'];
+  applyRefImageAlignment: UseRefImagePlacementsReturn['applyAlignment'];
+  clearRefImageAlignment: UseRefImagePlacementsReturn['clearAlignment'];
   loadRefImagePlacements: UseRefImagePlacementsReturn['loadPlacements'];
   clearRefImages: UseRefImagePlacementsReturn['clearAll'];
   referenceImagesForGrid: ReferenceImage[];
@@ -248,6 +250,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     updateRotation: updateRefImageRotation,
     toggleLock: toggleRefImageLock,
     rebindImage: rebindRefImage,
+    applyAlignment: applyRefImageAlignment,
+    clearAlignment: clearRefImageAlignment,
     loadPlacements: loadRefImagePlacements,
     clearAll: clearRefImages,
   } = useRefImagePlacements();
@@ -294,6 +298,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         id: p.id, name: p.name, dataUrl: '',
         x: p.x, y: p.y, width: p.width, height: p.height,
         opacity: p.opacity, scale: p.scale, isLocked: p.isLocked, rotation: p.rotation,
+        isAligned: Boolean(p.corners && p.warpedImageUrl),
       })),
     [refImagePlacements],
   );
@@ -475,6 +480,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     updateRefImageRotation,
     toggleRefImageLock,
     rebindRefImage,
+    applyRefImageAlignment,
+    clearRefImageAlignment,
     loadRefImagePlacements,
     clearRefImages,
     referenceImagesForGrid,

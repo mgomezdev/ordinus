@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
+import { WARPED_IMAGE_PATH_PATTERN } from '../services/refImageWarp.service.js';
 import type { ApiResponse, ApiListResponse, ApiLayout, ApiLayoutDetail } from '@gridfinity/shared';
 import type { Request, Response, NextFunction } from 'express';
 import * as layoutService from '../services/layout.service.js';
@@ -44,19 +45,24 @@ const placedItemSchema = z.object({
   customization: binCustomizationSchema.optional(),
 });
 
+const pointSchema = z.object({ x: z.number().finite(), y: z.number().finite() });
+
+// Aligned (perspective-warped) images may extend past the grid on every side
 const refImagePlacementSchema = z.object({
   refImageId: z.number().int().positive(),
   name: z.string().min(1).max(255),
-  x: z.number().min(0).max(100),
-  y: z.number().min(0).max(100),
-  width: z.number().positive().max(100),
-  height: z.number().positive().max(100),
+  x: z.number().min(-100).max(100),
+  y: z.number().min(-100).max(100),
+  width: z.number().positive().max(300),
+  height: z.number().positive().max(300),
   opacity: z.number().min(0).max(1),
   scale: z.number().min(0.1).max(10),
   isLocked: z.boolean(),
   rotation: z.number().refine((v) => [0, 90, 180, 270].includes(v), {
     message: 'Rotation must be 0, 90, 180, or 270',
   }),
+  corners: z.tuple([pointSchema, pointSchema, pointSchema, pointSchema]).nullable().optional(),
+  warpedImageUrl: z.string().regex(WARPED_IMAGE_PATH_PATTERN).nullable().optional(),
 });
 
 const createLayoutSchema = z.object({

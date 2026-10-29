@@ -5,6 +5,8 @@ export interface DialogState {
   save: boolean;
   rebind: boolean;
   rebindTargetId: string | null;
+  align: boolean;
+  alignTargetId: string | null;
 }
 
 export type DialogAction =
@@ -12,13 +14,17 @@ export type DialogAction =
   | { type: 'CLOSE'; dialog: DialogName }
   | { type: 'TOGGLE'; dialog: DialogName }
   | { type: 'OPEN_REBIND'; targetId: string }
-  | { type: 'CLOSE_REBIND' };
+  | { type: 'CLOSE_REBIND' }
+  | { type: 'OPEN_ALIGN'; targetId: string }
+  | { type: 'CLOSE_ALIGN' };
 
 export const initialDialogState: DialogState = {
   keyboard: false,
   save: false,
   rebind: false,
   rebindTargetId: null,
+  align: false,
+  alignTargetId: null,
 };
 
 const closedDialogs: Pick<DialogState, DialogName> = {
@@ -41,6 +47,10 @@ export function dialogReducer(state: DialogState, action: DialogAction): DialogS
       return { ...state, ...closedDialogs, rebind: true, rebindTargetId: action.targetId };
     case 'CLOSE_REBIND':
       return { ...state, rebind: false, rebindTargetId: null };
+    case 'OPEN_ALIGN':
+      return { ...state, ...closedDialogs, rebind: false, align: true, alignTargetId: action.targetId };
+    case 'CLOSE_ALIGN':
+      return { ...state, align: false, alignTargetId: null };
     default:
       return state;
   }
