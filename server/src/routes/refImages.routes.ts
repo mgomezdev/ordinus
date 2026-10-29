@@ -10,6 +10,7 @@ const upload = multer({
 
 router.get('/', refImageController.listRefImages);
 router.post('/', upload.single('image'), refImageController.uploadRefImage);
+router.delete('/warps/:filename', refImageController.deleteWarpedImage);
 router.patch('/:id', refImageController.renameRefImage);
 router.post('/:id/warp', refImageController.warpRefImage);
 router.delete('/:id', refImageController.deleteRefImage);

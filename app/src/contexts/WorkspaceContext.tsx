@@ -23,6 +23,7 @@ import { useLibraries } from '../hooks/useLibraries';
 import { useLibraryData } from '../hooks/useLibraryData';
 import { useCategoryData } from '../hooks/useCategoryData';
 import { useRefImagePlacements } from '../hooks/useRefImagePlacements';
+import { useReleaseDroppedWarps } from '../hooks/useReleaseDroppedWarps';
 import {
   useCloneLayoutMutation,
 } from '../hooks/useLayouts';
@@ -255,6 +256,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     loadPlacements: loadRefImagePlacements,
     clearAll: clearRefImages,
   } = useRefImagePlacements();
+
+  useReleaseDroppedWarps(refImagePlacements);
 
   // Derived grid
   const gridResult = useMemo(() => calculateGrid(width, depth, unitSystem), [width, depth, unitSystem]);

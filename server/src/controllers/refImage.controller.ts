@@ -132,3 +132,25 @@ export async function warpRefImage(
     next(err);
   }
 }
+
+export async function deleteWarpedImage(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const filename = req.params.filename as string;
+    if (!refImageWarpService.WARP_FILENAME_PATTERN.test(filename)) {
+      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid warped image filename');
+    }
+
+    const deleted = await refImageWarpService.deleteWarpIfUnreferenced(
+      `${refImageWarpService.WARP_SUBDIR}/${filename}`,
+    );
+
+    const body: ApiResponse<{ deleted: boolean }> = { data: { deleted } };
+    res.json(body);
+  } catch (err) {
+    next(err);
+  }
+}
