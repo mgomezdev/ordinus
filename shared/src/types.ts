@@ -2,6 +2,8 @@
 // Core Gridfinity types (migrated from src/types/gridfinity.ts)
 // ============================================================
 
+import type { Quad } from './perspective.js';
+
 export type UnitSystem = 'metric' | 'imperial';
 export type ImperialFormat = 'decimal' | 'fractional';
 
@@ -305,6 +307,26 @@ export interface ApiRefImagePlacement {
   scale: number;
   isLocked: boolean;
   rotation: number;
+  /** Grid corners marked on the original image (normalised 0–1), or null when not aligned. */
+  corners: Quad | null;
+  /** Perspective-corrected image path, or null when not aligned. */
+  warpedImageUrl: string | null;
+}
+
+export interface WarpRefImageRequest {
+  /** TL, TR, BR, BL grid corners on the original image, normalised 0–1. */
+  corners: Quad;
+  /** Grid width / height. */
+  aspectRatio: number;
+}
+
+/** Warped image plus its placement in grid-percent coordinates (may extend past 0–100). */
+export interface ApiRefImageWarp {
+  warpedImageUrl: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 export interface ApiLayoutDetail extends ApiLayout {
@@ -342,6 +364,8 @@ export interface CreateLayoutRequest {
     scale: number;
     isLocked: boolean;
     rotation: number;
+    corners?: Quad | null;
+    warpedImageUrl?: string | null;
   }>;
 }
 

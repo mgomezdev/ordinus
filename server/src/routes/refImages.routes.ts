@@ -11,6 +11,7 @@ const upload = multer({
 router.get('/', refImageController.listRefImages);
 router.post('/', upload.single('image'), refImageController.uploadRefImage);
 router.patch('/:id', refImageController.renameRefImage);
+router.post('/:id/warp', refImageController.warpRefImage);
 router.delete('/:id', refImageController.deleteRefImage);
 
 export default router;

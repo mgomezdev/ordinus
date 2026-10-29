@@ -1,11 +1,24 @@
 import { z } from 'zod';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
-import type { ApiResponse, ApiRefImage } from '@gridfinity/shared';
+import type { ApiResponse, ApiRefImage, ApiRefImageWarp, Quad } from '@gridfinity/shared';
 import type { Request, Response, NextFunction } from 'express';
 import * as refImageService from '../services/refImage.service.js';
+import * as refImageWarpService from '../services/refImageWarp.service.js';
 
 const renameSchema = z.object({
   name: z.string().min(1).max(255),
+});
+
+const normalisedPointSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+});
+
+const MAX_GRID_ASPECT_RATIO = 20;
+
+const warpSchema = z.object({
+  corners: z.tuple([normalisedPointSchema, normalisedPointSchema, normalisedPointSchema, normalisedPointSchema]),
+  aspectRatio: z.number().min(1 / MAX_GRID_ASPECT_RATIO).max(MAX_GRID_ASPECT_RATIO),
 });
 
 export async function listRefImages(
@@ -86,6 +99,35 @@ export async function deleteRefImage(
     await refImageService.deleteRefImage(imageId);
 
     res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function warpRefImage(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const imageId = parseInt(req.params.id as string, 10);
+    if (isNaN(imageId)) {
+      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid image ID');
+    }
+
+    const parsed = warpSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Validation failed', parsed.error.flatten());
+    }
+
+    const warp = await refImageWarpService.warpRefImage(
+      imageId,
+      parsed.data.corners as Quad,
+      parsed.data.aspectRatio,
+    );
+
+    const body: ApiResponse<ApiRefImageWarp> = { data: warp };
+    res.json(body);
   } catch (err) {
     next(err);
   }
