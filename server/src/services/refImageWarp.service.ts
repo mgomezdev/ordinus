@@ -1,5 +1,5 @@
 import { resolve, join } from 'node:path';
-import { readFile, writeFile, rename, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, rename, mkdir, readdir, stat, unlink } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import sharp from 'sharp';
@@ -15,7 +15,8 @@ import {
 import type { ApiRefImageWarp, Quad, WarpBounds } from '@gridfinity/shared';
 import { config } from '../config.js';
 import { db } from '../db/connection.js';
-import { refImages } from '../db/schema.js';
+import { refImages, referenceImages } from '../db/schema.js';
+import { logger } from '../logger.js';
 
 /** How far (in grid widths/depths) the warped photo may extend past each grid edge. */
 export const WARP_MAX_OVERFLOW = 0.5;
@@ -25,6 +26,10 @@ export const WARP_GRID_LONG_SIDE_PX = 1600;
 const WARP_SOURCE_MAX_PX = 2400;
 export const WARP_SUBDIR = 'ref-warp';
 export const WARPED_IMAGE_PATH_PATTERN = /^ref-warp\/[0-9a-f-]{36}\.webp$/;
+export const WARP_FILENAME_PATTERN = /^[0-9a-f-]{36}\.webp$/;
+/** Unsaved warps live only in a browser tab, so give abandoned ones this long before sweeping. */
+export const ORPHANED_WARP_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+const WARP_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const WARP_WEBP_QUALITY = 85;
 const CHANNELS = 4;
 
@@ -168,4 +173,83 @@ export async function warpRefImage(
     width: (bounds.maxX - bounds.minX) * 100,
     height: (bounds.maxY - bounds.minY) * 100,
   };
+}
+
+async function isWarpReferenced(warpPath: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: referenceImages.id })
+    .from(referenceImages)
+    .where(eq(referenceImages.warpedFilePath, warpPath))
+    .limit(1);
+  return rows.length > 0;
+}
+
+/**
+ * Deletes a warped image unless a saved layout still references it.
+ * Returns true only when a file was actually removed.
+ */
+export async function deleteWarpIfUnreferenced(warpPath: string): Promise<boolean> {
+  if (!WARPED_IMAGE_PATH_PATTERN.test(warpPath)) {
+    throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid warped image path');
+  }
+  if (await isWarpReferenced(warpPath)) return false;
+  try {
+    await unlink(join(resolve(config.IMAGE_DIR), warpPath));
+    return true;
+  } catch {
+    return false; // already gone
+  }
+}
+
+/** Best-effort release of warps a layout stopped using; never fails the caller. */
+export async function releaseWarps(warpPaths: Iterable<string | null>): Promise<void> {
+  for (const warpPath of new Set(warpPaths)) {
+    if (!warpPath || !WARPED_IMAGE_PATH_PATTERN.test(warpPath)) continue;
+    try {
+      await deleteWarpIfUnreferenced(warpPath);
+    } catch (err) {
+      logger.warn({ err, warpPath }, 'Failed to release warped image');
+    }
+  }
+}
+
+/**
+ * Sweeps warps no saved layout references and that are older than
+ * `graceMs` (abandoned, never-saved alignments). Returns the number removed.
+ */
+export async function cleanupOrphanedWarps(graceMs: number): Promise<number> {
+  const warpDir = join(resolve(config.IMAGE_DIR), WARP_SUBDIR);
+  let entries: string[];
+  try {
+    entries = await readdir(warpDir);
+  } catch {
+    return 0; // no warps yet
+  }
+
+  const cutoff = Date.now() - graceMs;
+  let removed = 0;
+  for (const filename of entries) {
+    if (!WARP_FILENAME_PATTERN.test(filename)) continue;
+    const warpPath = `${WARP_SUBDIR}/${filename}`;
+    try {
+      const { mtimeMs } = await stat(join(warpDir, filename));
+      if (mtimeMs >= cutoff) continue;
+      if (await deleteWarpIfUnreferenced(warpPath)) removed++;
+    } catch (err) {
+      logger.warn({ err, warpPath }, 'Failed to check or clean warped image');
+    }
+  }
+  return removed;
+}
+
+export function startWarpCleanup(): void {
+  const run = () => {
+    cleanupOrphanedWarps(ORPHANED_WARP_GRACE_MS)
+      .then(removed => {
+        if (removed > 0) logger.info({ removed }, 'Cleaned up orphaned warped images');
+      })
+      .catch(err => logger.error({ err }, 'Warped image cleanup failed'));
+  };
+  run();
+  setInterval(run, WARP_CLEANUP_INTERVAL_MS);
 }

@@ -7,10 +7,19 @@ import { layouts, placedItems, referenceImages, refImages, customers } from '../
 import * as referenceImageService from './referenceImage.service.js';
 import { formatLayout, formatPlacedItem } from './formatters.js';
 import * as layoutThumbnailService from './layoutThumbnail.service.js';
+import { releaseWarps } from './refImageWarp.service.js';
 
 interface CursorData {
   createdAt: string;
   id: number;
+}
+
+async function layoutWarpPaths(layoutId: number): Promise<Array<string | null>> {
+  const rows = await db
+    .select({ warpedFilePath: referenceImages.warpedFilePath })
+    .from(referenceImages)
+    .where(eq(referenceImages.layoutId, layoutId));
+  return rows.map(r => r.warpedFilePath);
 }
 
 function parseCorners(raw: string | null): Quad | null {
@@ -377,6 +386,7 @@ export async function updateLayout(
   let updatedRows: Array<typeof layouts.$inferSelect>;
   let insertedItems: Array<typeof placedItems.$inferSelect> = [];
   const refPlacementPlacements: ApiRefImagePlacement[] = [];
+  const previousWarps = await layoutWarpPaths(layoutId);
   await db.run(sql`BEGIN`);
   try {
     updatedRows = await db
@@ -462,6 +472,9 @@ export async function updateLayout(
     await db.run(sql`ROLLBACK`);
     throw err;
   }
+
+  // Re-aligned or unaligned images leave their old warp behind
+  await releaseWarps(previousWarps);
 
   let thumbnailFilename: string | undefined;
   try {
@@ -549,9 +562,11 @@ export async function deleteLayout(
   }
 
   await layoutThumbnailService.deleteThumbnail(layoutId);
+  const warps = await layoutWarpPaths(layoutId);
 
   // Delete layout (CASCADE will delete placed_items)
   await db.delete(layouts).where(eq(layouts.id, layoutId));
+  await releaseWarps(warps);
 }
 
 export async function cloneLayout(

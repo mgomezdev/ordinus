@@ -51,3 +51,13 @@ export async function warpRefImage(
   );
   return result.data;
 }
+
+/** Deletes a warped image unless a saved layout still uses it. */
+export async function deleteWarpedImage(warpPath: string): Promise<boolean> {
+  const filename = warpPath.split('/').pop() ?? '';
+  const result = await apiFetch<ApiResponse<{ deleted: boolean }>>(
+    `/ref-images/warps/${encodeURIComponent(filename)}`,
+    { method: 'DELETE' },
+  );
+  return result.data.deleted;
+}

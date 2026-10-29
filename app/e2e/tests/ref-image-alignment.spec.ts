@@ -251,4 +251,26 @@ test.describe('Reference image corner alignment', () => {
     await markCornersAndApply(page, dialog, TRAPEZOID);
     await expect(overlay.locator('img')).toHaveAttribute('src', /ref-warp\//);
   });
+
+  test('re-aligning and unaligning delete the replaced warped images', async ({ page }) => {
+    const name = `align-cleanup-${Date.now()}.png`;
+    await uploadPhoto(page, name, TRAPEZOID);
+    await page.reload();
+    await gridPage.waitForGridReady();
+
+    const overlay = await placePhotoOnGrid(page, gridPage, name);
+    const first = await markCornersAndApply(page, await openCornerEditor(page, overlay, /align corners/i), TRAPEZOID);
+
+    await overlay.click();
+    const second = await markCornersAndApply(page, await openCornerEditor(page, overlay, /edit corners/i), NEAR_RECT);
+    expect(second.warpedImageUrl).not.toBe(first.warpedImageUrl);
+    await expect.poll(async () => (await page.request.get(`${API_BASE}/images/${first.warpedImageUrl}`)).status())
+      .toBe(404);
+
+    await overlay.click();
+    await overlay.getByRole('button', { name: /remove alignment/i }).click();
+    await expect(overlay.locator('img')).toHaveAttribute('src', /ref-lib\//);
+    await expect.poll(async () => (await page.request.get(`${API_BASE}/images/${second.warpedImageUrl}`)).status())
+      .toBe(404);
+  });
 });
