@@ -68,6 +68,7 @@ export function useLayoutLoader({
         x: p.x, y: p.y, width: p.width, height: p.height,
         opacity: p.opacity, scale: p.scale, isLocked: p.isLocked,
         rotation: p.rotation as Rotation,
+        corners: p.corners ?? null, warpedImageUrl: p.warpedImageUrl ?? null,
       }));
 
       handleLoadLayout({

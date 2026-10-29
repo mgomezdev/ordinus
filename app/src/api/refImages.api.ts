@@ -1,4 +1,4 @@
-import type { ApiResponse, ApiRefImage } from '@gridfinity/shared';
+import type { ApiResponse, ApiRefImage, ApiRefImageWarp, Quad } from '@gridfinity/shared';
 import { apiFetch } from './apiClient';
 
 export async function fetchRefImages(): Promise<ApiRefImage[]> {
@@ -34,4 +34,20 @@ export async function renameRefImage(
 
 export async function deleteRefImage(id: number): Promise<void> {
   await apiFetch<void>(`/ref-images/${id}`, { method: 'DELETE' });
+}
+
+export async function warpRefImage(
+  id: number,
+  corners: Quad,
+  aspectRatio: number,
+): Promise<ApiRefImageWarp> {
+  const result = await apiFetch<ApiResponse<ApiRefImageWarp>>(
+    `/ref-images/${id}/warp`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ corners, aspectRatio }),
+    },
+  );
+  return result.data;
 }

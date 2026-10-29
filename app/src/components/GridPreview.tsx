@@ -44,6 +44,8 @@ interface GridPreviewProps {
   imageViewMode?: ImageViewMode;
   refImageMetadata?: Map<string, RefImageMeta>;
   onRefImageRebind?: (id: string) => void;
+  onRefImageAlign?: (id: string) => void;
+  onRefImageClearAlignment?: (id: string) => void;
   getLibraryMeta?: (libraryId: string) => Promise<LibraryMeta>;
   snapPreview?: { col: number; row: number; w: number; d: number; valid: boolean } | null;
   onSnapChange?: (preview: SnapPreviewData | null) => void;
@@ -77,6 +79,8 @@ export function GridPreview({
   imageViewMode = 'ortho',
   refImageMetadata,
   onRefImageRebind,
+  onRefImageAlign,
+  onRefImageClearAlignment,
   getLibraryMeta,
   snapPreview = null,
   onSnapChange,
@@ -235,6 +239,8 @@ export function GridPreview({
                 isBroken={meta?.isBroken}
                 imageUrl={meta?.imageUrl}
                 onRebind={onRefImageRebind ? () => onRefImageRebind(image.id) : undefined}
+                onAlignCorners={onRefImageAlign ? () => onRefImageAlign(image.id) : undefined}
+                onClearAlignment={onRefImageClearAlignment ? () => onRefImageClearAlignment(image.id) : undefined}
               />
             );
           })}

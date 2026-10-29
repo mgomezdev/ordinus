@@ -26,6 +26,8 @@ export function buildPayload(
       scale: p.scale,
       isLocked: p.isLocked,
       rotation: p.rotation,
+      corners: p.corners ?? null,
+      warpedImageUrl: p.corners ? (p.warpedImageUrl ?? null) : null,
     }));
 
   return {

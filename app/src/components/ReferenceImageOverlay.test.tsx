@@ -1210,4 +1210,47 @@ describe('ReferenceImageOverlay', () => {
     });
   });
 
+
+  describe('Corner alignment', () => {
+    it('shows an Align corners button that calls onAlignCorners', () => {
+      const onAlignCorners = vi.fn();
+      const { getByRole } = render(
+        <ReferenceImageOverlay image={createMockImage()} {...defaultProps} isSelected onAlignCorners={onAlignCorners} />
+      );
+      fireEvent.click(getByRole('button', { name: /align corners/i }));
+      expect(onAlignCorners).toHaveBeenCalledTimes(1);
+    });
+
+    it('stretches an aligned image to its box and hides scale/rotate controls', () => {
+      const { container, queryByLabelText, queryByRole } = render(
+        <ReferenceImageOverlay
+          image={createMockImage({ isAligned: true })}
+          {...defaultProps}
+          isSelected
+          onRotateCw={vi.fn()}
+          onAlignCorners={vi.fn()}
+          onClearAlignment={vi.fn()}
+        />
+      );
+      expect(container.querySelector('img')).toHaveStyle({ objectFit: 'fill' });
+      expect(queryByLabelText(/^Scale/)).not.toBeInTheDocument();
+      expect(queryByRole('button', { name: /rotate clockwise/i })).not.toBeInTheDocument();
+      expect(queryByRole('button', { name: /edit corners/i })).toBeInTheDocument();
+    });
+
+    it('lets the user remove the alignment', () => {
+      const onClearAlignment = vi.fn();
+      const { getByRole } = render(
+        <ReferenceImageOverlay
+          image={createMockImage({ isAligned: true })}
+          {...defaultProps}
+          isSelected
+          onAlignCorners={vi.fn()}
+          onClearAlignment={onClearAlignment}
+        />
+      );
+      fireEvent.click(getByRole('button', { name: /remove alignment/i }));
+      expect(onClearAlignment).toHaveBeenCalledTimes(1);
+    });
+  });
 });

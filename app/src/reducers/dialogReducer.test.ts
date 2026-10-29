@@ -191,4 +191,22 @@ describe('dialogReducer', () => {
       expect(state).toBe(existing);
     });
   });
+
+  describe('align dialog', () => {
+    it('OPEN_ALIGN opens the corner editor for a target and closes others', () => {
+      const state = dialogReducer({ ...initialDialogState, save: true }, { type: 'OPEN_ALIGN', targetId: 'ref-1' });
+      expect(state.align).toBe(true);
+      expect(state.alignTargetId).toBe('ref-1');
+      expect(state.save).toBe(false);
+    });
+
+    it('CLOSE_ALIGN closes and clears the target', () => {
+      const state = dialogReducer(
+        { ...initialDialogState, align: true, alignTargetId: 'ref-1' },
+        { type: 'CLOSE_ALIGN' },
+      );
+      expect(state.align).toBe(false);
+      expect(state.alignTargetId).toBeNull();
+    });
+  });
 });

@@ -106,6 +106,8 @@ export interface ReferenceImage {
   scale: number;
   isLocked: boolean;
   rotation: Rotation;
+  /** Perspective-aligned to the grid corners: stretched to its box, no scale/rotate. */
+  isAligned?: boolean;
 }
 
 export type WallPattern = 'grid' | 'hexgrid' | 'voronoi' | 'voronoigrid' | 'voronoihexgrid';
