@@ -1265,5 +1265,14 @@ describe('ReferenceImageOverlay', () => {
       expect(toolbar.style.left).toBe('12.5%');
       expect(toolbar.style.top).toBe('8%');
     });
+  
+    it('marks aligned images so they act as the grid background', () => {
+      const { container, rerender } = render(
+        <ReferenceImageOverlay image={createMockImage({ isAligned: true, isLocked: true })} {...defaultProps} />
+      );
+      expect(container.firstChild).toHaveClass('reference-image-overlay--aligned');
+      rerender(<ReferenceImageOverlay image={createMockImage()} {...defaultProps} />);
+      expect(container.firstChild).not.toHaveClass('reference-image-overlay--aligned');
+    });
   });
 });

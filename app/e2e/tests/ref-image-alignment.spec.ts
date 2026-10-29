@@ -2,7 +2,7 @@ import { test, expect, type Page, type Locator } from '@playwright/test';
 import sharp from 'sharp';
 import { GridPage } from '../pages/GridPage';
 import { LibraryPage } from '../pages/LibraryPage';
-import { pointerDragDrop } from '../utils/drag-drop';
+import { pointerDragDrop, dragToGridCell } from '../utils/drag-drop';
 
 /**
  * Corner alignment: the user marks the grid's 4 corners on a reference photo
@@ -272,5 +272,47 @@ test.describe('Reference image corner alignment', () => {
     await expect(overlay.locator('img')).toHaveAttribute('src', /ref-lib\//);
     await expect.poll(async () => (await page.request.get(`${API_BASE}/images/${second.warpedImageUrl}`)).status())
       .toBe(404);
+  });
+
+  test('bins stay on top of an aligned photo and can be placed, selected and moved', async ({ page }) => {
+    const name = `align-layering-${Date.now()}.png`;
+    await uploadPhoto(page, name, NEAR_RECT);
+    await page.reload();
+    await gridPage.waitForGridReady();
+
+    const overlay = await placePhotoOnGrid(page, gridPage, name);
+    await markCornersAndApply(page, await openCornerEditor(page, overlay, /align corners/i), NEAR_RECT);
+
+    // Place a bin on top of the photo
+    await page.locator('.library-cat-tab', { hasText: /^All$/ }).click();
+    const libraryItem = page.locator('.library-item-card').first();
+    await expect(libraryItem).toBeVisible();
+    await dragToGridCell(page, libraryItem, gridPage.gridContainer, 0, 0, 4, 4);
+    const bin = page.locator('.placed-item').first();
+    await expect(bin).toBeVisible();
+
+    // The bin, not the photo, is what sits under the pointer
+    const binOnTop = await bin.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return !!hit && el.contains(hit);
+    });
+    expect(binOnTop).toBe(true);
+
+    // Selecting the bin works
+    await bin.click();
+    await expect(bin).toHaveClass(/selected/);
+
+    // Moving the bin works
+    const before = await bin.boundingBox();
+    await dragToGridCell(page, bin, gridPage.gridContainer, 2, 2, 4, 4);
+    await expect.poll(async () => (await bin.boundingBox())!.x).toBeGreaterThan(before!.x + 10);
+
+    // The photo is still reachable on empty grid space, with its toolbar above the bins
+    const gridBox = (await gridPage.gridContainer.boundingBox())!;
+    await page.mouse.click(gridBox.x + gridBox.width * 0.9, gridBox.y + gridBox.height * 0.1);
+    const toolbar = overlay.locator('.reference-image-overlay__toolbar');
+    await expect(toolbar).toBeVisible();
+    await expect(toolbar.getByRole('button', { name: /edit corners/i })).toBeVisible();
   });
 });
