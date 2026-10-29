@@ -4,20 +4,21 @@ import type {
   SpacerMode,
   UnitSystem,
 } from '../types/gridfinity';
-import { decimalToFraction } from './conversions';
+import { floorToFraction, floorToDecimalPlaces } from './conversions';
 
 const GAP_DECIMAL_PLACES = 1;
 const SPLIT_SEPARATOR = ' + ';
 
+// Always rounds down: a displayed gap must never overstate the space available
 export function formatGapValue(
   gap: number,
   unit: UnitSystem,
   imperialFormat: ImperialFormat
 ): string {
   if (unit === 'imperial' && imperialFormat === 'fractional') {
-    return decimalToFraction(gap);
+    return floorToFraction(gap);
   }
-  return gap.toFixed(GAP_DECIMAL_PLACES);
+  return floorToDecimalPlaces(gap, GAP_DECIMAL_PLACES);
 }
 
 export function formatAxisGap(

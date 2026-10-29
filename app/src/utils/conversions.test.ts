@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   decimalToFraction,
+  floorToFraction,
+  floorToDecimalPlaces,
   fractionToDecimal,
   mmToInches,
   inchesToMm,
@@ -78,6 +80,32 @@ describe('conversions', () => {
       expect(decimalToFraction(0.33)).toBe('11/32');
       // 0.66 is closest to 21/32 (0.65625)
       expect(decimalToFraction(0.66)).toBe('21/32');
+    });
+  });
+
+  describe('floorToFraction', () => {
+    it.each([
+      [0, '0'],
+      [0.99, '31/32'],
+      [2.98, '2 31/32'],
+      [0.5, '1/2'],
+      [0.49999999999, '1/2'],
+      [0.03, '0'],
+      [1.2, '1 3/16'],
+    ])('floors %s to %s', (value, expected) => {
+      expect(floorToFraction(value)).toBe(expected);
+    });
+  });
+
+  describe('floorToDecimalPlaces', () => {
+    it('floors instead of rounding', () => {
+      expect(floorToDecimalPlaces(2.98, 1)).toBe('2.9');
+      expect(floorToDecimalPlaces(2.95, 1)).toBe('2.9');
+    });
+
+    it('keeps exact values', () => {
+      expect(floorToDecimalPlaces(3, 1)).toBe('3.0');
+      expect(floorToDecimalPlaces(0.1 + 0.2, 1)).toBe('0.3');
     });
   });
 

@@ -48,4 +48,12 @@ describe('GridSummary', () => {
     );
     expect(screen.getByText('Gap: 1/4 + 1/4 in')).toBeInTheDocument();
   });
+
+  it('rounds the gap down so it never overstates the space', () => {
+    render(
+      <GridSummary gridX={2} gridY={3} gapWidth={2.98} gapDepth={2.98}
+        spacerConfig={NONE} unit="metric" imperialFormat="decimal" />
+    );
+    expect(screen.getByText('Gap: 2.9 mm')).toBeInTheDocument();
+  });
 });
