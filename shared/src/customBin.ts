@@ -25,6 +25,8 @@ const WALL_COUNT = 4;
 /** Any number without its own max stays within this magnitude, so one request cannot ask for absurd geometry. */
 const NUMBER_HARD_LIMIT = 1000;
 
+const HALF_PITCH_PARAM = 'half_pitch';
+
 const SCHEMA_BY_NAME = new Map<string, ParamDef>(GENERATOR_PARAM_SCHEMA.map(d => [d.name, d]));
 
 function normalize(value: unknown): unknown {
@@ -61,6 +63,20 @@ export function isParamEnabled(def: ParamDef, values: Record<string, unknown>): 
   if (!enabler) return true;
   const value = Object.prototype.hasOwnProperty.call(values, enabler.name) ? values[enabler.name] : effectiveDefault(enabler);
   return enablerIsOn(enabler, value);
+}
+
+/** Whether a generator `half_pitch` value (boolean or "true"/"false") turns half-cell base pads on. */
+export function halfPitchEnabled(value: unknown): boolean {
+  return normalize(value) === true;
+}
+
+/** Half-unit placement needs the base pads subdivided, which is the generator's `half_pitch` option. */
+export function specUsesHalfPitch(spec: Pick<CustomBinSpec, 'overrides'>): boolean {
+  const def = SCHEMA_BY_NAME.get(HALF_PITCH_PARAM);
+  const value = Object.prototype.hasOwnProperty.call(spec.overrides, HALF_PITCH_PARAM)
+    ? spec.overrides[HALF_PITCH_PARAM]
+    : def && effectiveDefault(def);
+  return halfPitchEnabled(value);
 }
 
 export function buildCustomBinParams(spec: CustomBinSpec): Record<string, unknown> {
@@ -151,6 +167,11 @@ export function validateCustomBinSpec(input: unknown): CustomBinValidation {
     if (!sameValue(value, effectiveDefault(def)) && !isParamEnabled(def, values)) {
       errors.push(`${name} requires ${def.enabledBy} to be on`);
     }
+  }
+
+  const hasHalfFootprint = [raw['width'], raw['depth']].some(v => typeof v === 'number' && !Number.isInteger(v));
+  if (hasHalfFootprint && !specUsesHalfPitch({ overrides: values })) {
+    errors.push('half-unit width or depth requires half_pitch to be on');
   }
 
   return errors.length > 0 ? { ok: false, errors } : { ok: true, spec: raw as unknown as CustomBinSpec };

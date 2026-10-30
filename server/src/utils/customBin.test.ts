@@ -10,6 +10,7 @@ import {
   effectiveDefault,
   isParamEnabled,
   pruneOverrides,
+  specUsesHalfPitch,
   validateCustomBinSpec,
 } from '@gridfinity/shared';
 import type { BinCustomization, CustomBinSpec } from '@gridfinity/shared';
@@ -236,5 +237,35 @@ describe('validateCustomBinSpec - injection and resource limits', () => {
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('half-unit footprints require half pitch', () => {
+  const errorsFor = (s: CustomBinSpec) => {
+    const r = validateCustomBinSpec(s);
+    return r.ok ? [] : r.errors;
+  };
+
+  it('accepts half-unit width and depth with the default (half pitch on)', () => {
+    expect(validateCustomBinSpec(spec({ width: 2.5, depth: 1.5 })).ok).toBe(true);
+  });
+
+  it.each([[{ width: 2.5 }], [{ depth: 1.5 }]])('rejects %j when half pitch is turned off', (size) => {
+    const errors = errorsFor(spec({ ...size, overrides: { half_pitch: false } }));
+    expect(errors.some(e => e.includes('half_pitch'))).toBe(true);
+  });
+
+  it('accepts whole-unit sizes with half pitch off', () => {
+    expect(validateCustomBinSpec(spec({ width: 3, depth: 2, overrides: { half_pitch: false } })).ok).toBe(true);
+  });
+
+  it('allows a half-unit height whatever the pitch (height is vertical)', () => {
+    expect(validateCustomBinSpec(spec({ height: 3.5, overrides: { half_pitch: false } })).ok).toBe(true);
+  });
+
+  it('reports whether a spec uses half pitch', () => {
+    expect(specUsesHalfPitch(spec())).toBe(true);
+    expect(specUsesHalfPitch(spec({ overrides: { half_pitch: false } }))).toBe(false);
+    expect(specUsesHalfPitch(spec({ overrides: { half_pitch: true } }))).toBe(true);
   });
 });

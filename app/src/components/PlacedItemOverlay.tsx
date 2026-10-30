@@ -11,7 +11,7 @@ import { BinContextMenu } from './BinContextMenu';
 import { useFavorites } from '../hooks/useFavorites';
 import { generatedImageUrl } from '../api/generation.api';
 import { GRID_RESOLUTION, halfCellsToUnits } from '@gridfinity/shared';
-import { footprintSnapStep, WHOLE_CELL_STEP } from '../utils/snap';
+import { footprintSnapStep } from '../utils/snap';
 
 interface PlacedItemOverlayProps {
   item: PlacedItemWithValidity;
@@ -187,7 +187,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
       type: 'placed',
       itemId: item.itemId,
       instanceId: item.instanceId,
-      ...(footprintSnapStep(item) !== WHOLE_CELL_STEP ? { snapStep: footprintSnapStep(item) } : {}),
+      snapStep: footprintSnapStep(item),
     },
     onTap: (e: PointerEvent) => onSelect(item.instanceId, { shift: e.shiftKey, ctrl: e.ctrlKey || e.metaKey }),
   });

@@ -22,6 +22,24 @@ describe('useCustomBinForm', () => {
     expect(result.current.spec.height).toBe(20);
   });
 
+  it('reports an error for a half-unit footprint once half pitch is turned off, and clears it when restored', () => {
+    const { result } = renderHook(() => useCustomBinForm());
+    act(() => result.current.setSize('width', 2.5));
+    expect(result.current.errors).toEqual([]);
+
+    act(() => result.current.setOverride('half_pitch', false));
+    expect(result.current.errors.some(e => e.includes('half_pitch'))).toBe(true);
+
+    act(() => result.current.resetOverride('half_pitch'));
+    expect(result.current.errors).toEqual([]);
+  });
+
+  it('allows a whole-unit footprint with half pitch off', () => {
+    const { result } = renderHook(() => useCustomBinForm());
+    act(() => result.current.setOverride('half_pitch', false));
+    expect(result.current.errors).toEqual([]);
+  });
+
   it('stores an override only while it differs from the default', () => {
     const { result } = renderHook(() => useCustomBinForm());
     act(() => result.current.setOverride('magnet_diameter', 6.5));

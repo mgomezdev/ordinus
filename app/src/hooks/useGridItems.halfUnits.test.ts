@@ -83,6 +83,34 @@ describe('useGridItems with half-unit items', () => {
   });
 });
 
+describe('half pitch gating', () => {
+  const noHalf = { width: 3, depth: 2, height: 4, overrides: { half_pitch: false } };
+
+  it('marks a custom bin without half pitch invalid on a half-unit position', () => {
+    const { result } = load([item({ instanceId: 'a', x: 1, width: 6, height: 4, customSpec: noHalf })], 8, 8);
+    expect(result.current.placedItems[0].isValid).toBe(false);
+  });
+
+  it('keeps a custom bin without half pitch valid on whole units', () => {
+    const { result } = load([item({ instanceId: 'a', x: 2, width: 6, height: 4, customSpec: noHalf })], 8, 8);
+    expect(result.current.placedItems[0].isValid).toBe(true);
+  });
+
+  it('auto-places a no-half-pitch custom bin on whole-unit boundaries', () => {
+    const { result } = load([item({ instanceId: 'a', x: 0, y: 0, width: 3, height: 8 })], 4, 4);
+    let id: string | null = null;
+    act(() => {
+      id = result.current.addCustomItem({
+        id: 'custom:custom-n', libraryId: 'custom', name: 'n', widthUnits: 1, heightUnits: 1, color: '#000', categories: [],
+        customSpec: { width: 1, depth: 1, height: 2, overrides: { half_pitch: false } },
+      });
+    });
+    expect(id).not.toBeNull();
+    expect(result.current.placedItems[1].x % 2).toBe(0);
+    expect(result.current.placedItems[1].isValid).toBe(true);
+  });
+});
+
 describe('addCustomItem', () => {
   const customItem = {
     id: 'custom:custom-abc', libraryId: 'custom', name: 'Custom 2.5×1.5×3.5', widthUnits: 2.5, heightUnits: 1.5,

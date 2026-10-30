@@ -124,6 +124,18 @@ describe('POST /api/v1/layouts — half-cell geometry', () => {
     expect(res.status).toBe(400);
   });
 
+  it('rejects half-cell placement of a custom bin whose base does not use half pitch', async () => {
+    const noHalf = { ...customSpec, width: 3, depth: 2, overrides: { half_pitch: false } };
+    const { res } = await post({ ...base, gridResolution: 2, placedItems: [{ ...item, x: 1, width: 6, height: 4, customSpec: noHalf }] });
+    expect(res.status).toBe(400);
+  });
+
+  it('accepts whole-unit placement of a custom bin without half pitch', async () => {
+    const noHalf = { ...customSpec, width: 3, depth: 2, overrides: { half_pitch: false } };
+    const { res } = await post({ ...base, gridResolution: 2, placedItems: [{ ...item, x: 2, y: 4, width: 6, height: 4, customSpec: noHalf }] });
+    expect(res.status).toBe(201);
+  });
+
   it('rejects unknown grid resolutions', async () => {
     const { res } = await post({ ...base, gridResolution: 3, placedItems: [item] });
     expect(res.status).toBe(400);

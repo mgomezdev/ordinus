@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AppError, ErrorCodes, GRID_RESOLUTION, LEGACY_GRID_RESOLUTION, rescalePlacedGeometry, validateCustomBinSpec } from '@gridfinity/shared';
+import { AppError, ErrorCodes, GRID_RESOLUTION, LEGACY_GRID_RESOLUTION, rescalePlacedGeometry, specUsesHalfPitch, validateCustomBinSpec } from '@gridfinity/shared';
 import type { CustomBinSpec } from '@gridfinity/shared';
 import { WARPED_IMAGE_PATH_PATTERN } from '../services/refImageWarp.service.js';
 import type { ApiResponse, ApiListResponse, ApiLayout, ApiLayoutDetail } from '@gridfinity/shared';
@@ -51,7 +51,10 @@ const placedItemSchema = z.object({
   }),
   customization: binCustomizationSchema.optional(),
   customSpec: customSpecSchema.optional(),
-});
+}).refine(
+  (item) => !item.customSpec || specUsesHalfPitch(item.customSpec) || [item.x, item.y, item.width, item.height].every(v => v % GRID_RESOLUTION === 0),
+  { message: 'Half-unit placement requires the bin to use half_pitch' },
+);
 
 const pointSchema = z.object({ x: z.number().finite(), y: z.number().finite() });
 

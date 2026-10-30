@@ -22,7 +22,7 @@ vi.mock('../hooks/useImageLoadState', () => ({
   }),
 }));
 
-const makeFavorite = (spec: { width: number; depth: number; height: number }): FavoriteItem => ({
+const makeFavorite = (spec: { width: number; depth: number; height: number }, overrides: Record<string, unknown> = {}): FavoriteItem => ({
   id: 'fav-custom',
   name: 'Custom bin',
   createdAt: 1000,
@@ -39,7 +39,7 @@ const makeFavorite = (spec: { width: number; depth: number; height: number }): F
   perspectiveImageUrl180: null,
   perspectiveImageUrl270: null,
   customization: { wallPatternEnabled: false, wallPattern: 'grid', lipStyle: 'normal', fingerSlide: 'none', wallCutout: 'none', height: 4 } as never,
-  customSpec: { ...spec, overrides: {} },
+  customSpec: { ...spec, overrides },
 });
 
 function renderedDragData(favorite: FavoriteItem): DragData {
@@ -60,8 +60,12 @@ describe('FavoriteCard — custom bins', () => {
     });
   });
 
-  it('snaps whole-unit custom bins to whole units', () => {
-    expect(renderedDragData(makeFavorite({ width: 3, depth: 2, height: 4 })).snapStep).toBeUndefined();
+  it('snaps custom bins without half pitch to whole units', () => {
+    expect(renderedDragData(makeFavorite({ width: 3, depth: 2, height: 4 }, { half_pitch: false })).snapStep).toBe(2);
+  });
+
+  it('lets whole-size custom bins with half pitch drop on half-cells', () => {
+    expect(renderedDragData(makeFavorite({ width: 3, depth: 2, height: 4 })).snapStep).toBe(1);
   });
 
   it('snaps half-unit custom bins to half-cells', () => {

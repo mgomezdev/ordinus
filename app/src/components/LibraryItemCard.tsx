@@ -4,6 +4,7 @@ import { usePointerDragSource } from '../hooks/usePointerDrag';
 import { useImageLoadState } from '../hooks/useImageLoadState';
 import { ItemPreviewPopover } from './ItemPreviewPopover';
 import { generatedImageUrl } from '../api/generation.api';
+import { footprintSnapStep } from '../utils/snap';
 
 interface LibraryItemCardProps {
   item: LibraryItem;
@@ -66,6 +67,7 @@ export function LibraryItemCard({ item }: LibraryItemCardProps) {
     dragData: {
       type: 'library',
       itemId: item.id,
+      snapStep: footprintSnapStep({ parameters: item.parameters }),
     },
     onTap: handleTap,
   });

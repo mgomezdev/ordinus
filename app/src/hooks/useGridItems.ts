@@ -4,7 +4,7 @@ import { DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
 import { GRID_RESOLUTION } from '@gridfinity/shared';
 import { ROTATION_CW, ROTATION_CCW } from '../utils/constants';
 import { mergeGeneratorParams, generatorParamsToBinCustomization } from '../utils/generatorParams';
-import { footprintSnapStep, WHOLE_CELL_STEP } from '../utils/snap';
+import { footprintSnapStep, violatesHalfGrid, WHOLE_CELL_STEP } from '../utils/snap';
 import { buildCustomItem } from '../utils/customItem';
 
 /**
@@ -186,7 +186,7 @@ export function useGridItems(
     const occupancy = buildOccupancyCount(placedItems, cellsX, cellsY);
     return placedItems.map(item => {
       const oob = isOutOfBounds(item.x, item.y, item.width, item.height, cellsX, cellsY);
-      if (oob) return { ...item, isValid: false };
+      if (oob || violatesHalfGrid(item)) return { ...item, isValid: false };
       // A cell with count > 1 means multiple items overlap there
       let collides = false;
       for (let dy = 0; dy < item.height && !collides; dy++) {
@@ -253,7 +253,7 @@ export function useGridItems(
   const addCustomItem = useCallback((libraryItem: LibraryItem): string | null => {
     const width = libraryItem.widthUnits * GRID_RESOLUTION;
     const height = libraryItem.heightUnits * GRID_RESOLUTION;
-    const step = footprintSnapStep({ x: 0, y: 0, width, height });
+    const step = footprintSnapStep({ customSpec: libraryItem.customSpec, parameters: libraryItem.parameters });
     const pos = findValidPosition(itemsRef.current, width, height, 0, 0, cellsX, cellsY, step);
     if (!pos) return null;
     return placeCustomItem(libraryItem, pos.x, pos.y);
@@ -459,7 +459,7 @@ export function useGridItems(
       const step = footprintSnapStep(source);
       const pos = findValidPosition(
         allItems, source.width, source.height,
-        source.x + step, source.y + step,
+        source.x + WHOLE_CELL_STEP, source.y + WHOLE_CELL_STEP,
         cellsX, cellsY, step
       );
       if (!pos) continue;
