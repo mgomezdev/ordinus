@@ -1,27 +1,36 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import type { PlacedItem, PlacedItemWithValidity, DragData, LibraryItem, Rotation, BinCustomization, CustomizableFieldDef } from '../types/gridfinity';
 import { DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
-import { ROTATION_CW, ROTATION_CCW } from '../utils/constants';
+import { ROTATION_CW, ROTATION_CCW, HALF_UNIT } from '../utils/constants';
 import { mergeGeneratorParams, generatorParamsToBinCustomization } from '../utils/generatorParams';
 
+/** Occupancy cells per grid unit: bins can sit on half-unit boundaries. */
+const OCCUPANCY_RESOLUTION = 1 / HALF_UNIT;
+
+function toOccupancyCells(units: number): number {
+  return Math.round(units * OCCUPANCY_RESOLUTION);
+}
+
 /**
- * Grid-based occupancy count for O(n) collision detection.
- * Each cell stores the number of items occupying it.
+ * Grid-based occupancy count for O(n) collision detection, at half-unit resolution.
+ * Each occupancy cell stores the number of items covering it.
  */
 function buildOccupancyCount(
   items: PlacedItem[],
   gridX: number,
   gridY: number
 ): number[][] {
-  const grid: number[][] = Array.from({ length: gridY }, () =>
-    new Array<number>(gridX).fill(0)
-  );
+  const cols = toOccupancyCells(gridX);
+  const rows = toOccupancyCells(gridY);
+  const grid: number[][] = Array.from({ length: rows }, () => new Array<number>(cols).fill(0));
   for (const item of items) {
-    for (let dy = 0; dy < item.height; dy++) {
-      for (let dx = 0; dx < item.width; dx++) {
-        const cx = item.x + dx;
-        const cy = item.y + dy;
-        if (cx >= 0 && cx < gridX && cy >= 0 && cy < gridY) {
+    const x0 = toOccupancyCells(item.x);
+    const y0 = toOccupancyCells(item.y);
+    for (let dy = 0; dy < toOccupancyCells(item.height); dy++) {
+      for (let dx = 0; dx < toOccupancyCells(item.width); dx++) {
+        const cx = x0 + dx;
+        const cy = y0 + dy;
+        if (cx >= 0 && cx < cols && cy >= 0 && cy < rows) {
           grid[cy][cx]++;
         }
       }
@@ -184,11 +193,11 @@ export function useGridItems(
       if (oob) return { ...item, isValid: false };
       // A cell with count > 1 means multiple items overlap there
       let collides = false;
-      for (let dy = 0; dy < item.height && !collides; dy++) {
-        for (let dx = 0; dx < item.width && !collides; dx++) {
-          const cx = item.x + dx;
-          const cy = item.y + dy;
-          if (cx >= 0 && cx < gridX && cy >= 0 && cy < gridY && occupancy[cy][cx] > 1) {
+      const x0 = toOccupancyCells(item.x);
+      const y0 = toOccupancyCells(item.y);
+      for (let dy = 0; dy < toOccupancyCells(item.height) && !collides; dy++) {
+        for (let dx = 0; dx < toOccupancyCells(item.width) && !collides; dx++) {
+          if (occupancy[y0 + dy]?.[x0 + dx] > 1) {
             collides = true;
           }
         }

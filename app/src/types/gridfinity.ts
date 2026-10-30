@@ -91,6 +91,8 @@ export interface DragData {
   refImageName?: string;
   favoriteCustomization?: BinCustomization;
   favoriteParamHash?: string | null;
+  /** Grid step the drop position snaps to; defaults to whole cells. */
+  snapStep?: number;
 }
 
 

@@ -1547,3 +1547,42 @@ describe('usePointerDrag', () => {
     });
   });
 });
+
+describe('usePointerDrag snap step', () => {
+  function dragAndDrop(dragData: DragData, dropAt: { x: number; y: number }) {
+    const grid = document.createElement('div');
+    grid.getBoundingClientRect = () => ({ left: 0, top: 0, width: 400, height: 400, right: 400, bottom: 400, x: 0, y: 0, toJSON: () => ({}) });
+    const source = document.createElement('div');
+    source.getBoundingClientRect = () => ({ left: 10, top: 10, width: 100, height: 100, right: 110, bottom: 110, x: 10, y: 10, toJSON: () => ({}) });
+    document.body.append(grid, source);
+    const onDrop = vi.fn();
+    registerDropTarget({ element: grid, gridX: 4, gridY: 4, onDrop });
+    const { result } = renderHook(() => usePointerDragSource({ dragData }));
+
+    const down = new PointerEvent('pointerdown', { pointerId: 1, clientX: 50, clientY: 50, button: 0, bubbles: true });
+    Object.defineProperty(down, 'currentTarget', { value: source });
+    Object.defineProperty(down, 'target', { value: source });
+    act(() => result.current.onPointerDown(down as unknown as React.PointerEvent));
+    act(() => { document.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, clientX: 80, clientY: 80 })); });
+    act(() => { document.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, clientX: dropAt.x, clientY: dropAt.y })); });
+    unregisterDropTarget();
+    clearActiveDrag();
+    document.body.innerHTML = '';
+    return onDrop;
+  }
+
+  it('drops on whole cells by default', () => {
+    const onDrop = dragAndDrop({ type: 'library', itemId: 'a' }, { x: 260, y: 140 });
+    expect(onDrop).toHaveBeenCalledWith(expect.anything(), 2, 1);
+  });
+
+  it('drops on half cells when the drag data asks for a half-unit step', () => {
+    const onDrop = dragAndDrop({ type: 'placed', itemId: 'custom:x', instanceId: 'i', snapStep: 0.5 }, { x: 260, y: 140 });
+    expect(onDrop).toHaveBeenCalledWith(expect.anything(), 2.5, 1);
+  });
+
+  it('keeps half-unit drops inside the grid', () => {
+    const onDrop = dragAndDrop({ type: 'placed', itemId: 'custom:x', instanceId: 'i', snapStep: 0.5 }, { x: 399, y: 399 });
+    expect(onDrop).toHaveBeenCalledWith(expect.anything(), 3.5, 3.5);
+  });
+});

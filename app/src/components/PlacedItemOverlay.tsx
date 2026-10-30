@@ -10,6 +10,8 @@ import { getRotatedPerspectiveUrl } from '../utils/imageHelpers';
 import { BinContextMenu } from './BinContextMenu';
 import { useFavorites } from '../hooks/useFavorites';
 import { generatedImageUrl } from '../api/generation.api';
+import { isHalfUnitStep } from '../utils/snap';
+import { HALF_UNIT } from '../utils/constants';
 
 interface PlacedItemOverlayProps {
   item: PlacedItemWithValidity;
@@ -185,6 +187,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
       type: 'placed',
       itemId: item.itemId,
       instanceId: item.instanceId,
+      ...(isHalfUnitStep(item) ? { snapStep: HALF_UNIT } : {}),
     },
     onTap: (e: PointerEvent) => onSelect(item.instanceId, { shift: e.shiftKey, ctrl: e.ctrlKey || e.metaKey }),
   });
