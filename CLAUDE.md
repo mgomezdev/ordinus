@@ -233,6 +233,7 @@ Before merging into `develop` or `main`:
 
 ### Generator
 - `generator/gridfinity_basic_cup.scad` is upstream gridfinity_extended_openscad's `combined/gridfinity_basic_cup.scad`; the same file is copied into each `app/public/libraries/bins_*/` directory
+- Template version, parameter renames, pinned defaults and known geometry differences are logged in `generator/TEMPLATE_HISTORY.md` (read it when generated bins behave unexpectedly; add an entry for every template update)
 - After updating it: sync `PARAM_REGISTRY` (`generator/generate_bin.py`) and `GENERATOR_PARAM_SCHEMA` to the new parameter names/defaults, then run `generator/regression/compare_geometry.py` (see its docstring) against the previous scad
 
 ### Backend

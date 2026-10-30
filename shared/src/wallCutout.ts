@@ -1,9 +1,9 @@
 import type { GeneratorParams, WallCutoutConfig } from './types.js';
 
-export interface WallCutoutParams {
+export type WallCutoutParams = {
   wallcutout_vertical: string;
   wallcutout_horizontal: string;
-}
+};
 
 function mode(first: boolean, second: boolean, firstOnly: string, secondOnly: string): string {
   if (first && second) return 'enabled';
