@@ -1,0 +1,158 @@
+.custom-bin-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--surface-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.custom-bin-dialog {
+  background: var(--surface-modal);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  padding: 24px;
+  width: min(640px, 94vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.custom-bin-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  margin: 0 0 16px;
+}
+
+.custom-bin-size-fields {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.custom-bin-size-field label {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.custom-bin-stepper {
+  display: flex;
+  gap: 4px;
+}
+
+.custom-bin-stepper input {
+  width: 100%;
+  min-width: 0;
+  text-align: center;
+}
+
+.custom-bin-size-mm {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.custom-bin-groups {
+  margin-top: 16px;
+  border-top: 1px solid var(--border-primary);
+}
+
+.custom-bin-group {
+  border-bottom: 1px solid var(--border-secondary);
+  padding: 8px 0;
+}
+
+.custom-bin-group summary {
+  cursor: pointer;
+  font-weight: var(--font-medium);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-bin-badge {
+  background: var(--accent-alpha-10);
+  color: var(--accent-primary);
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: var(--text-xs);
+}
+
+.custom-bin-param {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: var(--text-base);
+}
+
+.custom-bin-param-label {
+  color: var(--text-secondary);
+}
+
+.custom-bin-param[data-state='default'] .custom-bin-param-default {
+  color: var(--text-tertiary);
+}
+
+.custom-bin-param[data-state='override'] .custom-bin-param-label {
+  color: var(--text-primary);
+  font-weight: var(--font-medium);
+}
+
+.custom-bin-param .param-array {
+  display: flex;
+  gap: 4px;
+}
+
+.custom-bin-param .param-array input {
+  width: 100%;
+  min-width: 0;
+}
+
+.custom-bin-errors {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  margin: 12px 0 0;
+  padding-left: 20px;
+}
+
+.custom-bin-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.custom-bin-summary {
+  flex: 1;
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.custom-bin-add {
+  background: var(--accent-primary);
+  color: #fff;
+}
+
+@media (max-width: 480px) {
+  .custom-bin-size-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .custom-bin-param {
+    grid-template-columns: 1fr auto;
+  }
+
+  .custom-bin-param-label {
+    grid-column: 1 / -1;
+  }
+}
