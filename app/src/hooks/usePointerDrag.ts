@@ -1,5 +1,7 @@
 import { useCallback, useRef, useEffect } from 'react';
 import type { DragData } from '../types/gridfinity';
+import { GRID_RESOLUTION } from '@gridfinity/shared';
+import { snapPointerToCell, WHOLE_CELL_STEP } from '../utils/snap';
 
 // --- Drag store — encapsulated singleton replacing loose module-level vars ---
 
@@ -103,14 +105,13 @@ function attemptDrop(clientX: number, clientY: number, pointerId: number): void 
   if (clientX < rect.left || clientX > rect.right ||
       clientY < rect.top || clientY > rect.bottom) return;
 
-  const cellWidth = rect.width / dropTarget.gridX;
-  const cellHeight = rect.height / dropTarget.gridY;
-  const dropX = Math.floor((clientX - rect.left) / cellWidth);
-  const dropY = Math.floor((clientY - rect.top) / cellHeight);
-  const clampedX = Math.max(0, Math.min(dropX, dropTarget.gridX - 1));
-  const clampedY = Math.max(0, Math.min(dropY, dropTarget.gridY - 1));
+  const step = activeDrag.data.snapStep ?? WHOLE_CELL_STEP;
+  const halfCellsX = dropTarget.gridX * GRID_RESOLUTION;
+  const halfCellsY = dropTarget.gridY * GRID_RESOLUTION;
+  const dropX = snapPointerToCell(clientX - rect.left, rect.width / halfCellsX, halfCellsX, step);
+  const dropY = snapPointerToCell(clientY - rect.top, rect.height / halfCellsY, halfCellsY, step);
 
-  dropTarget.onDrop(activeDrag.data, clampedX, clampedY);
+  dropTarget.onDrop(activeDrag.data, dropX, dropY);
 }
 
 // --- usePointerDragSource hook ---
@@ -212,10 +213,11 @@ export function usePointerDragSource(
           moveEvent.clientX >= rect.left && moveEvent.clientX <= rect.right &&
           moveEvent.clientY >= rect.top && moveEvent.clientY <= rect.bottom
         ) {
-          const cellWidth = rect.width / tgX;
-          const cellHeight = rect.height / tgY;
-          const col = Math.max(0, Math.min(Math.floor((moveEvent.clientX - rect.left) / cellWidth), tgX - 1));
-          const row = Math.max(0, Math.min(Math.floor((moveEvent.clientY - rect.top) / cellHeight), tgY - 1));
+          const step = dragStore.activeDrag!.data.snapStep ?? WHOLE_CELL_STEP;
+          const halfCellsX = tgX * GRID_RESOLUTION;
+          const halfCellsY = tgY * GRID_RESOLUTION;
+          const col = snapPointerToCell(moveEvent.clientX - rect.left, rect.width / halfCellsX, halfCellsX, step);
+          const row = snapPointerToCell(moveEvent.clientY - rect.top, rect.height / halfCellsY, halfCellsY, step);
           onSnapChange?.({ dragData: dragStore.activeDrag!.data, col, row });
         } else {
           onSnapChange?.(null);

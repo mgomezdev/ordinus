@@ -1,3 +1,4 @@
+import type { CustomBinSpec } from '@gridfinity/shared';
 import type { FavoriteItem, BinCustomization } from '../types/gridfinity';
 import { apiFetch } from './apiClient';
 
@@ -26,6 +27,7 @@ export interface CreateFavoriteRequest {
   perspectiveImageUrl180: string | null;
   perspectiveImageUrl270: string | null;
   customization: BinCustomization;
+  customSpec?: CustomBinSpec;
 }
 
 export async function listFavoritesApi(): Promise<FavoriteItem[]> {

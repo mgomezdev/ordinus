@@ -150,3 +150,39 @@ describe('GET /generation/stl/:hash', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('POST /generation/custom', () => {
+  const spec = { width: 3, depth: 2, height: 4, overrides: {} };
+
+  beforeAll(async () => {
+    const now = new Date().toISOString();
+    await testClient.execute({
+      sql: `INSERT OR IGNORE INTO libraries (id, name, version, is_active, sort_order, created_at, updated_at, base_model_path)
+            VALUES ('bins_standard', 'Standard', '1.0.0', 1, 0, ?, ?, '/fake/standard.scad')`,
+      args: [now, now],
+    });
+  });
+
+  it('enqueues the custom params and returns their hash', async () => {
+    const { buildCustomBinParams } = await import('@gridfinity/shared');
+    const { computeParamHash } = await import('../utils/generationParams.js');
+    mockPipeline.enqueue.mockResolvedValue('pending');
+    const res = await request(makeApp()).post('/generation/custom').send({ ...spec, overrides: { magnet_diameter: 6.5 } });
+    expect(res.status).toBe(200);
+    const params = buildCustomBinParams({ ...spec, overrides: { magnet_diameter: 6.5 } });
+    expect(res.body).toEqual({ hash: computeParamHash(params), status: 'pending' });
+    expect(mockPipeline.enqueue).toHaveBeenLastCalledWith(res.body.hash, params, '/fake/standard.scad');
+  });
+
+  it.each([
+    ['half-unit violation', { ...spec, width: 2.3 }],
+    ['size too large', { ...spec, height: 21 }],
+    ['unknown override', { ...spec, overrides: { nope: 1 } }],
+    ['wrong type', { ...spec, overrides: { magnet_diameter: 'x' } }],
+    ['disabled dependent', { ...spec, overrides: { wallpattern_hole_size: 3 } }],
+    ['missing overrides', { width: 1, depth: 1, height: 1 }],
+  ])('returns 400 for %s', async (_label, body) => {
+    const res = await request(makeApp()).post('/generation/custom').send(body);
+    expect(res.status).toBe(400);
+  });
+});

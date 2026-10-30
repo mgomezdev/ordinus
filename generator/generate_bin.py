@@ -16,6 +16,7 @@ import time
 
 OPENSCAD_PATH = os.environ.get('OPENSCAD_PATH', r"C:\Program Files\OpenSCAD (Nightly)\openscad.exe")
 OPENSCAD_BACKEND = os.environ.get('OPENSCAD_BACKEND', 'Manifold')
+OPENSCAD_TIMEOUT_SECONDS = int(os.environ.get('OPENSCAD_TIMEOUT_SECONDS', '900'))
 SCAD_FILE = os.environ.get(
     'SCAD_FILE',
     os.path.join(os.path.dirname(os.path.abspath(__file__)), 'gridfinity_basic_cup.scad')
@@ -128,7 +129,8 @@ def format_value(value, param_type):
         inner = ",".join(str(v) for v in value)
         return f"[{inner}]"
     if param_type == "string":
-        return f'"{value}"'
+        escaped = str(value).replace("\\", "\\\\").replace('"', '\\"')
+        return f'"{escaped}"'
     if param_type == "bool":
         if isinstance(value, str):
             return "true" if value.lower() in ("true", "1", "yes") else "false"
@@ -217,7 +219,11 @@ def main():
 
     print(f"Rendering {output_path}...")
     start = time.time()
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=OPENSCAD_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        print(f"Error: OpenSCAD exceeded {OPENSCAD_TIMEOUT_SECONDS}s and was stopped")
+        sys.exit(1)
     elapsed = time.time() - start
 
     if result.stdout:

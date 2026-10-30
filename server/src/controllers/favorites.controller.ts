@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { AppError, ErrorCodes } from '@gridfinity/shared';
+import { AppError, CUSTOM_BIN_MAX, CUSTOM_BIN_MIN, CUSTOM_BIN_STEP, CUSTOM_LIBRARY_ID, ErrorCodes, validateCustomBinSpec } from '@gridfinity/shared';
+import type { CustomBinSpec } from '@gridfinity/shared';
 import type { Request, Response, NextFunction } from 'express';
 import * as favoritesService from '../services/favorites.service.js';
 
@@ -17,13 +18,17 @@ const binCustomizationSchema = z.object({
   height: z.number().int().min(1).max(20),
 });
 
+const customSpecSchema = z.custom<CustomBinSpec>((raw) => validateCustomBinSpec(raw).ok, {
+  message: 'Invalid custom bin spec',
+});
+
 const createFavoriteSchema = z.object({
   name: z.string().min(1).max(255),
   libraryId: z.string().min(1),
   libraryItemId: z.string().min(1),
   libraryItemName: z.string().min(1).max(255),
-  widthUnits: z.number().int().min(1).max(10),
-  heightUnits: z.number().int().min(1).max(10),
+  widthUnits: z.number().min(CUSTOM_BIN_MIN).max(CUSTOM_BIN_MAX).multipleOf(CUSTOM_BIN_STEP),
+  heightUnits: z.number().min(CUSTOM_BIN_MIN).max(CUSTOM_BIN_MAX).multipleOf(CUSTOM_BIN_STEP),
   color: z.string().min(1),
   paramHash: z.string().nullable().optional(),
   imageUrl: z.string().default(''),
@@ -32,7 +37,11 @@ const createFavoriteSchema = z.object({
   perspectiveImageUrl180: z.string().nullable().optional(),
   perspectiveImageUrl270: z.string().nullable().optional(),
   customization: binCustomizationSchema,
-});
+  customSpec: customSpecSchema.optional(),
+}).refine(
+  (fav) => (fav.libraryId === CUSTOM_LIBRARY_ID) === (fav.customSpec !== undefined),
+  { message: 'customSpec is required for, and only allowed on, custom bins' },
+);
 
 const renameSchema = z.object({
   name: z.string().min(1).max(255),
@@ -55,6 +64,7 @@ function serializeFavorite(row: favoritesService.FavoriteRow) {
     perspectiveImageUrl180: row.perspectiveImageUrl180,
     perspectiveImageUrl270: row.perspectiveImageUrl270,
     customization: JSON.parse(row.customization),
+    ...(row.customSpec ? { customSpec: JSON.parse(row.customSpec) as CustomBinSpec } : {}),
     createdAt: row.createdAt,
   };
 }

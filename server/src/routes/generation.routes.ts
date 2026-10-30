@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import { normalize } from 'node:path';
-import { AppError, ErrorCodes } from '@gridfinity/shared';
+import { AppError, ErrorCodes, buildCustomBinParams, validateCustomBinSpec } from '@gridfinity/shared';
 import type { BinCustomization } from '@gridfinity/shared';
 import type { Request, Response, NextFunction } from 'express';
 
@@ -11,7 +11,7 @@ import { db } from '../db/connection.js';
 import { libraryItems, libraries } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { computeParamHash } from '../utils/generationParams.js';
-import { buildGenerateParams } from '../services/bomGeneration.service.js';
+import { buildGenerateParams, resolveCustomBaseModelPath } from '../services/bomGeneration.service.js';
 import { generationPipeline } from '../services/generationPipeline.service.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
@@ -95,6 +95,22 @@ router.post('/generate', async (req: Request, res: Response, next: NextFunction)
     const hash = computeParamHash(params as Record<string, unknown>);
     const status = await generationPipeline.enqueue(hash, params as Record<string, unknown>, baseModelPath);
 
+    res.json({ hash, status });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /generation/custom — enqueue a user-defined (custom) bin
+router.post('/custom', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const validation = validateCustomBinSpec(req.body);
+    if (!validation.ok) {
+      throw new AppError(ErrorCodes.VALIDATION_ERROR, validation.errors.join('; '));
+    }
+    const params = buildCustomBinParams(validation.spec);
+    const hash = computeParamHash(params);
+    const status = await generationPipeline.enqueue(hash, params, await resolveCustomBaseModelPath());
     res.json({ hash, status });
   } catch (err) {
     next(err);

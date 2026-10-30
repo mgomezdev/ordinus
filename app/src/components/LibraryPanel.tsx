@@ -15,7 +15,7 @@ interface LibraryPanelProps {
 export function LibraryPanel({ width, isMobile, isOpen }: LibraryPanelProps) {
   const {
     libraryItems, isLibraryLoading, isLibrariesLoading,
-    libraryError, librariesError, categories,
+    libraryError, librariesError, categories, addCustomBin,
   } = useWorkspace();
   const { favorites, removeFavorite, renameFavorite } = useFavorites();
 
@@ -84,6 +84,7 @@ export function LibraryPanel({ width, isMobile, isOpen }: LibraryPanelProps) {
               isLoading={isLibraryLoading || isLibrariesLoading}
               error={libraryError || librariesError}
               activeCategory={libraryCategory}
+              onAddCustomBin={addCustomBin}
             />
             <UserStlLibrarySection />
           </>

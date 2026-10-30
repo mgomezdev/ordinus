@@ -26,3 +26,6 @@ export const GRIDFINITY_UNIT_MM = 42;
 
 /** localStorage debounce delay in ms */
 export const STORAGE_DEBOUNCE_MS = 300;
+
+/** Smallest grid step for custom bins (half a gridfinity unit) */
+export const HALF_UNIT = 0.5;

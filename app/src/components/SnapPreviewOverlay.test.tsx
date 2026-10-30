@@ -19,13 +19,24 @@ describe('SnapPreviewOverlay', () => {
 
   it('positions correctly using percentage-based styles', () => {
     const { container } = render(
-      <SnapPreviewOverlay col={1} row={2} w={2} d={1} valid={true} gridX={4} gridY={4} />
+      <SnapPreviewOverlay col={2} row={4} w={4} d={2} valid={true} gridX={4} gridY={4} />
     );
     const el = container.firstChild as HTMLElement;
     expect(el.style.left).toBe('25%');
     expect(el.style.top).toBe('50%');
     expect(el.style.width).toBe('50%');
     expect(el.style.height).toBe('25%');
+  });
+
+  it('positions half-unit footprints at half-cell resolution', () => {
+    const { container } = render(
+      <SnapPreviewOverlay col={1} row={3} w={5} d={3} valid={true} gridX={4} gridY={4} />
+    );
+    const el = container.firstChild as HTMLElement;
+    expect(el.style.left).toBe('12.5%');
+    expect(el.style.top).toBe('37.5%');
+    expect(el.style.width).toBe('62.5%');
+    expect(el.style.height).toBe('37.5%');
   });
 
   it('is hidden from assistive technology', () => {

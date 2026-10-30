@@ -15,11 +15,11 @@ describe('generateThumbnailSvg', () => {
   });
 
   it('renders item rect at correct position for 0° rotation', () => {
-    // item at x=1, y=0, width=2, height=3, rotation=0
+    // item at x=1, y=0, width=2, height=3 units (stored as half-cells), rotation=0
     // SVG x = PAD + 1*CELL = 3 + 8 = 11
     // SVG y = PAD + 0*CELL = 3
     // SVG w = 2*CELL = 16, h = 3*CELL = 24
-    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 1, y: 0, width: 2, height: 3, rotation: 0 }];
+    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 2, y: 0, width: 4, height: 6, rotation: 0 }];
     const colorMap = new Map([['lib1:item1', '#FF0000']]);
     const svg = generateThumbnailSvg(4, 4, items, colorMap);
     expect(svg).toContain('x="11" y="3" width="16" height="24"');
@@ -27,37 +27,37 @@ describe('generateThumbnailSvg', () => {
   });
 
   it('uses stored footprint dimensions for 90° rotation', () => {
-    // Frontend swaps w/h before storing: a natural 2×3 item at 90° is stored as width:3, height:2
+    // Frontend swaps w/h before storing: a natural 2×3 item at 90° is stored as 3 x 2 units (half-cells: 6 x 4)
     // SVG x = 3, y = 3, w = 3*8=24, h = 2*8=16
-    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 3, height: 2, rotation: 90 }];
+    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 6, height: 4, rotation: 90 }];
     const colorMap = new Map([['lib1:item1', '#FF0000']]);
     const svg = generateThumbnailSvg(4, 4, items, colorMap);
     expect(svg).toContain('x="3" y="3" width="24" height="16"');
   });
 
   it('uses stored footprint dimensions for 270° rotation', () => {
-    // Same footprint as 90°: natural 2×3 stored as width:3, height:2
-    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 3, height: 2, rotation: 270 }];
+    // Same footprint as 90°: natural 2×3 stored as 3 x 2 units
+    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 6, height: 4, rotation: 270 }];
     const colorMap = new Map([['lib1:item1', '#FF0000']]);
     const svg = generateThumbnailSvg(4, 4, items, colorMap);
     expect(svg).toContain('x="3" y="3" width="24" height="16"');
   });
 
   it('does NOT swap for 180° rotation', () => {
-    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 2, height: 3, rotation: 180 }];
+    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 4, height: 6, rotation: 180 }];
     const colorMap = new Map([['lib1:item1', '#FF0000']]);
     const svg = generateThumbnailSvg(4, 4, items, colorMap);
     expect(svg).toContain('x="3" y="3" width="16" height="24"');
   });
 
   it('falls back to #3B82F6 when item not in colorMap', () => {
-    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 1, height: 1, rotation: 0 }];
+    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 2, height: 2, rotation: 0 }];
     const svg = generateThumbnailSvg(4, 4, items, new Map());
     expect(svg).toContain('fill="#3B82F6"');
   });
 
   it('sanitizes malicious color strings to the default color', () => {
-    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 1, height: 1, rotation: 0 }];
+    const items = [{ libraryId: 'lib1', itemId: 'item1', x: 0, y: 0, width: 2, height: 2, rotation: 0 }];
     const colorMap = new Map([['lib1:item1', '"/><script>alert(1)</script>']]);
     const svg = generateThumbnailSvg(4, 4, items, colorMap);
     expect(svg).not.toContain('<script>');

@@ -2,7 +2,7 @@ import { spawn } from 'child_process';
 import { eq, and, sql } from 'drizzle-orm';
 import fs from 'fs/promises';
 import path from 'path';
-import { AppError, ErrorCodes, gridfinityExtendedDefaultParams } from '@gridfinity/shared';
+import { AppError, ErrorCodes, gridfinityExtendedDefaultParams, buildCustomBinParams, validateCustomBinSpec, CUSTOM_LIBRARY_ID } from '@gridfinity/shared';
 import type { BOMItem, ApiBomGeneration, BomGenerationManifestEntry, BinCustomization, GeneratorParams } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
 import { bomGenerations, libraries, libraryItems } from '../db/schema.js';
@@ -11,6 +11,23 @@ import { logger } from '../logger.js';
 import { computeParamHash } from '../utils/generationParams.js';
 import { getSetting } from './settings.service.js';
 import { buildThreeMfViaLaminus } from './laminus.service.js';
+
+const CUSTOM_FILENAME_HASH_LENGTH = 8;
+const CUSTOM_BASE_MODEL_LIBRARY_ID = 'bins_standard';
+
+/** Base model for custom bins: the standard bins library's gridfinity_basic_cup.scad. */
+export async function resolveCustomBaseModelPath(): Promise<string> {
+  const rows = await db
+    .select({ baseModelPath: libraries.baseModelPath })
+    .from(libraries)
+    .where(eq(libraries.id, CUSTOM_BASE_MODEL_LIBRARY_ID))
+    .limit(1);
+  const baseModelPath = rows[0]?.baseModelPath;
+  if (!baseModelPath) {
+    throw new AppError(ErrorCodes.INTERNAL_ERROR, `Library ${CUSTOM_BASE_MODEL_LIBRARY_ID} has no base model for custom bins`);
+  }
+  return baseModelPath;
+}
 
 const DEFAULT_CUSTOMIZATION: BinCustomization = {
   wallPatternEnabled: false,
@@ -45,6 +62,8 @@ export interface UniqueConfig {
   filename: string;
   parameters?: GeneratorParams;
   baseModelPath: string;
+  /** Fully built generator params (custom bins); bypasses buildGenerateParams' customization mapping. */
+  rawParams?: Record<string, unknown>;
 }
 
 export interface StaticConfig {
@@ -79,6 +98,31 @@ function buildStlFilename(w: number, d: number, c: BinCustomization, defaultPara
 
 // ── resolveItemSources ────────────────────────────────────────────────────────
 
+async function addCustomBin(item: BOMItem, generatedMap: Map<string, UniqueConfig>): Promise<void> {
+  const validation = validateCustomBinSpec(item.customSpec);
+  if (!validation.ok) {
+    throw new AppError(ErrorCodes.VALIDATION_ERROR, `Invalid custom bin ${item.itemId}: ${validation.errors.join('; ')}`);
+  }
+  const { spec } = validation;
+  const params = buildCustomBinParams(spec);
+  const hash = computeParamHash(params);
+
+  const existing = generatedMap.get(hash);
+  if (existing) {
+    existing.qty += item.quantity;
+    return;
+  }
+  generatedMap.set(hash, {
+    widthUnits: spec.width,
+    heightUnits: spec.depth,
+    customization: { ...DEFAULT_CUSTOMIZATION, height: spec.height },
+    qty: item.quantity,
+    filename: `bin_custom_${spec.width}x${spec.depth}x${spec.height}_${hash.slice(0, CUSTOM_FILENAME_HASH_LENGTH)}.stl`,
+    baseModelPath: await resolveCustomBaseModelPath(),
+    rawParams: params,
+  });
+}
+
 export async function resolveItemSources(bomItems: BOMItem[]): Promise<{
   staticConfigs: StaticConfig[];
   uniqueConfigs: UniqueConfig[];
@@ -87,6 +131,11 @@ export async function resolveItemSources(bomItems: BOMItem[]): Promise<{
   const generatedMap = new Map<string, UniqueConfig>();
 
   for (const item of bomItems) {
+    if (item.libraryId === CUSTOM_LIBRARY_ID) {
+      await addCustomBin(item, generatedMap);
+      continue;
+    }
+
     const itemRows = await db
       .select({ stlFile: libraryItems.stlFile })
       .from(libraryItems)
@@ -330,6 +379,7 @@ async function runGenerationPipeline(
 }
 
 export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> {
+  if (cfg.rawParams) return cfg.rawParams;
   const c = cfg.customization;
   const params: Record<string, unknown> = {
     ...gridfinityExtendedDefaultParams,

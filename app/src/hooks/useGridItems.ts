@@ -1,27 +1,29 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import type { PlacedItem, PlacedItemWithValidity, DragData, LibraryItem, Rotation, BinCustomization, CustomizableFieldDef } from '../types/gridfinity';
 import { DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
+import { GRID_RESOLUTION } from '@gridfinity/shared';
 import { ROTATION_CW, ROTATION_CCW } from '../utils/constants';
 import { mergeGeneratorParams, generatorParamsToBinCustomization } from '../utils/generatorParams';
+import { footprintSnapStep, violatesHalfGrid, WHOLE_CELL_STEP } from '../utils/snap';
+import { buildCustomItem } from '../utils/customItem';
 
 /**
+ * Placed-item geometry is in integer half-cells, so `cols` x `rows` are the grid size in half-cells.
  * Grid-based occupancy count for O(n) collision detection.
  * Each cell stores the number of items occupying it.
  */
 function buildOccupancyCount(
   items: PlacedItem[],
-  gridX: number,
-  gridY: number
+  cols: number,
+  rows: number
 ): number[][] {
-  const grid: number[][] = Array.from({ length: gridY }, () =>
-    new Array<number>(gridX).fill(0)
-  );
+  const grid: number[][] = Array.from({ length: rows }, () => new Array<number>(cols).fill(0));
   for (const item of items) {
     for (let dy = 0; dy < item.height; dy++) {
       for (let dx = 0; dx < item.width; dx++) {
         const cx = item.x + dx;
         const cy = item.y + dy;
-        if (cx >= 0 && cx < gridX && cy >= 0 && cy < gridY) {
+        if (cx >= 0 && cx < cols && cy >= 0 && cy < rows) {
           grid[cy][cx]++;
         }
       }
@@ -102,6 +104,7 @@ function findValidPosition(
   startY: number,
   gridX: number,
   gridY: number,
+  step: number = WHOLE_CELL_STEP,
   excludeId?: string
 ): { x: number; y: number } | null {
   if (
@@ -111,12 +114,12 @@ function findValidPosition(
     return { x: startX, y: startY };
   }
 
-  for (let radius = 1; radius <= Math.max(gridX, gridY); radius++) {
+  for (let radius = 1; radius <= Math.max(gridX, gridY) / step; radius++) {
     for (let dx = -radius; dx <= radius; dx++) {
       for (let dy = -radius; dy <= radius; dy++) {
         if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
-        const x = startX + dx;
-        const y = startY + dy;
+        const x = startX + dx * step;
+        const y = startY + dy * step;
         if (
           !isOutOfBounds(x, y, width, height, gridX, gridY) &&
           !hasCollision(items, x, y, width, height, excludeId)
@@ -145,6 +148,8 @@ export function useGridItems(
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([]);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(EMPTY_SET);
   const [clipboard, setClipboard] = useState<PlacedItem[]>([]);
+  const cellsX = gridX * GRID_RESOLUTION;
+  const cellsY = gridY * GRID_RESOLUTION;
 
   // Refs for synchronous cross-state reads within the same React batch.
   const itemsRef = useRef<PlacedItem[]>(placedItems);
@@ -178,24 +183,22 @@ export function useGridItems(
 
   const placedItemsWithValidity: PlacedItemWithValidity[] = useMemo(() => {
     // Build occupancy count grid once (O(total_cells)), then check each item (O(item_cells))
-    const occupancy = buildOccupancyCount(placedItems, gridX, gridY);
+    const occupancy = buildOccupancyCount(placedItems, cellsX, cellsY);
     return placedItems.map(item => {
-      const oob = isOutOfBounds(item.x, item.y, item.width, item.height, gridX, gridY);
-      if (oob) return { ...item, isValid: false };
+      const oob = isOutOfBounds(item.x, item.y, item.width, item.height, cellsX, cellsY);
+      if (oob || violatesHalfGrid(item)) return { ...item, isValid: false };
       // A cell with count > 1 means multiple items overlap there
       let collides = false;
       for (let dy = 0; dy < item.height && !collides; dy++) {
         for (let dx = 0; dx < item.width && !collides; dx++) {
-          const cx = item.x + dx;
-          const cy = item.y + dy;
-          if (cx >= 0 && cx < gridX && cy >= 0 && cy < gridY && occupancy[cy][cx] > 1) {
+          if (occupancy[item.y + dy]?.[item.x + dx] > 1) {
             collides = true;
           }
         }
       }
       return { ...item, isValid: !collides };
     });
-  }, [placedItems, gridX, gridY]);
+  }, [placedItems, cellsX, cellsY]);
 
   const addItem = useCallback((itemId: string, x: number, y: number) => {
     const libraryItem = getItemById(itemId);
@@ -213,8 +216,8 @@ export function useGridItems(
       itemId,
       x,
       y,
-      width: libraryItem.widthUnits,
-      height: libraryItem.heightUnits,
+      width: libraryItem.widthUnits * GRID_RESOLUTION,
+      height: libraryItem.heightUnits * GRID_RESOLUTION,
       rotation: 0,
       customization: hasCustomDefaults
         ? { ...DEFAULT_BIN_CUSTOMIZATION, ...prefilledDefaults }
@@ -228,6 +231,34 @@ export function useGridItems(
     updateSelected(new Set([newItem.instanceId]));
   }, [getItemById, updateItems, updateSelected]);
 
+  const placeCustomItem = useCallback((libraryItem: LibraryItem, x: number, y: number): string => {
+    const newItem: PlacedItem = {
+      instanceId: generateInstanceId(),
+      itemId: libraryItem.id,
+      x,
+      y,
+      width: libraryItem.widthUnits * GRID_RESOLUTION,
+      height: libraryItem.heightUnits * GRID_RESOLUTION,
+      rotation: 0,
+      customSpec: libraryItem.customSpec,
+      paramHash: libraryItem.paramHash ?? null,
+    };
+
+    updateItems([...itemsRef.current, newItem]);
+    updateSelected(new Set([newItem.instanceId]));
+    return newItem.instanceId;
+  }, [updateItems, updateSelected]);
+
+  /** Places a custom bin at the first free spot; returns its instance id, or null when the grid has no room. */
+  const addCustomItem = useCallback((libraryItem: LibraryItem): string | null => {
+    const width = libraryItem.widthUnits * GRID_RESOLUTION;
+    const height = libraryItem.heightUnits * GRID_RESOLUTION;
+    const step = footprintSnapStep({ customSpec: libraryItem.customSpec, parameters: libraryItem.parameters });
+    const pos = findValidPosition(itemsRef.current, width, height, 0, 0, cellsX, cellsY, step);
+    if (!pos) return null;
+    return placeCustomItem(libraryItem, pos.x, pos.y);
+  }, [cellsX, cellsY, placeCustomItem]);
+
   const addItemWithCustomization = useCallback(
     (itemId: string, x: number, y: number, customization: BinCustomization, paramHash?: string | null) => {
       const libraryItem = getItemById(itemId);
@@ -238,8 +269,8 @@ export function useGridItems(
         itemId,
         x,
         y,
-        width: libraryItem.widthUnits,
-        height: libraryItem.heightUnits,
+        width: libraryItem.widthUnits * GRID_RESOLUTION,
+        height: libraryItem.heightUnits * GRID_RESOLUTION,
         rotation: 0,
         customization,
         parameters: libraryItem.parameters ? mergeGeneratorParams(libraryItem.parameters) : undefined,
@@ -339,6 +370,8 @@ export function useGridItems(
   const handleDrop = useCallback((dragData: DragData, dropX: number, dropY: number) => {
     if (dragData.type === 'library') {
       addItem(dragData.itemId, dropX, dropY);
+    } else if (dragData.type === 'favorite' && dragData.favoriteCustomSpec) {
+      placeCustomItem(buildCustomItem(dragData.itemId, dragData.favoriteCustomSpec, dragData.favoriteParamHash ?? null), dropX, dropY);
     } else if (dragData.type === 'favorite' && dragData.favoriteCustomization) {
       addItemWithCustomization(dragData.itemId, dropX, dropY, dragData.favoriteCustomization, dragData.favoriteParamHash);
     } else if (dragData.type === 'placed' && dragData.instanceId) {
@@ -354,7 +387,7 @@ export function useGridItems(
         // Validate all moves (exclude selected items from collision checks)
         const allValid = items
           .filter(i => currentSelected.has(i.instanceId))
-          .every(i => !isOutOfBounds(i.x + dx, i.y + dy, i.width, i.height, gridX, gridY) &&
+          .every(i => !isOutOfBounds(i.x + dx, i.y + dy, i.width, i.height, cellsX, cellsY) &&
             !hasCollisionExcludeSet(items, i.x + dx, i.y + dy, i.width, i.height, currentSelected));
 
         if (!allValid) return;
@@ -369,7 +402,7 @@ export function useGridItems(
         moveItem(dragData.instanceId, dropX, dropY);
       }
     }
-  }, [addItem, addItemWithCustomization, moveItem, gridX, gridY, updateItems]);
+  }, [addItem, addItemWithCustomization, placeCustomItem, moveItem, cellsX, cellsY, updateItems]);
 
   const deleteSelected = useCallback(() => {
     const ids = selectedRef.current;
@@ -423,10 +456,11 @@ export function useGridItems(
     const newIds: string[] = [];
 
     for (const source of sources) {
+      const step = footprintSnapStep(source);
       const pos = findValidPosition(
         allItems, source.width, source.height,
-        source.x + 1, source.y + 1,
-        gridX, gridY
+        source.x + WHOLE_CELL_STEP, source.y + WHOLE_CELL_STEP,
+        cellsX, cellsY, step
       );
       if (!pos) continue;
 
@@ -445,7 +479,7 @@ export function useGridItems(
 
     updateItems(allItems);
     updateSelected(new Set(newIds));
-  }, [gridX, gridY, updateItems, updateSelected]);
+  }, [cellsX, cellsY, updateItems, updateSelected]);
 
   const copyItems = useCallback(() => {
     const ids = selectedRef.current;
@@ -475,13 +509,13 @@ export function useGridItems(
     const newItems: PlacedItem[] = [];
 
     for (const item of clipboardItems) {
-      const centerX = Math.floor(gridX / 2);
-      const centerY = Math.floor(gridY / 2);
+      const centerX = Math.floor(gridX / 2) * GRID_RESOLUTION;
+      const centerY = Math.floor(gridY / 2) * GRID_RESOLUTION;
 
       const pos = findValidPosition(
         [...currentItems, ...newItems], item.width, item.height,
         centerX, centerY,
-        gridX, gridY
+        cellsX, cellsY, footprintSnapStep(item)
       );
       if (!pos) continue;
 
@@ -497,7 +531,7 @@ export function useGridItems(
 
     updateItems([...currentItems, ...newItems]);
     updateSelected(new Set(newItems.map(i => i.instanceId)));
-  }, [gridX, gridY, updateItems, updateSelected]);
+  }, [gridX, gridY, cellsX, cellsY, updateItems, updateSelected]);
 
   return {
     placedItems: placedItemsWithValidity,
@@ -506,6 +540,7 @@ export function useGridItems(
     clipboard,
     addItem,
     addItemWithCustomization,
+    addCustomItem,
     moveItem,
     rotateItem,
     updateItemCustomization,

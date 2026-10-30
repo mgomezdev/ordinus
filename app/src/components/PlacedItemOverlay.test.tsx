@@ -85,8 +85,8 @@ describe('PlacedItemOverlay', () => {
     itemId: 'bin-1x1',
     x: 0,
     y: 0,
-    width: 1,
-    height: 1,
+    width: 2,
+    height: 2,
     rotation: 0,
     isValid: true,
     ...overrides,
@@ -98,8 +98,8 @@ describe('PlacedItemOverlay', () => {
     itemId: 'testlib:bin-1x1',
     x: 0,
     y: 0,
-    width: 1,
-    height: 1,
+    width: 2,
+    height: 2,
     rotation: 0,
     isValid: true,
     ...overrides,
@@ -111,7 +111,7 @@ describe('PlacedItemOverlay', () => {
 
   describe('Percentage-based Positioning', () => {
     it('should calculate left position as percentage of gridX', () => {
-      const item = createMockItem({ x: 1, width: 1 });
+      const item = createMockItem({ x: 2, width: 2 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -128,7 +128,7 @@ describe('PlacedItemOverlay', () => {
     });
 
     it('should calculate top position as percentage of gridY', () => {
-      const item = createMockItem({ y: 2, height: 1 });
+      const item = createMockItem({ y: 4, height: 2 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -145,7 +145,7 @@ describe('PlacedItemOverlay', () => {
     });
 
     it('should calculate width as percentage of gridX', () => {
-      const item = createMockItem({ width: 2 });
+      const item = createMockItem({ width: 4 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -162,7 +162,7 @@ describe('PlacedItemOverlay', () => {
     });
 
     it('should calculate height as percentage of gridY', () => {
-      const item = createMockItem({ height: 3 });
+      const item = createMockItem({ height: 6 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -196,7 +196,7 @@ describe('PlacedItemOverlay', () => {
     });
 
     it('should handle non-square grids correctly', () => {
-      const item = createMockItem({ x: 2, y: 1, width: 1, height: 1 });
+      const item = createMockItem({ x: 4, y: 2, width: 2, height: 2 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -218,7 +218,7 @@ describe('PlacedItemOverlay', () => {
     });
 
     it('should handle large bins spanning multiple units', () => {
-      const item = createMockItem({ x: 1, y: 1, width: 3, height: 2 });
+      const item = createMockItem({ x: 2, y: 2, width: 6, height: 4 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -240,7 +240,7 @@ describe('PlacedItemOverlay', () => {
     });
 
     it('should position at maximum valid position correctly', () => {
-      const item = createMockItem({ x: 3, y: 3, width: 1, height: 1 });
+      const item = createMockItem({ x: 6, y: 6, width: 2, height: 2 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -538,7 +538,7 @@ describe('PlacedItemOverlay', () => {
 
   describe('Edge Cases', () => {
     it('should handle zero grid dimensions', () => {
-      const item = createMockItem({ x: 0, y: 0, width: 1, height: 1 });
+      const item = createMockItem({ x: 0, y: 0, width: 2, height: 2 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -556,7 +556,7 @@ describe('PlacedItemOverlay', () => {
     });
 
     it('should handle very small items', () => {
-      const item = createMockItem({ x: 0, y: 0, width: 1, height: 1 });
+      const item = createMockItem({ x: 0, y: 0, width: 2, height: 2 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -595,10 +595,10 @@ describe('PlacedItemOverlay', () => {
 
     it('should render with rotated item dimensions', () => {
       const item = createMockItem({
-        x: 1,
-        y: 1,
-        width: 2,
-        height: 1,
+        x: 2,
+        y: 2,
+        width: 4,
+        height: 2,
         rotation: 90,
       });
       const { container } = render(
@@ -622,7 +622,7 @@ describe('PlacedItemOverlay', () => {
 
   describe('Regression Tests', () => {
     it('should have placed-item class for CSS absolute positioning', () => {
-      const item = createMockItem({ x: 0, y: 0, width: 1, height: 1 });
+      const item = createMockItem({ x: 0, y: 0, width: 2, height: 2 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -641,7 +641,7 @@ describe('PlacedItemOverlay', () => {
     });
 
     it('should handle percentage precision with repeating decimals (1/3 grid)', () => {
-      const item = createMockItem({ x: 1, y: 1, width: 1, height: 1 });
+      const item = createMockItem({ x: 2, y: 2, width: 2, height: 2 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -664,7 +664,7 @@ describe('PlacedItemOverlay', () => {
     });
 
     it('should handle large grid (100x100) calculations correctly', () => {
-      const item = createMockItem({ x: 50, y: 75, width: 2, height: 3 });
+      const item = createMockItem({ x: 100, y: 150, width: 4, height: 6 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -1215,7 +1215,7 @@ describe('PlacedItemOverlay', () => {
 
     it('should render multiple placed items with images independently', () => {
       const item1 = createMockItem({ instanceId: 'item-1', itemId: 'bin-with-image', x: 0, y: 0 });
-      const item2 = createMockItem({ instanceId: 'item-2', itemId: 'bin-with-image', x: 1, y: 0 });
+      const item2 = createMockItem({ instanceId: 'item-2', itemId: 'bin-with-image', x: 2, y: 0 });
 
       const { container } = render(
         <>
@@ -1480,7 +1480,7 @@ describe('PlacedItemOverlay', () => {
     });
 
     it('should use -perspective-90.png URL and apply no CSS rotation for 90° in perspective mode', () => {
-      const item = createMockItem({ itemId: 'bin-perspective', rotation: 90, width: 1, height: 1 });
+      const item = createMockItem({ itemId: 'bin-perspective', rotation: 90, width: 2, height: 2 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -1502,7 +1502,7 @@ describe('PlacedItemOverlay', () => {
     });
 
     it('should use -perspective-180.png URL and apply no CSS rotation for 180° in perspective mode', () => {
-      const item = createMockItem({ itemId: 'bin-perspective', rotation: 180, width: 1, height: 1 });
+      const item = createMockItem({ itemId: 'bin-perspective', rotation: 180, width: 2, height: 2 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -1523,7 +1523,7 @@ describe('PlacedItemOverlay', () => {
     });
 
     it('should use -perspective-270.png URL and apply no CSS rotation for 270° in perspective mode', () => {
-      const item = createMockItem({ itemId: 'bin-perspective', rotation: 270, width: 1, height: 1 });
+      const item = createMockItem({ itemId: 'bin-perspective', rotation: 270, width: 2, height: 2 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -1544,7 +1544,7 @@ describe('PlacedItemOverlay', () => {
     });
 
     it('should use imageUrl with CSS rotation for 90° in ortho mode (existing behavior unchanged)', () => {
-      const item = createMockItem({ itemId: 'bin-perspective', rotation: 90, width: 1, height: 1 });
+      const item = createMockItem({ itemId: 'bin-perspective', rotation: 90, width: 2, height: 2 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -1567,7 +1567,7 @@ describe('PlacedItemOverlay', () => {
     });
 
     it('should fall back to imageUrl with CSS rotation when perspectiveImageUrl is absent and rotation is 90°', () => {
-      const item = createMockItem({ itemId: 'bin-ortho-only', rotation: 90, width: 1, height: 1 });
+      const item = createMockItem({ itemId: 'bin-ortho-only', rotation: 90, width: 2, height: 2 });
       const { container } = render(
         <PlacedItemOverlay
           item={item}
@@ -1726,7 +1726,7 @@ describe('PlacedItemOverlay', () => {
           lipStyle: 'reduced',
           fingerSlide: 'rounded',
           wallCutout: { front: false, back: false, left: false, right: false },
-          height: 4,
+          height: 8,
         },
       });
       const { container } = render(
@@ -2244,7 +2244,7 @@ describe('PlacedItemOverlay', () => {
           lipStyle: 'normal',
           fingerSlide: 'none',
           wallCutout: { front: false, back: false, left: false, right: false },
-          height: 4,
+          height: 8,
         },
       });
       render(
@@ -2351,8 +2351,8 @@ describe('PlacedItemOverlay', () => {
 
     it('should use --above direction when button has enough space above viewport', async () => {
       const spy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-        top: 400, bottom: 428, left: 200, right: 228, width: 28, height: 28,
-        x: 200, y: 400, toJSON: () => {},
+        top: 400, bottom: 428, left: 200, right: 228, width: 56, height: 56,
+        x: 400, y: 800, toJSON: () => {},
       } as DOMRect);
 
       render(
@@ -2379,8 +2379,8 @@ describe('PlacedItemOverlay', () => {
 
     it('should use --below direction when button is near top of viewport', async () => {
       const spy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-        top: 50, bottom: 78, left: 200, right: 228, width: 28, height: 28,
-        x: 200, y: 50, toJSON: () => {},
+        top: 50, bottom: 78, left: 200, right: 228, width: 56, height: 56,
+        x: 400, y: 100, toJSON: () => {},
       } as DOMRect);
 
       render(
@@ -2407,8 +2407,8 @@ describe('PlacedItemOverlay', () => {
 
     it('should clamp popover left position when button is near left viewport edge', async () => {
       const spy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-        top: 50, bottom: 78, left: 10, right: 38, width: 28, height: 28,
-        x: 10, y: 50, toJSON: () => {},
+        top: 50, bottom: 78, left: 10, right: 38, width: 56, height: 56,
+        x: 20, y: 100, toJSON: () => {},
       } as DOMRect);
 
       render(
@@ -2438,8 +2438,8 @@ describe('PlacedItemOverlay', () => {
     it('should clamp popover left position when button is near right viewport edge', async () => {
       // jsdom default innerWidth is 1024; place button near right edge
       const spy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-        top: 50, bottom: 78, left: 990, right: 1018, width: 28, height: 28,
-        x: 990, y: 50, toJSON: () => {},
+        top: 50, bottom: 78, left: 990, right: 1018, width: 56, height: 56,
+        x: 1980, y: 100, toJSON: () => {},
       } as DOMRect);
 
       render(
@@ -2469,8 +2469,8 @@ describe('PlacedItemOverlay', () => {
     it('should recompute popover position on window resize', async () => {
       let mockTop = 400;
       const spy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
-        top: mockTop, bottom: mockTop + 28, left: 200, right: 228, width: 28, height: 28,
-        x: 200, y: mockTop, toJSON: () => {},
+        top: mockTop, bottom: mockTop + 28, left: 200, right: 228, width: 56, height: 56,
+        x: 400, y: mockTop, toJSON: () => {},
       } as DOMRect));
 
       render(
@@ -2506,8 +2506,8 @@ describe('PlacedItemOverlay', () => {
     it('should compute a fresh position when popover is re-opened after close', async () => {
       let mockTop = 400;
       const spy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
-        top: mockTop, bottom: mockTop + 28, left: 200, right: 228, width: 28, height: 28,
-        x: 200, y: mockTop, toJSON: () => {},
+        top: mockTop, bottom: mockTop + 28, left: 200, right: 228, width: 56, height: 56,
+        x: 400, y: mockTop, toJSON: () => {},
       } as DOMRect));
 
       render(
@@ -2555,7 +2555,7 @@ describe('PlacedItemOverlay', () => {
       const item: PlacedItemWithValidity = {
         instanceId: 'test-utensil',
         itemId: 'utensil-1x3',
-        x: 0, y: 0, width: 1, height: 3, rotation: 0, isValid: true,
+        x: 0, y: 0, width: 2, height: 6, rotation: 0, isValid: true,
       };
 
       render(
@@ -2578,7 +2578,7 @@ describe('PlacedItemOverlay', () => {
       const item: PlacedItemWithValidity = {
         instanceId: 'test-utensil',
         itemId: 'utensil-1x3',
-        x: 0, y: 0, width: 1, height: 3, rotation: 0, isValid: true,
+        x: 0, y: 0, width: 2, height: 6, rotation: 0, isValid: true,
       };
 
       const { container } = render(
@@ -2605,7 +2605,7 @@ describe('PlacedItemOverlay', () => {
     it('shows spinner when generationEntry is pending', () => {
       render(
         <PlacedItemOverlay
-          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 as const, isValid: true }}
+          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 2, height: 2, rotation: 0 as const, isValid: true }}
           gridX={4}
           gridY={4}
           isSelected={false}
@@ -2620,7 +2620,7 @@ describe('PlacedItemOverlay', () => {
     it('shows error icon when generationEntry is failed', () => {
       render(
         <PlacedItemOverlay
-          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 as const, isValid: true }}
+          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 2, height: 2, rotation: 0 as const, isValid: true }}
           gridX={4}
           gridY={4}
           isSelected={false}
@@ -2635,7 +2635,7 @@ describe('PlacedItemOverlay', () => {
     it('shows generated image src when generationEntry is complete', () => {
       render(
         <PlacedItemOverlay
-          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 as const, isValid: true }}
+          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 2, height: 2, rotation: 0 as const, isValid: true }}
           gridX={4}
           gridY={4}
           isSelected={false}
@@ -2658,7 +2658,7 @@ describe('PlacedItemOverlay', () => {
     it('shows normal image when no generationEntry provided', () => {
       render(
         <PlacedItemOverlay
-          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 1, height: 1, rotation: 0 as const, isValid: true }}
+          item={{ instanceId: 'test-item-1', itemId: 'bin-1x1', x: 0, y: 0, width: 2, height: 2, rotation: 0 as const, isValid: true }}
           gridX={4}
           gridY={4}
           isSelected={false}

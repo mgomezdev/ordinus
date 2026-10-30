@@ -3,6 +3,7 @@ import type { FavoriteItem } from '../types/gridfinity';
 import { usePointerDragSource } from '../hooks/usePointerDrag';
 import { useImageLoadState } from '../hooks/useImageLoadState';
 import { generatedImageUrl } from '../api/generation.api';
+import { footprintSnapStep } from '../utils/snap';
 
 interface FavoriteCardProps {
   favorite: FavoriteItem;
@@ -34,6 +35,8 @@ export function FavoriteCard({ favorite, onRemove, onRename }: FavoriteCardProps
       itemId: `${favorite.libraryId}:${favorite.libraryItemId}`,
       favoriteCustomization: favorite.customization,
       favoriteParamHash: favorite.paramHash,
+      snapStep: footprintSnapStep({ customSpec: favorite.customSpec }),
+      ...(favorite.customSpec ? { favoriteCustomSpec: favorite.customSpec } : {}),
     },
   });
 
