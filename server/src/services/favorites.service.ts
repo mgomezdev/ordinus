@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import { eq } from 'drizzle-orm';
-import type { BinCustomization } from '@gridfinity/shared';
+import type { BinCustomization, CustomBinSpec } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
 import { favorites } from '../db/schema.js';
 
@@ -21,6 +21,7 @@ export interface FavoriteRow {
   perspectiveImageUrl180: string | null;
   perspectiveImageUrl270: string | null;
   customization: string;
+  customSpec: string | null;
   createdAt: number;
 }
 
@@ -39,6 +40,7 @@ export interface CreateFavoriteData {
   perspectiveImageUrl180?: string | null;
   perspectiveImageUrl270?: string | null;
   customization: BinCustomization;
+  customSpec?: CustomBinSpec;
 }
 
 export async function listAllFavorites(): Promise<FavoriteRow[]> {
@@ -67,6 +69,7 @@ export async function createFavorite(
     perspectiveImageUrl180: data.perspectiveImageUrl180 ?? null,
     perspectiveImageUrl270: data.perspectiveImageUrl270 ?? null,
     customization: JSON.stringify(data.customization),
+    customSpec: data.customSpec ? JSON.stringify(data.customSpec) : null,
     createdAt,
   };
   await db.insert(favorites).values(row);

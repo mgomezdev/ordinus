@@ -1,4 +1,4 @@
-import type { ApiLayout, ApiPlacedItem, BinCustomization } from '@gridfinity/shared';
+import type { ApiLayout, ApiPlacedItem, BinCustomization, CustomBinSpec } from '@gridfinity/shared';
 import { layouts, placedItems } from '../db/schema.js';
 
 export function parseCustomization(json: string | null): BinCustomization | undefined {
@@ -34,6 +34,7 @@ export function formatLayout(
     description: row.description,
     gridX: row.gridX,
     gridY: row.gridY,
+    gridResolution: row.gridResolution,
     widthMm: row.widthMm,
     depthMm: row.depthMm,
     spacerHorizontal: row.spacerHorizontal,
@@ -58,5 +59,6 @@ export function formatPlacedItem(row: typeof placedItems.$inferSelect): ApiPlace
     rotation: row.rotation,
     sortOrder: row.sortOrder,
     ...(row.customization ? { customization: parseCustomization(row.customization) } : {}),
+    ...(row.customSpec ? { customSpec: JSON.parse(row.customSpec) as CustomBinSpec } : {}),
   };
 }

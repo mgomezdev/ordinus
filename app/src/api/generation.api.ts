@@ -1,4 +1,5 @@
 import { apiFetch, API_BASE_URL } from './apiClient';
+import type { CustomBinSpec } from '@gridfinity/shared';
 import type { BinCustomization } from '../types/gridfinity';
 
 export interface GenerateResponse {
@@ -17,6 +18,17 @@ export async function requestGenerationApi(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ libraryId, itemId, customization }),
+    },
+  );
+}
+
+export async function requestCustomGenerationApi(spec: CustomBinSpec): Promise<GenerateResponse> {
+  return apiFetch<GenerateResponse>(
+    '/generation/custom',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(spec),
     },
   );
 }

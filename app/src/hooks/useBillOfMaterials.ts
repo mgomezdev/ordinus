@@ -37,6 +37,7 @@ export function useBillOfMaterials(placedItems: PlacedItem[], libraryItems: Libr
           quantity: count,
           customization,
           ...(libraryItem.price !== undefined ? { price: libraryItem.price } : {}),
+          ...(libraryItem.customSpec ? { customSpec: libraryItem.customSpec } : {}),
           ...(libraryItem.parameters && Object.keys(libraryItem.parameters).length > 0
             ? { parameters: libraryItem.parameters }
             : {}),

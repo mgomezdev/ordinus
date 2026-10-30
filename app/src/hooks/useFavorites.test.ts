@@ -81,3 +81,55 @@ describe('useFavorites', () => {
 
 // Suppress unused import warning — act is used indirectly via waitFor
 void act;
+
+describe('useFavorites — custom bins', () => {
+  const customSpec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { magnet_diameter: 6.5 } };
+  const customItem = {
+    id: 'custom:custom-abc123', libraryId: 'custom', name: 'Custom 2.5×1.5×3.5',
+    widthUnits: 2.5, heightUnits: 1.5, color: '#3B82F6', categories: ['custom'], paramHash: 'a'.repeat(64), customSpec,
+  };
+  const customFavorite: FavoriteItem = {
+    ...mockFavorite, id: 'fav-custom', name: customItem.name, libraryId: 'custom', libraryItemId: 'custom-abc123',
+    widthUnits: 2.5, heightUnits: 1.5, paramHash: 'a'.repeat(64), imageUrl: '', customization: defaultCustomization, customSpec,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockList.mockResolvedValue([]);
+    mockCreate.mockResolvedValue(customFavorite);
+    mockDelete.mockResolvedValue(undefined);
+  });
+
+  it('creates a favorite carrying the custom spec and half-unit size', async () => {
+    const { result } = renderHook(() => useFavorites(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => result.current.toggleFavorite(customItem, defaultCustomization, customItem.paramHash));
+
+    await waitFor(() => expect(mockCreate).toHaveBeenCalled());
+    expect(mockCreate.mock.calls[0][0]).toMatchObject({
+      name: customItem.name, libraryId: 'custom', libraryItemId: 'custom-abc123',
+      widthUnits: 2.5, heightUnits: 1.5, paramHash: customItem.paramHash, customSpec,
+    });
+  });
+
+  it('matches a custom favorite by id regardless of customization', async () => {
+    mockList.mockResolvedValue([customFavorite]);
+    const { result } = renderHook(() => useFavorites(), { wrapper });
+    await waitFor(() => expect(result.current.favorites).toHaveLength(1));
+
+    expect(result.current.isFavorite(customItem.id, voronoiCustomization)).toBe(true);
+    expect(result.current.isFavorite('custom:custom-other', defaultCustomization)).toBe(false);
+  });
+
+  it('removes an existing custom favorite when toggled again', async () => {
+    mockList.mockResolvedValue([customFavorite]);
+    const { result } = renderHook(() => useFavorites(), { wrapper });
+    await waitFor(() => expect(result.current.favorites).toHaveLength(1));
+
+    act(() => result.current.toggleFavorite(customItem, voronoiCustomization, customItem.paramHash));
+
+    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('fav-custom'));
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+});

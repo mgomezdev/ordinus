@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { GRID_RESOLUTION } from '@gridfinity/shared';
 import type { ImageViewMode, DragData } from '../types/gridfinity';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useGridTransform } from '../hooks/useGridTransform';
@@ -126,8 +127,8 @@ export function WorkspacePage() {
   // Combined drop handler for both library items and ref images
   const handleCombinedDrop = useCallback((dragData: DragData, x: number, y: number) => {
     if (dragData.type === 'ref-image' && dragData.refImageId != null) {
-      const xPercent = (x / gridResult.gridX) * 100;
-      const yPercent = (y / gridResult.gridY) * 100;
+      const xPercent = (x / (gridResult.gridX * GRID_RESOLUTION)) * 100;
+      const yPercent = (y / (gridResult.gridY * GRID_RESOLUTION)) * 100;
       addRefImagePlacement({
         refImageId: dragData.refImageId, name: dragData.refImageName ?? 'Reference Image',
         imageUrl: dragData.refImageUrl ?? '', x: xPercent, y: yPercent,
@@ -150,8 +151,8 @@ export function WorkspacePage() {
     if (dragData.type === 'library') {
       const item = getItemById(dragData.itemId);
       if (!item) return null;
-      w = item.widthUnits;
-      d = item.heightUnits;
+      w = item.widthUnits * GRID_RESOLUTION;
+      d = item.heightUnits * GRID_RESOLUTION;
     } else if (dragData.type === 'placed' && dragData.instanceId) {
       const placed = placedItems.find(i => i.instanceId === dragData.instanceId);
       if (!placed) return null;
@@ -162,7 +163,7 @@ export function WorkspacePage() {
       return null;
     }
 
-    const oob = isOutOfBounds(col, row, w, d, gridResult.gridX, gridResult.gridY);
+    const oob = isOutOfBounds(col, row, w, d, gridResult.gridX * GRID_RESOLUTION, gridResult.gridY * GRID_RESOLUTION);
     const collides = !oob && hasCollision(placedItems, col, row, w, d, excludeId);
     return { col, row, w, d, valid: !oob && !collides };
   }, [rawSnapPreview, placedItems, getItemById, gridResult.gridX, gridResult.gridY]);

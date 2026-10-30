@@ -8,7 +8,7 @@ import type {
 } from '../types/gridfinity';
 import type { SelectModifiers } from '../hooks/useGridItems';
 import type { LoadedLayoutConfig } from '../types/layoutConfig';
-import type { BOMItem } from '@gridfinity/shared';
+import type { BOMItem, CustomBinSpec } from '@gridfinity/shared';
 import type { RefImagePlacement, UseRefImagePlacementsReturn } from '../hooks/useRefImagePlacements';
 import type { LayoutMetaState } from '../reducers/layoutMetaReducer';
 import type { DialogState, DialogAction } from '../reducers/dialogReducer';
@@ -22,6 +22,7 @@ import { useBOMExtras } from '../hooks/useBOMExtras';
 import { useLibraries } from '../hooks/useLibraries';
 import { useLibraryData } from '../hooks/useLibraryData';
 import { useCategoryData } from '../hooks/useCategoryData';
+import { useCustomBins } from '../hooks/useCustomBins';
 import { useRefImagePlacements } from '../hooks/useRefImagePlacements';
 import { useReleaseDroppedWarps } from '../hooks/useReleaseDroppedWarps';
 import {
@@ -129,6 +130,7 @@ interface WorkspaceContextValue {
   librariesError: Error | null;
   categories: Category[];
   getItemById: (prefixedId: string) => LibraryItem | undefined;
+  addCustomBin: (spec: CustomBinSpec) => Promise<boolean>;
   getLibraryMeta: (libraryId: string) => Promise<LibraryMeta>;
   refreshLibraries: () => Promise<void>;
   refreshLibrary: () => Promise<void>;
@@ -233,7 +235,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     items: libraryItems,
     isLoading: isLibraryLoading,
     error: libraryError,
-    getItemById,
+    getItemById: getLibraryItemById,
     getLibraryMeta,
     refreshLibrary,
   } = useLibraryData(allLibraryIds);
@@ -276,10 +278,13 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const {
     placedItems, selectedItemIds, rotateItem, deleteItem, clearAll, loadItems,
     selectItem, selectAll, deselectAll, handleDrop, duplicateItem,
-    copyItems, pasteItems, deleteSelected, rotateSelected, updateItemCustomization,
-  } = useGridItems(gridResult.gridX, gridResult.gridY, getItemById);
+    copyItems, pasteItems, deleteSelected, rotateSelected, updateItemCustomization, addCustomItem,
+  } = useGridItems(gridResult.gridX, gridResult.gridY, getLibraryItemById);
 
-  const bomItems = useBillOfMaterials(placedItems, libraryItems);
+  const { resolveItem: getItemById, createCustomItem, customItems } = useCustomBins(getLibraryItemById, placedItems);
+  const bomLibraryItems = useMemo(() => [...libraryItems, ...customItems], [libraryItems, customItems]);
+
+  const bomItems = useBillOfMaterials(placedItems, bomLibraryItems);
   const { extras, addExtra, setExtraQty, removeExtra, clearExtras } = useBOMExtras();
 
   // Load library meta for the selected single item
@@ -409,6 +414,15 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     [trackHash, recordInstanceHash],
   );
 
+  const addCustomBin = useCallback(async (spec: CustomBinSpec): Promise<boolean> => {
+    const { item, status } = await createCustomItem(spec);
+    const instanceId = addCustomItem(item);
+    if (!instanceId || !item.paramHash) return false;
+    trackHash(item.paramHash, status);
+    recordInstanceHash(instanceId, item.paramHash);
+    return true;
+  }, [createCustomItem, addCustomItem, trackHash, recordInstanceHash]);
+
   // Rebind image select handler
   const handleRebindSelect = useCallback((refImageId: number, imageUrl: string, name: string) => {
     if (dialogs.rebindTargetId) {
@@ -497,6 +511,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     librariesError,
     categories,
     getItemById,
+    addCustomBin,
     getLibraryMeta,
     refreshLibraries,
     refreshLibrary,

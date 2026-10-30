@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ItemLibrary } from './ItemLibrary';
 import type { LibraryItem } from '../types/gridfinity';
 
@@ -220,5 +220,46 @@ describe('ItemLibrary', () => {
 
       expect(screen.getByText(/No items found/)).toBeInTheDocument();
     });
+  });
+});
+
+describe('ItemLibrary custom bin entry', () => {
+  it('hides the custom bin button when no handler is given', () => {
+    render(<ItemLibrary items={mockLibraryItems} isLoading={false} error={null} />);
+    expect(screen.queryByRole('button', { name: /custom bin/i })).not.toBeInTheDocument();
+  });
+
+  it('opens the dialog and adds the chosen spec', async () => {
+    const onAddCustomBin = vi.fn().mockResolvedValue(true);
+    render(<ItemLibrary items={mockLibraryItems} isLoading={false} error={null} onAddCustomBin={onAddCustomBin} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /custom bin/i }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Increase width' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add to layout' }));
+
+    await waitFor(() => expect(onAddCustomBin).toHaveBeenCalledWith({ width: 2.5, depth: 1, height: 4, overrides: {} }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('keeps the dialog open and says so when the grid has no room', async () => {
+    const onAddCustomBin = vi.fn().mockResolvedValue(false);
+    render(<ItemLibrary items={mockLibraryItems} isLoading={false} error={null} onAddCustomBin={onAddCustomBin} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /custom bin/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add to layout' }));
+
+    expect(await screen.findByText(/no room/i)).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('reports a failed generation request', async () => {
+    const onAddCustomBin = vi.fn().mockRejectedValue(new Error('boom'));
+    render(<ItemLibrary items={mockLibraryItems} isLoading={false} error={null} onAddCustomBin={onAddCustomBin} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /custom bin/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add to layout' }));
+
+    expect(await screen.findByText(/could not create/i)).toBeInTheDocument();
   });
 });

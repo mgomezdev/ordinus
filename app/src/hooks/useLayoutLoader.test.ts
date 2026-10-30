@@ -137,7 +137,7 @@ describe('loadLayout', () => {
     expect(fetchLayout).toHaveBeenCalledWith(42);
   });
 
-  it('maps placed items with prefixed instanceId', async () => {
+  it('maps placed items with prefixed instanceId, rescaling whole-unit layouts to half-cells', async () => {
     const params = makeParams();
     const { result } = renderHook(() => useLayoutLoader(params));
 
@@ -149,7 +149,7 @@ describe('loadLayout', () => {
       expect.objectContaining({
         instanceId: expect.stringMatching(/^loaded-\d+-0$/),
         itemId: 'lib1:bin-2x3',
-        x: 0, y: 0, width: 2, height: 3, rotation: 0,
+        x: 0, y: 0, width: 4, height: 6, rotation: 0,
       }),
     ]);
   });
@@ -168,6 +168,50 @@ describe('loadLayout', () => {
         refImageId: 7,
         name: 'ref.png',
       }),
+    ]);
+  });
+});
+
+describe('loadLayout — custom bins', () => {
+  it('restores the custom spec on placed items', async () => {
+    const customSpec = { width: 2.5, depth: 1.5, height: 3.5, overrides: {} };
+    vi.mocked(fetchLayout).mockResolvedValue({
+      ...MOCK_DETAIL,
+      gridResolution: 2,
+      placedItems: [{
+        id: 1, layoutId: 42, libraryId: 'custom', itemId: 'custom-abc',
+        x: 1, y: 3, width: 5, height: 3, rotation: 0, sortOrder: 0, customSpec,
+      }],
+    } as never);
+    const params = makeParams();
+    const { result } = renderHook(() => useLayoutLoader(params));
+
+    await act(async () => {
+      await result.current.loadLayout(42);
+    });
+
+    expect(params.loadItems).toHaveBeenCalledWith([
+      expect.objectContaining({ itemId: 'custom:custom-abc', x: 1, width: 5, customSpec }),
+    ]);
+  });
+
+  it('keeps half-cell geometry as is when the layout is already at resolution 2', async () => {
+    vi.mocked(fetchLayout).mockResolvedValue({
+      ...MOCK_DETAIL,
+      gridResolution: 2,
+      placedItems: [{
+        id: 1, layoutId: 42, libraryId: 'lib1', itemId: 'bin-2x3', x: 2, y: 4, width: 4, height: 6, rotation: 0, sortOrder: 0,
+      }],
+    } as never);
+    const params = makeParams();
+    const { result } = renderHook(() => useLayoutLoader(params));
+
+    await act(async () => {
+      await result.current.loadLayout(42);
+    });
+
+    expect(params.loadItems).toHaveBeenCalledWith([
+      expect.objectContaining({ x: 2, y: 4, width: 4, height: 6 }),
     ]);
   });
 });

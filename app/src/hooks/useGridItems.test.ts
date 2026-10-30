@@ -40,8 +40,8 @@ describe('useGridItems', () => {
         itemId: 'bin-1x1',
         x: 0,
         y: 0,
-        width: 1,
-        height: 1,
+        width: 2,
+        height: 2,
         rotation: 0,
         isValid: true,
       });
@@ -52,7 +52,7 @@ describe('useGridItems', () => {
 
       act(() => {
         result.current.addItem('bin-1x1', 0, 0);
-        result.current.addItem('bin-1x1', 1, 1);
+        result.current.addItem('bin-1x1', 2, 2);
       });
 
       expect(result.current.placedItems).toHaveLength(2);
@@ -87,8 +87,8 @@ describe('useGridItems', () => {
       });
 
       expect(result.current.placedItems[0]).toMatchObject({
-        width: 2,
-        height: 2,
+        width: 4,
+        height: 4,
       });
     });
   });
@@ -104,12 +104,12 @@ describe('useGridItems', () => {
       const instanceId = result.current.placedItems[0].instanceId;
 
       act(() => {
-        result.current.moveItem(instanceId, 2, 2);
+        result.current.moveItem(instanceId, 4, 4);
       });
 
       expect(result.current.placedItems[0]).toMatchObject({
-        x: 2,
-        y: 2,
+        x: 4,
+        y: 4,
       });
     });
 
@@ -118,20 +118,20 @@ describe('useGridItems', () => {
 
       act(() => {
         result.current.addItem('bin-1x1', 0, 0);
-        result.current.addItem('bin-1x1', 1, 1);
+        result.current.addItem('bin-1x1', 2, 2);
       });
 
       const firstId = result.current.placedItems[0].instanceId;
       const secondId = result.current.placedItems[1].instanceId;
 
       act(() => {
-        result.current.moveItem(firstId, 3, 3);
+        result.current.moveItem(firstId, 6, 6);
       });
 
       expect(result.current.placedItems[1]).toMatchObject({
         instanceId: secondId,
-        x: 1,
-        y: 1,
+        x: 2,
+        y: 2,
       });
     });
   });
@@ -151,8 +151,8 @@ describe('useGridItems', () => {
       });
 
       expect(result.current.placedItems[0]).toMatchObject({
-        width: 2,
-        height: 1,
+        width: 4,
+        height: 2,
         rotation: 90,
       });
     });
@@ -169,22 +169,22 @@ describe('useGridItems', () => {
       // 0 -> 90
       act(() => { result.current.rotateItem(instanceId, 'cw'); });
       expect(result.current.placedItems[0].rotation).toBe(90);
-      expect(result.current.placedItems[0]).toMatchObject({ width: 2, height: 1 });
+      expect(result.current.placedItems[0]).toMatchObject({ width: 4, height: 2 });
 
       // 90 -> 180
       act(() => { result.current.rotateItem(instanceId, 'cw'); });
       expect(result.current.placedItems[0].rotation).toBe(180);
-      expect(result.current.placedItems[0]).toMatchObject({ width: 1, height: 2 });
+      expect(result.current.placedItems[0]).toMatchObject({ width: 2, height: 4 });
 
       // 180 -> 270
       act(() => { result.current.rotateItem(instanceId, 'cw'); });
       expect(result.current.placedItems[0].rotation).toBe(270);
-      expect(result.current.placedItems[0]).toMatchObject({ width: 2, height: 1 });
+      expect(result.current.placedItems[0]).toMatchObject({ width: 4, height: 2 });
 
       // 270 -> 0
       act(() => { result.current.rotateItem(instanceId, 'cw'); });
       expect(result.current.placedItems[0].rotation).toBe(0);
-      expect(result.current.placedItems[0]).toMatchObject({ width: 1, height: 2 });
+      expect(result.current.placedItems[0]).toMatchObject({ width: 2, height: 4 });
     });
 
     it('should cycle CCW through all four rotation states', () => {
@@ -199,22 +199,22 @@ describe('useGridItems', () => {
       // 0 -> 270
       act(() => { result.current.rotateItem(instanceId, 'ccw'); });
       expect(result.current.placedItems[0].rotation).toBe(270);
-      expect(result.current.placedItems[0]).toMatchObject({ width: 2, height: 1 });
+      expect(result.current.placedItems[0]).toMatchObject({ width: 4, height: 2 });
 
       // 270 -> 180
       act(() => { result.current.rotateItem(instanceId, 'ccw'); });
       expect(result.current.placedItems[0].rotation).toBe(180);
-      expect(result.current.placedItems[0]).toMatchObject({ width: 1, height: 2 });
+      expect(result.current.placedItems[0]).toMatchObject({ width: 2, height: 4 });
 
       // 180 -> 90
       act(() => { result.current.rotateItem(instanceId, 'ccw'); });
       expect(result.current.placedItems[0].rotation).toBe(90);
-      expect(result.current.placedItems[0]).toMatchObject({ width: 2, height: 1 });
+      expect(result.current.placedItems[0]).toMatchObject({ width: 4, height: 2 });
 
       // 90 -> 0
       act(() => { result.current.rotateItem(instanceId, 'ccw'); });
       expect(result.current.placedItems[0].rotation).toBe(0);
-      expect(result.current.placedItems[0]).toMatchObject({ width: 1, height: 2 });
+      expect(result.current.placedItems[0]).toMatchObject({ width: 2, height: 4 });
     });
 
     it('should restore original dimensions after two CW rotations', () => {
@@ -232,8 +232,8 @@ describe('useGridItems', () => {
       });
 
       expect(result.current.placedItems[0]).toMatchObject({
-        width: 1,
-        height: 2,
+        width: 2,
+        height: 4,
         rotation: 180,
       });
     });
@@ -252,8 +252,8 @@ describe('useGridItems', () => {
       });
 
       expect(result.current.placedItems[0]).toMatchObject({
-        width: 2,
-        height: 1,
+        width: 4,
+        height: 2,
         rotation: 90,
       });
     });
@@ -298,7 +298,7 @@ describe('useGridItems', () => {
 
       act(() => {
         result.current.addItem('bin-1x1', 0, 0);
-        result.current.addItem('bin-1x1', 1, 1);
+        result.current.addItem('bin-1x1', 2, 2);
       });
 
       const firstId = result.current.placedItems[0].instanceId;
@@ -353,14 +353,14 @@ describe('useGridItems', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 1, 1);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 2, 2);
       });
 
       expect(result.current.placedItems).toHaveLength(1);
       expect(result.current.placedItems[0]).toMatchObject({
         itemId: 'bin-1x1',
-        x: 1,
-        y: 1,
+        x: 2,
+        y: 2,
       });
     });
 
@@ -374,13 +374,13 @@ describe('useGridItems', () => {
       const instanceId = result.current.placedItems[0].instanceId;
 
       act(() => {
-        result.current.handleDrop({ type: 'placed', itemId: 'bin-1x1', instanceId }, 2, 2);
+        result.current.handleDrop({ type: 'placed', itemId: 'bin-1x1', instanceId }, 4, 4);
       });
 
       expect(result.current.placedItems).toHaveLength(1);
       expect(result.current.placedItems[0]).toMatchObject({
-        x: 2,
-        y: 2,
+        x: 4,
+        y: 4,
       });
     });
 
@@ -392,22 +392,22 @@ describe('useGridItems', () => {
         lipStyle: 'reduced',
         fingerSlide: 'rounded',
         wallCutout: 'vertical',
-        height: 6,
+        height: 12,
       };
 
       act(() => {
         result.current.handleDrop(
           { type: 'favorite', itemId: 'bin-1x1', favoriteCustomization },
-          1,
-          1,
+          2,
+          2,
         );
       });
 
       expect(result.current.placedItems).toHaveLength(1);
       expect(result.current.placedItems[0]).toMatchObject({
         itemId: 'bin-1x1',
-        x: 1,
-        y: 1,
+        x: 2,
+        y: 2,
         customization: favoriteCustomization,
       });
     });
@@ -416,7 +416,7 @@ describe('useGridItems', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'favorite', itemId: 'bin-1x1' }, 1, 1);
+        result.current.handleDrop({ type: 'favorite', itemId: 'bin-1x1' }, 2, 2);
       });
 
       expect(result.current.placedItems).toHaveLength(0);
@@ -430,23 +430,23 @@ describe('useGridItems', () => {
       lipStyle: 'minimum',
       fingerSlide: 'chamfered',
       wallCutout: 'horizontal',
-      height: 8,
+      height: 16,
     };
 
     it('should add item at specified position with the given customization', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.addItemWithCustomization('bin-1x1', 2, 3, customization);
+        result.current.addItemWithCustomization('bin-1x1', 4, 6, customization);
       });
 
       expect(result.current.placedItems).toHaveLength(1);
       expect(result.current.placedItems[0]).toMatchObject({
         itemId: 'bin-1x1',
-        x: 2,
-        y: 3,
-        width: 1,
-        height: 1,
+        x: 4,
+        y: 6,
+        width: 2,
+        height: 2,
         rotation: 0,
         customization,
       });
@@ -477,7 +477,7 @@ describe('useGridItems', () => {
 
       act(() => {
         result.current.addItemWithCustomization('bin-1x1', 0, 0, customization);
-        result.current.addItemWithCustomization('bin-1x1', 1, 1, customization);
+        result.current.addItemWithCustomization('bin-1x1', 2, 2, customization);
       });
 
       expect(result.current.placedItems[0].instanceId).not.toBe(
@@ -492,7 +492,7 @@ describe('useGridItems', () => {
 
       act(() => {
         result.current.addItem('bin-2x2', 0, 0);
-        result.current.addItem('bin-2x2', 1, 1);
+        result.current.addItem('bin-2x2', 2, 2);
       });
 
       const invalidItems = result.current.placedItems.filter(item => !item.isValid);
@@ -504,7 +504,7 @@ describe('useGridItems', () => {
 
       act(() => {
         result.current.addItem('bin-1x1', 0, 0);
-        result.current.addItem('bin-1x1', 2, 2);
+        result.current.addItem('bin-1x1', 4, 4);
       });
 
       expect(result.current.placedItems[0].isValid).toBe(true);
@@ -516,7 +516,7 @@ describe('useGridItems', () => {
 
       act(() => {
         result.current.addItem('bin-1x1', 0, 0);
-        result.current.addItem('bin-1x1', 1, 0);
+        result.current.addItem('bin-1x1', 2, 0);
       });
 
       expect(result.current.placedItems[0].isValid).toBe(true);
@@ -535,7 +535,7 @@ describe('useGridItems', () => {
       const instanceId = result.current.placedItems[0].instanceId;
 
       act(() => {
-        result.current.moveItem(instanceId, 3, 3);
+        result.current.moveItem(instanceId, 6, 6);
       });
 
       expect(result.current.placedItems[0].isValid).toBe(false);
@@ -545,7 +545,7 @@ describe('useGridItems', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.addItem('bin-2x2', 2, 2);
+        result.current.addItem('bin-2x2', 4, 4);
       });
 
       expect(result.current.placedItems[0].isValid).toBe(true);
@@ -565,7 +565,7 @@ describe('useGridItems', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.addItem('bin-1x2', 3, 2);
+        result.current.addItem('bin-1x2', 6, 4);
       });
 
       const instanceId = result.current.placedItems[0].instanceId;
@@ -587,7 +587,7 @@ describe('useGridItems', () => {
       );
 
       act(() => {
-        result.current.addItem('bin-2x2', 2, 2);
+        result.current.addItem('bin-2x2', 4, 4);
       });
 
       expect(result.current.placedItems[0].isValid).toBe(true);
@@ -604,7 +604,7 @@ describe('useGridItems', () => {
       );
 
       act(() => {
-        result.current.addItem('bin-2x2', 1, 1);
+        result.current.addItem('bin-2x2', 2, 2);
       });
 
       expect(result.current.placedItems[0].isValid).toBe(true);
@@ -621,8 +621,8 @@ describe('useGridItems', () => {
 
       act(() => {
         result.current.addItem('bin-1x1', 0, 0);
-        result.current.addItem('bin-1x1', 1, 0);
-        result.current.addItem('bin-2x2', 2, 2);
+        result.current.addItem('bin-1x1', 2, 0);
+        result.current.addItem('bin-2x2', 4, 4);
       });
 
       expect(result.current.placedItems).toHaveLength(3);
@@ -685,7 +685,7 @@ describe('useGridItems', () => {
       const instanceId = result.current.placedItems[0].instanceId;
 
       act(() => {
-        result.current.moveItem(instanceId, -1, -1);
+        result.current.moveItem(instanceId, -2, -2);
       });
 
       expect(result.current.placedItems[0].isValid).toBe(false);
@@ -696,9 +696,9 @@ describe('useGridItems', () => {
 
       act(() => {
         result.current.addItem('bin-1x1', 0, 0);
-        result.current.addItem('bin-1x1', 1, 0);
         result.current.addItem('bin-1x1', 2, 0);
-        result.current.addItem('bin-1x1', 3, 0);
+        result.current.addItem('bin-1x1', 4, 0);
+        result.current.addItem('bin-1x1', 6, 0);
       });
 
       expect(result.current.placedItems).toHaveLength(4);
@@ -710,7 +710,7 @@ describe('useGridItems', () => {
 
       act(() => {
         result.current.addItem('bin-1x1', 0, 0);
-        result.current.addItem('bin-1x1', 99, 99);
+        result.current.addItem('bin-1x1', 198, 198);
       });
 
       expect(result.current.placedItems).toHaveLength(2);
@@ -721,7 +721,7 @@ describe('useGridItems', () => {
       const { result } = renderHook(() => useGridItems(5, 5, mockGetItemById));
 
       act(() => {
-        result.current.addItem('bin-2x2', 3, 3);
+        result.current.addItem('bin-2x2', 6, 6);
       });
 
       // 2x2 item at position (3,3) on a 5x5 grid:
@@ -743,8 +743,8 @@ describe('useGridItems', () => {
       });
 
       expect(result.current.placedItems[0]).toMatchObject({
-        width: 1,
-        height: 1,
+        width: 2,
+        height: 2,
         rotation: 90,
       });
     });
@@ -848,8 +848,8 @@ describe('useGridItems', () => {
       });
 
       expect(result.current.placedItems[1]).toMatchObject({
-        x: 1,
-        y: 1,
+        x: 2,
+        y: 2,
       });
     });
 
@@ -887,7 +887,7 @@ describe('useGridItems', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.addItem('bin-1x1', 3, 3);
+        result.current.addItem('bin-1x1', 6, 6);
       });
 
       act(() => {
@@ -904,9 +904,9 @@ describe('useGridItems', () => {
       // Fill entire grid
       act(() => {
         result.current.addItem('bin-1x1', 0, 0);
-        result.current.addItem('bin-1x1', 1, 0);
-        result.current.addItem('bin-1x1', 0, 1);
-        result.current.addItem('bin-1x1', 1, 1);
+        result.current.addItem('bin-1x1', 2, 0);
+        result.current.addItem('bin-1x1', 0, 2);
+        result.current.addItem('bin-1x1', 2, 2);
       });
 
       const firstId = result.current.placedItems[0].instanceId;
@@ -924,7 +924,7 @@ describe('useGridItems', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.addItem('bin-1x1', 1, 1);
+        result.current.addItem('bin-1x1', 2, 2);
       });
 
       const originalItem = { ...result.current.placedItems[0] };
@@ -983,7 +983,7 @@ describe('useGridItems', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.addItem('bin-1x1', 1, 1);
+        result.current.addItem('bin-1x1', 2, 2);
       });
 
       act(() => {
@@ -1040,7 +1040,7 @@ describe('useGridItems', () => {
       expect(result.current.clipboard[0].itemId).toBe('bin-1x1');
 
       act(() => {
-        result.current.addItem('bin-2x2', 1, 1);
+        result.current.addItem('bin-2x2', 2, 2);
       });
 
       const newItemId = result.current.placedItems[1].instanceId;
@@ -1071,8 +1071,8 @@ describe('useGridItems', () => {
       expect(result.current.placedItems).toHaveLength(2);
       // Grid center for 4x4 is (2, 2)
       expect(result.current.placedItems[1]).toMatchObject({
-        x: 2,
-        y: 2,
+        x: 4,
+        y: 4,
       });
     });
 
@@ -1118,7 +1118,7 @@ describe('useGridItems', () => {
         result.current.addItem('bin-1x1', 0, 0);
         result.current.copyItems();
         // Place item at grid center
-        result.current.addItem('bin-1x1', 2, 2);
+        result.current.addItem('bin-1x1', 4, 4);
       });
 
       act(() => {
@@ -1128,8 +1128,8 @@ describe('useGridItems', () => {
       expect(result.current.placedItems).toHaveLength(3);
       // Should paste at offset position, not at grid center (2,2)
       expect(result.current.placedItems[2]).not.toMatchObject({
-        x: 2,
-        y: 2,
+        x: 4,
+        y: 4,
       });
     });
 
@@ -1168,12 +1168,12 @@ describe('useGridItems', () => {
         result.current.pasteItems();
       });
 
-      // Grid center is (2,2), but 2x2 item at (2,2) would extend to (4,4) which is out of bounds
-      // Should try to fit within grid
+      // Grid center is (2,2) units, but a 2x2 item there would extend to (4,4) units, which is out of bounds
+      // Should try to fit within grid (8 half-cells)
       expect(result.current.placedItems).toHaveLength(2);
       const pastedItem = result.current.placedItems[1];
-      expect(pastedItem.x + pastedItem.width).toBeLessThanOrEqual(4);
-      expect(pastedItem.y + pastedItem.height).toBeLessThanOrEqual(4);
+      expect(pastedItem.x + pastedItem.width).toBeLessThanOrEqual(8);
+      expect(pastedItem.y + pastedItem.height).toBeLessThanOrEqual(8);
     });
   });
 
@@ -1184,7 +1184,7 @@ describe('useGridItems', () => {
 
         act(() => {
           result.current.addItem('bin-1x1', 0, 0);
-          result.current.addItem('bin-1x1', 1, 1);
+          result.current.addItem('bin-1x1', 2, 2);
         });
 
         const itemAId = result.current.placedItems[0].instanceId;
@@ -1211,7 +1211,7 @@ describe('useGridItems', () => {
 
         act(() => {
           result.current.addItem('bin-1x1', 0, 0);
-          result.current.addItem('bin-1x1', 1, 1);
+          result.current.addItem('bin-1x1', 2, 2);
         });
 
         const itemAId = result.current.placedItems[0].instanceId;
@@ -1267,7 +1267,7 @@ describe('useGridItems', () => {
 
         act(() => {
           result.current.addItem('bin-1x1', 0, 0);
-          result.current.addItem('bin-1x1', 1, 1);
+          result.current.addItem('bin-1x1', 2, 2);
         });
 
         const itemAId = result.current.placedItems[0].instanceId;
@@ -1293,7 +1293,7 @@ describe('useGridItems', () => {
 
         act(() => {
           result.current.addItem('bin-1x1', 0, 0);
-          result.current.addItem('bin-1x1', 1, 1);
+          result.current.addItem('bin-1x1', 2, 2);
         });
 
         const itemAId = result.current.placedItems[0].instanceId;
@@ -1319,7 +1319,7 @@ describe('useGridItems', () => {
 
         act(() => {
           result.current.addItem('bin-1x1', 0, 0);
-          result.current.addItem('bin-1x1', 1, 1);
+          result.current.addItem('bin-1x1', 2, 2);
         });
 
         const itemAId = result.current.placedItems[0].instanceId;
@@ -1345,7 +1345,7 @@ describe('useGridItems', () => {
 
         act(() => {
           result.current.addItem('bin-1x1', 0, 0);
-          result.current.addItem('bin-1x1', 1, 1);
+          result.current.addItem('bin-1x1', 2, 2);
         });
 
         const firstId = result.current.placedItems[0].instanceId;
@@ -1358,7 +1358,7 @@ describe('useGridItems', () => {
         expect(result.current.selectedItemIds.size).toBe(1);
 
         act(() => {
-          result.current.addItem('bin-1x1', 2, 2);
+          result.current.addItem('bin-1x1', 4, 4);
         });
 
         const thirdId = result.current.placedItems[2].instanceId;
@@ -1375,8 +1375,8 @@ describe('useGridItems', () => {
 
         act(() => {
           result.current.addItem('bin-1x1', 0, 0);
-          result.current.addItem('bin-1x1', 1, 1);
           result.current.addItem('bin-1x1', 2, 2);
+          result.current.addItem('bin-1x1', 4, 4);
         });
 
         const id1 = result.current.placedItems[0].instanceId;
@@ -1408,7 +1408,7 @@ describe('useGridItems', () => {
 
         act(() => {
           result.current.addItem('bin-1x1', 0, 0);
-          result.current.addItem('bin-1x1', 1, 1);
+          result.current.addItem('bin-1x1', 2, 2);
         });
 
         const id1 = result.current.placedItems[0].instanceId;
@@ -1438,8 +1438,8 @@ describe('useGridItems', () => {
 
         act(() => {
           result.current.addItem('bin-1x1', 0, 0);
-          result.current.addItem('bin-1x1', 1, 1);
           result.current.addItem('bin-1x1', 2, 2);
+          result.current.addItem('bin-1x1', 4, 4);
         });
 
         const id1 = result.current.placedItems[0].instanceId;
@@ -1458,8 +1458,8 @@ describe('useGridItems', () => {
 
         expect(result.current.placedItems).toHaveLength(1);
         expect(result.current.placedItems[0]).toMatchObject({
-          x: 2,
-          y: 2,
+          x: 4,
+          y: 4,
         });
       });
 
@@ -1468,7 +1468,7 @@ describe('useGridItems', () => {
 
         act(() => {
           result.current.addItem('bin-1x1', 0, 0);
-          result.current.addItem('bin-1x1', 1, 1);
+          result.current.addItem('bin-1x1', 2, 2);
         });
 
         act(() => {
@@ -1487,7 +1487,7 @@ describe('useGridItems', () => {
 
         act(() => {
           result.current.addItem('bin-1x1', 0, 0);
-          result.current.addItem('bin-1x1', 1, 1);
+          result.current.addItem('bin-1x1', 2, 2);
         });
 
         const id1 = result.current.placedItems[0].instanceId;
@@ -1515,7 +1515,7 @@ describe('useGridItems', () => {
 
         act(() => {
           result.current.addItem('bin-1x2', 0, 0);
-          result.current.addItem('bin-1x2', 2, 0);
+          result.current.addItem('bin-1x2', 4, 0);
         });
 
         const id1 = result.current.placedItems[0].instanceId;
@@ -1562,8 +1562,8 @@ describe('useGridItems', () => {
 
         act(() => {
           result.current.addItem('bin-1x2', 0, 0);
-          result.current.addItem('bin-1x2', 2, 0);
-          result.current.addItem('bin-1x2', 0, 2);
+          result.current.addItem('bin-1x2', 4, 0);
+          result.current.addItem('bin-1x2', 0, 4);
         });
 
         const id1 = result.current.placedItems[0].instanceId;
@@ -1590,7 +1590,7 @@ describe('useGridItems', () => {
 
         act(() => {
           result.current.addItem('bin-1x1', 0, 0);
-          result.current.addItem('bin-1x1', 1, 1);
+          result.current.addItem('bin-1x1', 2, 2);
         });
 
         const id1 = result.current.placedItems[0].instanceId;
@@ -1615,7 +1615,7 @@ describe('useGridItems', () => {
 
         act(() => {
           result.current.addItem('bin-1x1', 0, 0);
-          result.current.addItem('bin-1x1', 1, 0);
+          result.current.addItem('bin-1x1', 2, 0);
         });
 
         const id1 = result.current.placedItems[0].instanceId;
@@ -1644,7 +1644,7 @@ describe('useGridItems', () => {
 
       act(() => {
         result.current.addItem('bin-1x1', 0, 0);
-        result.current.addItem('bin-1x1', 1, 0);
+        result.current.addItem('bin-1x1', 2, 0);
       });
 
       const id1 = result.current.placedItems[0].instanceId;
@@ -1656,16 +1656,16 @@ describe('useGridItems', () => {
       });
 
       act(() => {
-        result.current.moveSelected(1, 1);
+        result.current.moveSelected(2, 2);
       });
 
       expect(result.current.placedItems[0]).toMatchObject({
-        x: 1,
-        y: 1,
+        x: 2,
+        y: 2,
       });
       expect(result.current.placedItems[1]).toMatchObject({
-        x: 2,
-        y: 1,
+        x: 4,
+        y: 2,
       });
     });
 
@@ -1674,7 +1674,7 @@ describe('useGridItems', () => {
 
       act(() => {
         result.current.addItem('bin-1x1', 0, 0);
-        result.current.addItem('bin-1x1', 2, 1);
+        result.current.addItem('bin-1x1', 4, 2);
       });
 
       const id1 = result.current.placedItems[0].instanceId;
@@ -1689,7 +1689,7 @@ describe('useGridItems', () => {
       });
 
       act(() => {
-        result.current.moveSelected(1, 2);
+        result.current.moveSelected(2, 4);
       });
 
       const newDeltaX = result.current.placedItems[1].x - result.current.placedItems[0].x;
@@ -1729,7 +1729,7 @@ describe('useGridItems', () => {
 
       act(() => {
         result.current.addItem('bin-1x1', 0, 0);
-        result.current.addItem('bin-1x1', 1, 1);
+        result.current.addItem('bin-1x1', 2, 2);
       });
 
       const firstId = result.current.placedItems[0].instanceId;
@@ -1840,20 +1840,20 @@ describe('useGridItems', () => {
         {
           instanceId: 'load-test-id',
           itemId: 'bin-1x1',
-          x: 1,
-          y: 1,
-          width: 1,
-          height: 1,
+          x: 2,
+          y: 2,
+          width: 2,
+          height: 2,
           rotation: 0 as const,
           customization: sampleCustomization,
         },
         {
           instanceId: 'load-test-id-2',
           itemId: 'bin-2x2',
-          x: 2,
-          y: 2,
-          width: 2,
-          height: 2,
+          x: 4,
+          y: 4,
+          width: 4,
+          height: 4,
           rotation: 0 as const,
           // No customization on second item
         },

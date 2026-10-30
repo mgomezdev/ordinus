@@ -1,7 +1,7 @@
 import { eq, and, lt, desc, sql, or, inArray } from 'drizzle-orm';
-import { AppError, ErrorCodes } from '@gridfinity/shared';
+import { AppError, ErrorCodes, GRID_RESOLUTION } from '@gridfinity/shared';
 import { logger } from '../logger.js';
-import type { ApiLayout, ApiLayoutDetail, ApiRefImagePlacement, BinCustomization, Quad } from '@gridfinity/shared';
+import type { ApiLayout, ApiLayoutDetail, ApiRefImagePlacement, BinCustomization, CustomBinSpec, Quad } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
 import { layouts, placedItems, referenceImages, refImages, customers } from '../db/schema.js';
 import * as referenceImageService from './referenceImage.service.js';
@@ -211,6 +211,7 @@ interface CreateLayoutData {
     height: number;
     rotation: number;
     customization?: BinCustomization;
+    customSpec?: CustomBinSpec;
   }>;
   refImagePlacements?: Array<{
     refImageId: number;
@@ -242,6 +243,7 @@ export async function createLayout(
       description: data.description ?? null,
       gridX: data.gridX,
       gridY: data.gridY,
+      gridResolution: GRID_RESOLUTION,
       widthMm: data.widthMm,
       depthMm: data.depthMm,
       spacerHorizontal: data.spacerHorizontal ?? 'none',
@@ -268,6 +270,7 @@ export async function createLayout(
       rotation: item.rotation,
       sortOrder: index,
       customization: item.customization ? JSON.stringify(item.customization) : null,
+      customSpec: item.customSpec ? JSON.stringify(item.customSpec) : null,
     };
   });
 
@@ -397,6 +400,7 @@ export async function updateLayout(
         description: data.description ?? null,
         gridX: data.gridX,
         gridY: data.gridY,
+        gridResolution: GRID_RESOLUTION,
         widthMm: data.widthMm,
         depthMm: data.depthMm,
         spacerHorizontal: data.spacerHorizontal ?? 'none',
@@ -428,6 +432,7 @@ export async function updateLayout(
         rotation: item.rotation,
         sortOrder: index,
         customization: item.customization ? JSON.stringify(item.customization) : null,
+      customSpec: item.customSpec ? JSON.stringify(item.customSpec) : null,
       };
     });
 
@@ -597,6 +602,7 @@ export async function cloneLayout(
       description: source.description,
       gridX: source.gridX,
       gridY: source.gridY,
+      gridResolution: source.gridResolution,
       widthMm: source.widthMm,
       depthMm: source.depthMm,
       spacerHorizontal: source.spacerHorizontal,
@@ -629,6 +635,7 @@ export async function cloneLayout(
       rotation: item.rotation,
       sortOrder: item.sortOrder,
       customization: item.customization,
+      customSpec: item.customSpec,
     }));
     insertedItems = await db
       .insert(placedItems)

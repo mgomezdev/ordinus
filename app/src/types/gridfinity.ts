@@ -1,3 +1,5 @@
+import type { CustomBinSpec } from '@gridfinity/shared';
+
 export type UnitSystem = 'metric' | 'imperial';
 export type ImperialFormat = 'decimal' | 'fractional';
 
@@ -62,8 +64,11 @@ export interface LibraryItem {
   price?: number;
   parameters?: GeneratorParams;
   paramHash?: string;
+  /** Set on synthetic items that represent a user-defined custom bin. */
+  customSpec?: CustomBinSpec;
 }
 
+/** x, y, width and height are in integer half-cells (GRID_RESOLUTION per grid unit). */
 export interface PlacedItem {
   instanceId: string;
   itemId: string;
@@ -73,6 +78,7 @@ export interface PlacedItem {
   height: number;
   rotation: Rotation;
   customization?: BinCustomization;
+  customSpec?: CustomBinSpec;
   shadowBoxId?: string | null;
   parameters?: GeneratorParams;
   paramHash?: string | null;
@@ -91,6 +97,9 @@ export interface DragData {
   refImageName?: string;
   favoriteCustomization?: BinCustomization;
   favoriteParamHash?: string | null;
+  favoriteCustomSpec?: CustomBinSpec;
+  /** Grid step, in half-cells, the drop position snaps to; defaults to whole units. */
+  snapStep?: number;
 }
 
 
@@ -186,6 +195,8 @@ export interface FavoriteItem {
   perspectiveImageUrl180: string | null;
   perspectiveImageUrl270: string | null;
   customization: BinCustomization;
+  /** Set for custom bins; libraryId is then 'custom' and libraryItemId encodes the generation hash. */
+  customSpec?: CustomBinSpec;
 }
 
 export function serializeCustomization(c: BinCustomization | undefined): string {
