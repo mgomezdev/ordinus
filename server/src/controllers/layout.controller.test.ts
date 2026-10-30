@@ -79,3 +79,28 @@ describe('POST /api/v1/layouts — customization field', () => {
     expect(res.status).toBe(201);
   });
 });
+
+describe('POST /api/v1/layouts — half-unit custom bins', () => {
+  const base = { name: 'L', gridX: 4, gridY: 4, widthMm: 168, depthMm: 168 };
+  const item = {
+    itemId: 'custom:custom-abc', x: 0.5, y: 1.5, width: 2.5, height: 1.5, rotation: 0,
+    customSpec: { width: 2.5, depth: 1.5, height: 3.5, overrides: { magnet_diameter: 6.5 } },
+  };
+
+  it('passes half-unit positions, sizes and customSpec through', async () => {
+    mockCreate.mockClear();
+    const res = await request(await buildTestApp()).post('/api/v1/layouts').send({ ...base, placedItems: [item] });
+    expect(res.status).toBe(201);
+    const [data] = mockCreate.mock.calls[0] as [{ placedItems: Array<Record<string, unknown>> }];
+    expect(data.placedItems[0]).toMatchObject({ x: 0.5, y: 1.5, width: 2.5, height: 1.5, customSpec: item.customSpec });
+  });
+
+  it.each([
+    ['x not a multiple of 0.5', { ...item, x: 0.3 }],
+    ['width below minimum', { ...item, width: 0 }],
+    ['invalid customSpec', { ...item, customSpec: { ...item.customSpec, overrides: { nope: 1 } } }],
+  ])('rejects %s', async (_label, bad) => {
+    const res = await request(await buildTestApp()).post('/api/v1/layouts').send({ ...base, placedItems: [bad] });
+    expect(res.status).toBe(400);
+  });
+});

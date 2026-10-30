@@ -72,6 +72,7 @@ export interface WallCutoutConfig {
 
 export type GeneratorParams = Record<string, unknown>;
 
+import type { CustomBinSpec } from './customBin.js';
 import gridfinityExtendedDefaultParamsJson from './gridfinity-extended-default-params.json' with { type: 'json' };
 export const gridfinityExtendedDefaultParams: GeneratorParams = gridfinityExtendedDefaultParamsJson;
 
@@ -93,6 +94,7 @@ export interface PlacedItem {
   height: number;
   rotation: Rotation;
   customization?: BinCustomization;
+  customSpec?: CustomBinSpec;
 }
 
 export interface PlacedItemWithValidity extends PlacedItem {
@@ -118,6 +120,7 @@ export interface BOMItem {
   categories: string[];
   quantity: number;
   customization?: BinCustomization;
+  customSpec?: CustomBinSpec;
   price?: number;
   parameters?: GeneratorParams;
 }
@@ -265,6 +268,7 @@ export interface ApiPlacedItem {
   rotation: number;
   sortOrder: number;
   customization?: BinCustomization;
+  customSpec?: CustomBinSpec;
 }
 
 export interface ApiReferenceImage {

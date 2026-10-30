@@ -13,6 +13,8 @@ export interface CustomBinSpec {
   overrides: Record<string, unknown>;
 }
 
+/** libraryId used by placed items / BOM lines that are custom bins. */
+export const CUSTOM_LIBRARY_ID = 'custom';
 export const CUSTOM_BIN_MIN = 0.5;
 export const CUSTOM_BIN_MAX = 20;
 export const CUSTOM_BIN_STEP = 0.5;
@@ -20,6 +22,8 @@ export const CUSTOM_BIN_STEP = 0.5;
 const OFF_VALUES = new Set(['none', 'disabled', 'off', 'false']);
 const CHAMBER_ENABLE_THRESHOLD = 1;
 const WALL_COUNT = 4;
+/** Any number without its own max stays within this magnitude, so one request cannot ask for absurd geometry. */
+const NUMBER_HARD_LIMIT = 1000;
 
 const SCHEMA_BY_NAME = new Map<string, ParamDef>(GENERATOR_PARAM_SCHEMA.map(d => [d.name, d]));
 
@@ -85,22 +89,31 @@ function validateSize(label: string, value: unknown, errors: string[]): void {
   if (!Number.isInteger(value / CUSTOM_BIN_STEP)) errors.push(`${label} must be a multiple of ${CUSTOM_BIN_STEP}`);
 }
 
+function stringMatches(def: ParamDef, value: string): boolean {
+  if (def.maxLength !== undefined && value.length > def.maxLength) return false;
+  return def.pattern === undefined || new RegExp(def.pattern).test(value);
+}
+
 function validateOverrideValue(def: ParamDef, value: unknown): string | null {
   switch (def.kind) {
     case 'number':
       if (typeof value !== 'number' || !Number.isFinite(value)) return `${def.name} must be a number`;
+      if (def.integer && !Number.isInteger(value)) return `${def.name} must be a whole number`;
       if (def.min !== undefined && value < def.min) return `${def.name} must be at least ${def.min}`;
-      if (def.max !== undefined && value > def.max) return `${def.name} must be at most ${def.max}`;
+      if (Math.abs(value) > (def.max ?? NUMBER_HARD_LIMIT)) return `${def.name} must be at most ${def.max ?? NUMBER_HARD_LIMIT}`;
       return null;
     case 'bool':
       return typeof value === 'boolean' ? null : `${def.name} must be true or false`;
     case 'string':
-      return typeof value === 'string' ? null : `${def.name} must be text`;
+      return typeof value === 'string' && stringMatches(def, value) ? null : `${def.name} has an invalid format`;
     case 'enum':
       return typeof value === 'string' && def.options?.includes(value) ? null : `${def.name} must be one of ${def.options?.join(', ')}`;
     case 'array': {
       const length = def.arrayLength ?? WALL_COUNT;
-      const ok = Array.isArray(value) && value.length === length && value.every(n => typeof n === 'number' && Number.isFinite(n));
+      const min = def.elementMin ?? -NUMBER_HARD_LIMIT;
+      const max = def.elementMax ?? NUMBER_HARD_LIMIT;
+      const ok = Array.isArray(value) && value.length === length
+        && value.every(n => typeof n === 'number' && Number.isFinite(n) && n >= min && n <= max);
       return ok ? null : `${def.name} must be ${length} numbers`;
     }
   }

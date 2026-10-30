@@ -132,6 +132,7 @@ export const placedItems = sqliteTable('placed_items', {
   rotation: integer('rotation').notNull().default(0),
   sortOrder: integer('sort_order').notNull().default(0),
   customization: text('customization'),
+  customSpec: text('custom_spec'),
 }, (table) => [
   index('idx_placed_items_layout').on(table.layoutId),
 ]);

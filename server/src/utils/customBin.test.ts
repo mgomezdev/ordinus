@@ -56,7 +56,7 @@ function libraryParams(index: LibraryIndexFile, item: LibraryIndexFile['items'][
 
 const spec = (over: Partial<CustomBinSpec> = {}): CustomBinSpec => ({ width: 3, depth: 2, height: 4, overrides: {}, ...over });
 
-describe('buildCustomBinParams — equivalence with the library', () => {
+describe('buildCustomBinParams - equivalence with the library', () => {
   it('3x2x4 with no overrides equals the bins_standard 3x2 item (same params, same hash)', () => {
     const index = readLibraryIndex('bins_standard');
     const item = index.items.find(i => i.id === 'bin-3x2')!;
@@ -84,7 +84,7 @@ describe('buildCustomBinParams — equivalence with the library', () => {
   });
 });
 
-describe('buildCustomBinParams — explicit default equals assumed default', () => {
+describe('buildCustomBinParams - explicit default equals assumed default', () => {
   const baseline = buildCustomBinParams(spec());
 
   it.each(GENERATOR_PARAM_SCHEMA.map(d => [d.name, d] as const))('%s set to its default changes nothing', (_name, def) => {
@@ -127,7 +127,7 @@ describe('buildCustomBinParams — explicit default equals assumed default', () 
   });
 });
 
-describe('buildCustomBinParams — overrides and sizes', () => {
+describe('buildCustomBinParams - overrides and sizes', () => {
   it('applies a non-default override and changes the hash', () => {
     const custom = buildCustomBinParams(spec({ overrides: { magnet_diameter: 6.5 } }));
     expect(custom['magnet_diameter']).toBe(6.5);
@@ -202,5 +202,38 @@ describe('isParamEnabled', () => {
     expect(isParamEnabled(def('vertical_separator_bend_angle'), { vertical_chambers: 2 })).toBe(true);
     expect(isParamEnabled(def('vertical_separator_bend_angle'), {})).toBe(false);
     expect(isParamEnabled(def('lip_style'), {})).toBe(true);
+  });
+});
+
+describe('validateCustomBinSpec - injection and resource limits', () => {
+  const enabled = { vertical_irregular_subdivisions: true };
+  const check = (overrides: Record<string, unknown>) => validateCustomBinSpec(spec({ overrides })).ok;
+
+  it('accepts well-formed separator configs and rejects anything that could escape the -D string', () => {
+    expect(check({ ...enabled, vertical_separator_config: '10.5|21|42' })).toBe(true);
+    for (const evil of ['1"; import("/etc/passwd"); "', '1|2" , x', '10|\\', '1 | 2', '', 'a|b', '1|'.repeat(200)]) {
+      expect(check({ ...enabled, vertical_separator_config: evil }), evil).toBe(false);
+    }
+  });
+
+  it('caps counts and magnitudes', () => {
+    expect(check({ vertical_chambers: 21 })).toBe(false);
+    expect(check({ vertical_chambers: 2.5 })).toBe(false);
+    expect(check({ wallpattern_enabled: true, wallpattern_hole_sides: 65 })).toBe(false);
+    expect(check({ wallpattern_enabled: true, wallpattern_hole_size: 0.01 })).toBe(false);
+    expect(check({ magnet_diameter: 1e9 })).toBe(false);
+    expect(check({ label_walls: [1, 5, 0, 0], label_style: 'normal' })).toBe(false);
+  });
+
+  it('escapes quotes and backslashes in generate_bin.py string values', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'custom-bin-esc-'));
+    try {
+      const file = path.join(dir, 'p.json');
+      fs.writeFileSync(file, JSON.stringify({ vertical_separator_config: String.raw`a"b\c` }));
+      const out = execFileSync(PYTHON_CMD, [path.join(REPO_ROOT, 'generator/generate_bin.py'), file, '--dry-run'], { encoding: 'utf8' });
+      expect(out).toContain(String.raw`vertical_separator_config="a\"b\\c"`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

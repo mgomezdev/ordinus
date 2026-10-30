@@ -25,12 +25,18 @@ export interface ParamDef {
   max?: number;
   step?: number;
   arrayLength?: number;
+  /** Inclusive bounds for each array element. */
+  elementMin?: number;
+  elementMax?: number;
+  /** Numbers must be whole. */
+  integer?: boolean;
+  /** Strings must match this regular expression (full match) and be at most maxLength long. */
+  pattern?: string;
+  maxLength?: number;
   /** Name of the parameter that must be on (true, or not "none"/"disabled") for this one to apply. */
   enabledBy?: string;
   help?: string;
 }
-
-const WALL_ARRAY = 4;
 
 function num(name: string, group: ParamGroup, label: string, def: number, extra: Partial<ParamDef> = {}): ParamDef {
   return { name, group, label, kind: 'number', default: def, ...extra };
@@ -53,6 +59,11 @@ function list(name: string, group: ParamGroup, label: string, def: number[], ext
 }
 
 const WALLS_HELP = 'Front, back, left, right.';
+/** Numbers (mm) separated by |, e.g. 10.5|21|42. Anything else would reach the OpenSCAD -D expression. */
+const SEPARATOR_PATTERN = String.raw`^[0-9]+(\.[0-9]+)?(\|[0-9]+(\.[0-9]+)?)*$`;
+const SEPARATOR_MAX_LENGTH = 200;
+const FLAG = { elementMin: 0, elementMax: 1 };
+const RATIO_LIMIT = 100;
 
 /** Every user-facing parameter of generator/generate_bin.py, minus width/depth/height and debug flags. */
 export const GENERATOR_PARAM_SCHEMA: ParamDef[] = [
@@ -65,12 +76,12 @@ export const GENERATOR_PARAM_SCHEMA: ParamDef[] = [
 
   // Subdivisions
   num('chamber_wall_thickness', 'Subdivisions', 'Chamber wall thickness (mm)', 1.2, { min: 0, step: 0.1 }),
-  num('vertical_chambers', 'Subdivisions', 'Vertical chambers (X)', 1, { min: 1, step: 1 }),
+  num('vertical_chambers', 'Subdivisions', 'Vertical chambers (X)', 1, { min: 1, max: 20, step: 1, integer: true }),
   num('vertical_separator_bend_position', 'Subdivisions', 'Vertical separator bend position', 0, { step: 0.1, enabledBy: 'vertical_chambers' }),
   num('vertical_separator_bend_angle', 'Subdivisions', 'Vertical separator bend angle', 0, { step: 1, enabledBy: 'vertical_chambers' }),
   num('vertical_separator_bend_separation', 'Subdivisions', 'Vertical separator bend separation', 0, { step: 0.1, enabledBy: 'vertical_chambers' }),
   num('vertical_separator_cut_depth', 'Subdivisions', 'Vertical separator cut depth', 0, { min: 0, step: 0.1, enabledBy: 'vertical_chambers' }),
-  num('horizontal_chambers', 'Subdivisions', 'Horizontal chambers (Y)', 1, { min: 1, step: 1 }),
+  num('horizontal_chambers', 'Subdivisions', 'Horizontal chambers (Y)', 1, { min: 1, max: 20, step: 1, integer: true }),
   num('horizontal_separator_bend_position', 'Subdivisions', 'Horizontal separator bend position', 0, { step: 0.1, enabledBy: 'horizontal_chambers' }),
   num('horizontal_separator_bend_angle', 'Subdivisions', 'Horizontal separator bend angle', 0, { step: 1, enabledBy: 'horizontal_chambers' }),
   num('horizontal_separator_bend_separation', 'Subdivisions', 'Horizontal separator bend separation', 0, { step: 0.1, enabledBy: 'horizontal_chambers' }),
@@ -78,11 +89,15 @@ export const GENERATOR_PARAM_SCHEMA: ParamDef[] = [
   bool('vertical_irregular_subdivisions', 'Subdivisions', 'Vertical irregular subdivisions', false),
   text('vertical_separator_config', 'Subdivisions', 'Vertical separator positions', '10.5|21|42|50|60', {
     enabledBy: 'vertical_irregular_subdivisions',
+    pattern: SEPARATOR_PATTERN,
+    maxLength: SEPARATOR_MAX_LENGTH,
     help: 'Positions in mm from the left end, separated by |.',
   }),
   bool('horizontal_irregular_subdivisions', 'Subdivisions', 'Horizontal irregular subdivisions', false),
   text('horizontal_separator_config', 'Subdivisions', 'Horizontal separator positions', '10.5|21|42|50|60', {
     enabledBy: 'horizontal_irregular_subdivisions',
+    pattern: SEPARATOR_PATTERN,
+    maxLength: SEPARATOR_MAX_LENGTH,
     help: 'Positions in mm from the front, separated by |.',
   }),
 
@@ -92,7 +107,7 @@ export const GENERATOR_PARAM_SCHEMA: ParamDef[] = [
   num('screw_depth', 'Base', 'Screw depth (mm)', 0, { min: 0, step: 0.1, help: "Zack's design uses 6." }),
   num('center_magnet_diameter', 'Base', 'Center magnet diameter (mm)', 0, { min: 0, step: 0.1 }),
   num('center_magnet_thickness', 'Base', 'Center magnet thickness (mm)', 0, { min: 0, step: 0.1 }),
-  num('hole_overhang_remedy', 'Base', 'Hole overhang remedy', 2, { min: 0, step: 1 }),
+  num('hole_overhang_remedy', 'Base', 'Hole overhang remedy', 2, { min: 0, max: 10, step: 1, integer: true }),
   bool('box_corner_attachments_only', 'Base', 'Corner attachments only', true),
   num('floor_thickness', 'Base', 'Floor thickness (mm)', 0.7, { min: 0, step: 0.1 }),
   num('cavity_floor_radius', 'Base', 'Cavity floor radius (mm)', -1, { step: 0.1 }),
@@ -104,9 +119,9 @@ export const GENERATOR_PARAM_SCHEMA: ParamDef[] = [
   // Label
   pick('label_style', 'Label', 'Label style', 'normal', ['disabled', 'normal', 'click']),
   pick('label_position', 'Label', 'Label position', 'left', ['left', 'right', 'center', 'leftchamber', 'rightchamber', 'centerchamber'], { enabledBy: 'label_style' }),
-  list('label_size', 'Label', 'Label size (width, depth, height, radius)', [0, 14, 0, 0.6], { enabledBy: 'label_style' }),
+  list('label_size', 'Label', 'Label size (width, depth, height, radius)', [0, 14, 0, 0.6], { enabledBy: 'label_style', elementMin: 0, elementMax: 1000 }),
   num('label_relief', 'Label', 'Label relief (mm)', 0, { min: 0, step: 0.1, enabledBy: 'label_style' }),
-  list('label_walls', 'Label', 'Label walls', [1, 0, 0, 0], { enabledBy: 'label_style', help: WALLS_HELP }),
+  list('label_walls', 'Label', 'Label walls', [1, 0, 0, 0], { enabledBy: 'label_style', help: WALLS_HELP, ...FLAG }),
 
   // Sliding lid
   bool('sliding_lid_enabled', 'Sliding Lid', 'Sliding lid', false),
@@ -118,7 +133,7 @@ export const GENERATOR_PARAM_SCHEMA: ParamDef[] = [
   // Finger slide
   pick('fingerslide', 'Finger Slide', 'Finger slide', 'none', ['none', 'rounded', 'chamfered']),
   num('fingerslide_radius', 'Finger Slide', 'Radius (mm)', 8, { min: 0, step: 0.5, enabledBy: 'fingerslide' }),
-  list('fingerslide_walls', 'Finger Slide', 'Walls', [1, 0, 0, 0], { enabledBy: 'fingerslide', help: WALLS_HELP }),
+  list('fingerslide_walls', 'Finger Slide', 'Walls', [1, 0, 0, 0], { enabledBy: 'fingerslide', help: WALLS_HELP, ...FLAG }),
 
   // Tapered corner
   pick('tapered_corner', 'Tapered Corner', 'Tapered corner', 'none', ['none', 'rounded', 'chamfered']),
@@ -128,11 +143,11 @@ export const GENERATOR_PARAM_SCHEMA: ParamDef[] = [
   // Wall pattern
   bool('wallpattern_enabled', 'Wall Pattern', 'Wall pattern', false),
   pick('wallpattern_style', 'Wall Pattern', 'Style', 'grid', ['grid', 'gridrotated', 'hexgrid', 'hexgridrotated', 'voronoi', 'voronoigrid', 'voronoihexgrid'], { enabledBy: 'wallpattern_enabled' }),
-  num('wallpattern_hole_spacing', 'Wall Pattern', 'Hole spacing (mm)', 2, { min: 0, step: 0.1, enabledBy: 'wallpattern_enabled' }),
-  list('wallpattern_walls', 'Wall Pattern', 'Walls', [1, 1, 1, 1], { enabledBy: 'wallpattern_enabled', help: WALLS_HELP }),
+  num('wallpattern_hole_spacing', 'Wall Pattern', 'Hole spacing (mm)', 2, { min: 0.5, max: 50, step: 0.1, enabledBy: 'wallpattern_enabled' }),
+  list('wallpattern_walls', 'Wall Pattern', 'Walls', [1, 1, 1, 1], { enabledBy: 'wallpattern_enabled', help: WALLS_HELP, ...FLAG }),
   pick('wallpattern_dividers_enabled', 'Wall Pattern', 'Pattern on dividers', 'disabled', ['disabled', 'horizontal', 'vertical', 'both'], { enabledBy: 'wallpattern_enabled' }),
-  num('wallpattern_hole_sides', 'Wall Pattern', 'Hole sides', 6, { min: 3, step: 1, enabledBy: 'wallpattern_enabled', help: '4 square, 6 hex, 64 circle.' }),
-  num('wallpattern_hole_size', 'Wall Pattern', 'Hole size (mm)', 5, { min: 0, step: 0.1, enabledBy: 'wallpattern_enabled' }),
+  num('wallpattern_hole_sides', 'Wall Pattern', 'Hole sides', 6, { min: 3, max: 64, step: 1, integer: true, enabledBy: 'wallpattern_enabled', help: '4 square, 6 hex, 64 circle.' }),
+  num('wallpattern_hole_size', 'Wall Pattern', 'Hole size (mm)', 5, { min: 1, max: 100, step: 0.1, enabledBy: 'wallpattern_enabled' }),
   pick('wallpattern_fill', 'Wall Pattern', 'Fill mode', 'crop', ['none', 'space', 'crop', 'crophorizontal', 'cropvertical', 'crophorizontal_spacevertical', 'cropvertical_spacehorizontal', 'spacevertical', 'spacehorizontal'], { enabledBy: 'wallpattern_enabled' }),
   num('wallpattern_voronoi_noise', 'Wall Pattern', 'Voronoi noise', 0.75, { min: 0, step: 0.05, enabledBy: 'wallpattern_enabled' }),
   num('wallpattern_voronoi_radius', 'Wall Pattern', 'Voronoi radius', 0.5, { min: 0, step: 0.05, enabledBy: 'wallpattern_enabled' }),
@@ -141,6 +156,8 @@ export const GENERATOR_PARAM_SCHEMA: ParamDef[] = [
   bool('wallcutout_enabled', 'Wall Cutout', 'Wall cutout', false),
   list('wallcutout_walls', 'Wall Cutout', 'Walls', [0, 0, 0, 0], {
     enabledBy: 'wallcutout_enabled',
+    elementMin: -RATIO_LIMIT,
+    elementMax: RATIO_LIMIT,
     help: `${WALLS_HELP} 0 off; positive grid units; negative is a ratio of the wall length (-2 is half).`,
   }),
   num('wallcutout_width', 'Wall Cutout', 'Width', 0, { min: 0, step: 0.1, enabledBy: 'wallcutout_enabled' }),

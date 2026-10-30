@@ -281,3 +281,26 @@ describe('buildGenerateParams — wall cutout', () => {
     expect(params.wallcutout_walls).toEqual([-2, -2, -2, -2]);
   });
 });
+
+describe('resolveItemSources — custom bins', () => {
+  const spec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { magnet_diameter: 6.5 } };
+  const customItem = (qty: number): BOMItem => ({
+    ...BASE_BOM_ITEM, libraryId: 'custom', itemId: 'custom-x', widthUnits: 2.5, heightUnits: 1.5, quantity: qty, customSpec: spec,
+  });
+
+  it('generates exactly the custom params, merges identical specs and uses the standard base model', async () => {
+    await seedLibrary('bins_standard', '/data/models/standard/base.scad');
+    const { staticConfigs, uniqueConfigs } = await resolveItemSources([customItem(1), customItem(2)]);
+    const { buildCustomBinParams } = await import('@gridfinity/shared');
+    expect(staticConfigs).toHaveLength(0);
+    expect(uniqueConfigs).toHaveLength(1);
+    expect(uniqueConfigs[0].qty).toBe(3);
+    expect(uniqueConfigs[0].baseModelPath).toBe('/data/models/standard/base.scad');
+    expect(buildGenerateParams(uniqueConfigs[0])).toEqual(buildCustomBinParams(spec));
+    expect(uniqueConfigs[0].filename).toMatch(/^bin_custom_2\.5x1\.5x3\.5_[0-9a-f]{8}\.stl$/);
+  });
+
+  it('rejects a custom item with an invalid spec', async () => {
+    await expect(resolveItemSources([{ ...customItem(1), customSpec: { ...spec, width: 2.3 } }])).rejects.toBeInstanceOf(AppError);
+  });
+});
