@@ -1,4 +1,10 @@
 {
-  "label_style": "disabled",
-  "half_pitch": "true"
+  "sub_pitch": 2,
+  "lip_top_notches": false,
+  "vertical_separator_bend_angle": 0,
+  "horizontal_separator_bend_angle": 0,
+  "fingerslide_radius": 8,
+  "wallpattern_style": "grid",
+  "wallpattern_fill": "crop",
+  "wallpattern_cell_size": [5, 5]
 }

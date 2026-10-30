@@ -167,9 +167,9 @@ describe('POST /generation/custom', () => {
     const { buildCustomBinParams } = await import('@gridfinity/shared');
     const { computeParamHash } = await import('../utils/generationParams.js');
     mockPipeline.enqueue.mockResolvedValue('pending');
-    const res = await request(makeApp()).post('/generation/custom').send({ ...spec, overrides: { magnet_diameter: 6.5 } });
+    const res = await request(makeApp()).post('/generation/custom').send({ ...spec, overrides: { floor_thickness: 1.2 } });
     expect(res.status).toBe(200);
-    const params = buildCustomBinParams({ ...spec, overrides: { magnet_diameter: 6.5 } });
+    const params = buildCustomBinParams({ ...spec, overrides: { floor_thickness: 1.2 } });
     expect(res.body).toEqual({ hash: computeParamHash(params), status: 'pending' });
     expect(mockPipeline.enqueue).toHaveBeenLastCalledWith(res.body.hash, params, '/fake/standard.scad');
   });
@@ -178,8 +178,8 @@ describe('POST /generation/custom', () => {
     ['half-unit violation', { ...spec, width: 2.3 }],
     ['size too large', { ...spec, height: 21 }],
     ['unknown override', { ...spec, overrides: { nope: 1 } }],
-    ['wrong type', { ...spec, overrides: { magnet_diameter: 'x' } }],
-    ['disabled dependent', { ...spec, overrides: { wallpattern_hole_size: 3 } }],
+    ['wrong type', { ...spec, overrides: { floor_thickness: 'x' } }],
+    ['disabled dependent', { ...spec, overrides: { wallpattern_strength: 3 } }],
     ['missing overrides', { width: 1, depth: 1, height: 1 }],
   ])('returns 400 for %s', async (_label, body) => {
     const res = await request(makeApp()).post('/generation/custom').send(body);

@@ -29,11 +29,11 @@ function isOnHalfUnit(item: Footprint): boolean {
   return [item.x, item.y, item.width, item.height].some(v => v % GRID_RESOLUTION !== 0);
 }
 
-/** Half-unit placement needs a base with subdivided pads, i.e. the generator's `half_pitch` on (the default). */
+/** Half-unit placement needs a base with subdivided pads, i.e. the generator's `sub_pitch` at 2 or 4 (2 is the default). */
 export function supportsHalfGrid(item: Pick<Footprint, 'customSpec' | 'parameters'>): boolean {
   if (item.customSpec) return specUsesHalfPitch(item.customSpec);
-  const halfPitch = item.parameters?.['half_pitch'];
-  return halfPitch === undefined || halfPitchEnabled(halfPitch);
+  const subPitch = item.parameters?.['sub_pitch'];
+  return subPitch === undefined || halfPitchEnabled(subPitch);
 }
 
 /** True when the item sits on a half-unit boundary its base cannot support. */

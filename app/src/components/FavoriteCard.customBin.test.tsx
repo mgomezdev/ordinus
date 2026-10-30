@@ -61,7 +61,7 @@ describe('FavoriteCard — custom bins', () => {
   });
 
   it('snaps custom bins without half pitch to whole units', () => {
-    expect(renderedDragData(makeFavorite({ width: 3, depth: 2, height: 4 }, { half_pitch: false })).snapStep).toBe(2);
+    expect(renderedDragData(makeFavorite({ width: 3, depth: 2, height: 4 }, { sub_pitch: 1 })).snapStep).toBe(2);
   });
 
   it('lets whole-size custom bins with half pitch drop on half-cells', () => {

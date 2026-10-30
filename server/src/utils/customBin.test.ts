@@ -101,10 +101,12 @@ describe('buildCustomBinParams - explicit default equals assumed default', () =>
     expect(computeParamHash(buildCustomBinParams(spec({ overrides: all })))).toBe(computeParamHash(baseline));
   });
 
-  it('treats boolean true and the string "true" as the same default', () => {
-    const half = GENERATOR_PARAM_SCHEMA.find(d => d.name === 'half_pitch')!;
-    expect(effectiveDefault(half)).toBe('true');
-    expect(pruneOverrides({ half_pitch: true })).toEqual({});
+  it('treats a boolean and its string form as the same default', () => {
+    const notches = GENERATOR_PARAM_SCHEMA.find(d => d.name === 'lip_top_notches')!;
+    expect(effectiveDefault(notches)).toBe(false);
+    expect(pruneOverrides({ lip_top_notches: false })).toEqual({});
+    expect(pruneOverrides({ lip_top_notches: 'false' })).toEqual({});
+    expect(pruneOverrides({ sub_pitch: 2 })).toEqual({});
   });
 
   it('produces the identical generate_bin.py command for omitted and explicit defaults', () => {
@@ -131,8 +133,8 @@ describe('buildCustomBinParams - explicit default equals assumed default', () =>
 
 describe('buildCustomBinParams - overrides and sizes', () => {
   it('applies a non-default override and changes the hash', () => {
-    const custom = buildCustomBinParams(spec({ overrides: { magnet_diameter: 6.5 } }));
-    expect(custom['magnet_diameter']).toBe(6.5);
+    const custom = buildCustomBinParams(spec({ overrides: { floor_thickness: 1.2 } }));
+    expect(custom['floor_thickness']).toBe(1.2);
     expect(computeParamHash(custom)).not.toBe(computeParamHash(buildCustomBinParams(spec())));
   });
 
@@ -157,7 +159,7 @@ describe('validateCustomBinSpec', () => {
   };
 
   it('accepts half-unit sizes and valid overrides', () => {
-    const r = validateCustomBinSpec({ width: 0.5, depth: 20, height: 3.5, overrides: { magnet_diameter: 6.5, label_walls: [1, 0, 0, 0] } });
+    const r = validateCustomBinSpec({ width: 0.5, depth: 20, height: 3.5, overrides: { floor_thickness: 1.2, label_style: 'normal', label_walls: [1, 0, 0, 0] } });
     expect(r.ok).toBe(true);
   });
 
@@ -180,16 +182,16 @@ describe('validateCustomBinSpec', () => {
   });
 
   it('rejects wrongly typed values', () => {
-    bad(spec({ overrides: { magnet_diameter: 'big' } }));
+    bad(spec({ overrides: { floor_thickness: 'big' } }));
     bad(spec({ overrides: { lip_style: 'sideways' } }));
     bad(spec({ overrides: { label_walls: [1, 0, 0] } }));
     bad(spec({ overrides: { wallpattern_enabled: 'yes' } }));
-    bad(spec({ overrides: { magnet_diameter: Number.NaN } }));
+    bad(spec({ overrides: { floor_thickness: Number.NaN } }));
   });
 
   it('rejects a dependent parameter whose enabler is off, accepts it when on', () => {
-    bad(spec({ overrides: { wallpattern_hole_size: 3 } }));
-    expect(validateCustomBinSpec(spec({ overrides: { wallpattern_enabled: true, wallpattern_hole_size: 3 } })).ok).toBe(true);
+    bad(spec({ overrides: { wallpattern_strength: 3 } }));
+    expect(validateCustomBinSpec(spec({ overrides: { wallpattern_enabled: true, wallpattern_strength: 3 } })).ok).toBe(true);
     bad(spec({ overrides: { label_position: 'right' } }));
     expect(validateCustomBinSpec(spec({ overrides: { label_style: 'normal', label_position: 'right' } })).ok).toBe(true);
   });
@@ -222,8 +224,8 @@ describe('validateCustomBinSpec - injection and resource limits', () => {
     expect(check({ vertical_chambers: 21 })).toBe(false);
     expect(check({ vertical_chambers: 2.5 })).toBe(false);
     expect(check({ wallpattern_enabled: true, wallpattern_hole_sides: 65 })).toBe(false);
-    expect(check({ wallpattern_enabled: true, wallpattern_hole_size: 0.01 })).toBe(false);
-    expect(check({ magnet_diameter: 1e9 })).toBe(false);
+    expect(check({ wallpattern_enabled: true, wallpattern_strength: 0.01 })).toBe(false);
+    expect(check({ floor_thickness: 1e9 })).toBe(false);
     expect(check({ label_walls: [1, 5, 0, 0], label_style: 'normal' })).toBe(false);
   });
 
@@ -251,21 +253,21 @@ describe('half-unit footprints require half pitch', () => {
   });
 
   it.each([[{ width: 2.5 }], [{ depth: 1.5 }]])('rejects %j when half pitch is turned off', (size) => {
-    const errors = errorsFor(spec({ ...size, overrides: { half_pitch: false } }));
-    expect(errors.some(e => e.includes('half_pitch'))).toBe(true);
+    const errors = errorsFor(spec({ ...size, overrides: { sub_pitch: 1 } }));
+    expect(errors.some(e => e.includes('sub_pitch'))).toBe(true);
   });
 
   it('accepts whole-unit sizes with half pitch off', () => {
-    expect(validateCustomBinSpec(spec({ width: 3, depth: 2, overrides: { half_pitch: false } })).ok).toBe(true);
+    expect(validateCustomBinSpec(spec({ width: 3, depth: 2, overrides: { sub_pitch: 1 } })).ok).toBe(true);
   });
 
   it('allows a half-unit height whatever the pitch (height is vertical)', () => {
-    expect(validateCustomBinSpec(spec({ height: 3.5, overrides: { half_pitch: false } })).ok).toBe(true);
+    expect(validateCustomBinSpec(spec({ height: 3.5, overrides: { sub_pitch: 1 } })).ok).toBe(true);
   });
 
   it('reports whether a spec uses half pitch', () => {
     expect(specUsesHalfPitch(spec())).toBe(true);
-    expect(specUsesHalfPitch(spec({ overrides: { half_pitch: false } }))).toBe(false);
-    expect(specUsesHalfPitch(spec({ overrides: { half_pitch: true } }))).toBe(true);
+    expect(specUsesHalfPitch(spec({ overrides: { sub_pitch: 1 } }))).toBe(false);
+    expect(specUsesHalfPitch(spec({ overrides: { sub_pitch: 2 } }))).toBe(true);
   });
 });

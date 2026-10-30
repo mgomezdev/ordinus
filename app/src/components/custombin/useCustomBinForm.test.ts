@@ -27,26 +27,26 @@ describe('useCustomBinForm', () => {
     act(() => result.current.setSize('width', 2.5));
     expect(result.current.errors).toEqual([]);
 
-    act(() => result.current.setOverride('half_pitch', false));
-    expect(result.current.errors.some(e => e.includes('half_pitch'))).toBe(true);
+    act(() => result.current.setOverride('sub_pitch', 1));
+    expect(result.current.errors.some(e => e.includes('sub_pitch'))).toBe(true);
 
-    act(() => result.current.resetOverride('half_pitch'));
+    act(() => result.current.resetOverride('sub_pitch'));
     expect(result.current.errors).toEqual([]);
   });
 
   it('allows a whole-unit footprint with half pitch off', () => {
     const { result } = renderHook(() => useCustomBinForm());
-    act(() => result.current.setOverride('half_pitch', false));
+    act(() => result.current.setOverride('sub_pitch', 1));
     expect(result.current.errors).toEqual([]);
   });
 
   it('stores an override only while it differs from the default', () => {
     const { result } = renderHook(() => useCustomBinForm());
-    act(() => result.current.setOverride('magnet_diameter', 6.5));
-    expect(result.current.isOverridden('magnet_diameter')).toBe(true);
-    expect(result.current.spec.overrides).toEqual({ magnet_diameter: 6.5 });
-    act(() => result.current.setOverride('magnet_diameter', 0));
-    expect(result.current.isOverridden('magnet_diameter')).toBe(false);
+    act(() => result.current.setOverride('floor_thickness', 1.2));
+    expect(result.current.isOverridden('floor_thickness')).toBe(true);
+    expect(result.current.spec.overrides).toEqual({ floor_thickness: 1.2 });
+    act(() => result.current.setOverride('floor_thickness', 0.7));
+    expect(result.current.isOverridden('floor_thickness')).toBe(false);
     expect(result.current.spec.overrides).toEqual({});
   });
 
@@ -60,22 +60,22 @@ describe('useCustomBinForm', () => {
   it('resets one override and all overrides', () => {
     const { result } = renderHook(() => useCustomBinForm());
     act(() => {
-      result.current.setOverride('magnet_diameter', 6.5);
-      result.current.setOverride('screw_depth', 6);
+      result.current.setOverride('floor_thickness', 1.2);
+      result.current.setOverride('cavity_floor_radius', 2);
     });
-    act(() => result.current.resetOverride('magnet_diameter'));
-    expect(Object.keys(result.current.spec.overrides)).toEqual(['screw_depth']);
+    act(() => result.current.resetOverride('floor_thickness'));
+    expect(Object.keys(result.current.spec.overrides)).toEqual(['cavity_floor_radius']);
     act(() => result.current.resetAll());
     expect(result.current.spec.overrides).toEqual({});
   });
 
   it('gates dependent parameters and drops them when the enabler is turned off', () => {
     const { result } = renderHook(() => useCustomBinForm());
-    expect(result.current.isEnabled('wallpattern_hole_size')).toBe(false);
+    expect(result.current.isEnabled('wallpattern_strength')).toBe(false);
     act(() => result.current.setOverride('wallpattern_enabled', true));
-    expect(result.current.isEnabled('wallpattern_hole_size')).toBe(true);
-    act(() => result.current.setOverride('wallpattern_hole_size', 3));
-    expect(result.current.spec.overrides).toMatchObject({ wallpattern_hole_size: 3 });
+    expect(result.current.isEnabled('wallpattern_strength')).toBe(true);
+    act(() => result.current.setOverride('wallpattern_strength', 3));
+    expect(result.current.spec.overrides).toMatchObject({ wallpattern_strength: 3 });
     act(() => result.current.setOverride('wallpattern_enabled', false));
     expect(result.current.spec.overrides).toEqual({});
   });
@@ -83,7 +83,7 @@ describe('useCustomBinForm', () => {
   it('counts overrides per group', () => {
     const { result } = renderHook(() => useCustomBinForm());
     act(() => {
-      result.current.setOverride('magnet_diameter', 6.5);
+      result.current.setOverride('floor_thickness', 1.2);
       result.current.setOverride('lip_style', 'none');
     });
     expect(result.current.overrideCount()).toBe(2);
@@ -100,7 +100,7 @@ describe('useCustomBinForm', () => {
   });
 
   it('starts from an initial spec', () => {
-    const initial = { width: 3, depth: 2, height: 4, overrides: { magnet_diameter: 6.5 } };
+    const initial = { width: 3, depth: 2, height: 4, overrides: { floor_thickness: 1.2 } };
     const { result } = renderHook(() => useCustomBinForm(initial));
     expect(result.current.spec).toEqual(initial);
   });

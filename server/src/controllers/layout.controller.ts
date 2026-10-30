@@ -53,7 +53,7 @@ const placedItemSchema = z.object({
   customSpec: customSpecSchema.optional(),
 }).refine(
   (item) => !item.customSpec || specUsesHalfPitch(item.customSpec) || [item.x, item.y, item.width, item.height].every(v => v % GRID_RESOLUTION === 0),
-  { message: 'Half-unit placement requires the bin to use half_pitch' },
+  { message: 'Half-unit placement requires the bin to use half pitch (sub_pitch 2 or 4)' },
 );
 
 const pointSchema = z.object({ x: z.number().finite(), y: z.number().finite() });

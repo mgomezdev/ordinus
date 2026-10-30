@@ -22,7 +22,8 @@ SCAD_FILE = os.environ.get(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), 'gridfinity_basic_cup.scad')
 )
 
-# Parameters for the combined gridfinity_basic_cup.scad.
+# Parameters for the combined gridfinity_basic_cup.scad (upstream gridfinity_extended_openscad).
+# Defaults mirror the scad file's own defaults: a value equal to its default is not passed to OpenSCAD.
 # Types: "array", "string", "bool", "number"
 PARAM_REGISTRY = {
     # General Cup
@@ -31,20 +32,22 @@ PARAM_REGISTRY = {
     "height":         {"default": [3, 0],   "type": "array"},
     "filled_in":      {"default": "disabled", "type": "string"},
     "wall_thickness": {"default": 0,        "type": "number"},
+    "render_position":{"default": "center", "type": "string"},
+
+    # Cup Lip
     "lip_style":      {"default": "normal", "type": "string"},
-    "position":       {"default": "center", "type": "string"},
-    "zClearance":     {"default": 0,        "type": "number"},
+    "lip_top_notches":{"default": True,     "type": "bool"},
 
     # Subdivisions
-    "chamber_wall_thickness":              {"default": 1.2,   "type": "number"},
+    "chamber_wall_thickness":              {"default": [1.2, 1.2], "type": "array"},
     "vertical_chambers":                   {"default": 1,     "type": "number"},
     "vertical_separator_bend_position":    {"default": 0,     "type": "number"},
-    "vertical_separator_bend_angle":       {"default": 0,     "type": "number"},
+    "vertical_separator_bend_angle":       {"default": 45,    "type": "number"},
     "vertical_separator_bend_separation":  {"default": 0,     "type": "number"},
     "vertical_separator_cut_depth":        {"default": 0,     "type": "number"},
     "horizontal_chambers":                 {"default": 1,     "type": "number"},
     "horizontal_separator_bend_position":  {"default": 0,     "type": "number"},
-    "horizontal_separator_bend_angle":     {"default": 0,     "type": "number"},
+    "horizontal_separator_bend_angle":     {"default": 45,    "type": "number"},
     "horizontal_separator_bend_separation":{"default": 0,     "type": "number"},
     "horizontal_separator_cut_depth":      {"default": 0,     "type": "number"},
     "vertical_irregular_subdivisions":     {"default": False, "type": "bool"},
@@ -53,37 +56,38 @@ PARAM_REGISTRY = {
     "horizontal_separator_config":         {"default": "10.5|21|42|50|60", "type": "string"},
 
     # Base
-    "magnet_diameter":            {"default": 0,      "type": "number"},
-    "magnet_easy_release":        {"default": "auto", "type": "string"},
-    "screw_depth":                {"default": 0,      "type": "number"},
-    "center_magnet_diameter":     {"default": 0,      "type": "number"},
-    "center_magnet_thickness":    {"default": 0,      "type": "number"},
-    "hole_overhang_remedy":       {"default": 2,      "type": "number"},
-    "box_corner_attachments_only":{"default": True,   "type": "bool"},
-    "floor_thickness":            {"default": 0.7,    "type": "number"},
-    "cavity_floor_radius":        {"default": -1,     "type": "number"},
-    "efficient_floor":            {"default": "off",  "type": "string"},
-    "half_pitch":                 {"default": False,  "type": "bool"},  # subdivide base pads for half-cell offsets
-    "flat_base":                  {"default": False,  "type": "bool"},
-    "spacer":                     {"default": False,  "type": "bool"},
+    "enable_magnets":             {"default": False,      "type": "bool"},
+    "magnet_size":                {"default": [6.5, 2.4], "type": "array"},
+    "magnet_easy_release":        {"default": "auto",     "type": "string"},
+    "enable_screws":              {"default": False,      "type": "bool"},
+    "screw_size":                 {"default": [3, 6],     "type": "array"},
+    "center_magnet_size":         {"default": [0, 0],     "type": "array"},
+    "hole_overhang_remedy":       {"default": 2,          "type": "number"},
+    "box_corner_attachments_only":{"default": "enabled",  "type": "string"},
+    "floor_thickness":            {"default": 0.7,        "type": "number"},
+    "cavity_floor_radius":        {"default": -1,         "type": "number"},
+    "efficient_floor":            {"default": "off",      "type": "string"},
+    "sub_pitch":                  {"default": 1,          "type": "number"},  # 2 = half pitch: base pads allow half-cell offsets
+    "flat_base":                  {"default": "off",      "type": "string"},
+    "spacer":                     {"default": False,      "type": "bool"},
 
     # Label
-    "label_style":    {"default": "normal",        "type": "string"},
+    "label_style":    {"default": "disabled",      "type": "string"},
     "label_position": {"default": "left",          "type": "string"},
     "label_size":     {"default": [0, 14, 0, 0.6], "type": "array"},
-    "label_relief":   {"default": 0,               "type": "number"},
-    "label_walls":    {"default": [1, 0, 0, 0],    "type": "array"},
+    "label_relief":   {"default": [0, 0, 0, 0.6],  "type": "array"},
+    "label_walls":    {"default": [0, 1, 0, 0],    "type": "array"},
 
     # Sliding Lid
-    "sliding_lid_enabled":       {"default": False, "type": "bool"},
-    "sliding_lid_thickness":     {"default": 0,     "type": "number"},
-    "sliding_min_wallThickness": {"default": 0,     "type": "number"},
-    "sliding_min_support":       {"default": 0,     "type": "number"},
-    "sliding_clearance":         {"default": 0.1,   "type": "number"},
+    "sliding_lid_enabled":            {"default": False, "type": "bool"},
+    "sliding_lid_thickness":          {"default": 0,     "type": "number"},
+    "sliding_lid_min_wall_thickness": {"default": 0,     "type": "number"},
+    "sliding_lid_min_support":        {"default": 0,     "type": "number"},
+    "sliding_lid_clearance":          {"default": 0.1,   "type": "number"},
 
     # Finger Slide
     "fingerslide":        {"default": "none",        "type": "string"},
-    "fingerslide_radius": {"default": 8,             "type": "number"},
+    "fingerslide_radius": {"default": -3,            "type": "number"},
     "fingerslide_walls":  {"default": [1, 0, 0, 0],  "type": "array"},
 
     # Tapered Corner
@@ -92,34 +96,39 @@ PARAM_REGISTRY = {
     "tapered_setback":     {"default": -1,     "type": "number"},
 
     # Wall Pattern
-    "wallpattern_enabled":          {"default": False,       "type": "bool"},
-    "wallpattern_style":            {"default": "grid",      "type": "string"},
-    "wallpattern_hole_spacing":     {"default": 2,           "type": "number"},
-    "wallpattern_walls":            {"default": [1, 1, 1, 1],"type": "array"},
-    "wallpattern_dividers_enabled": {"default": "disabled",  "type": "string"},
-    "wallpattern_hole_sides":       {"default": 6,           "type": "number"},
-    "wallpattern_hole_size":        {"default": 5,           "type": "number"},
-    "wallpattern_fill":             {"default": "crop",      "type": "string"},
-    "wallpattern_voronoi_noise":    {"default": 0.75,        "type": "number"},
-    "wallpattern_voronoi_radius":   {"default": 0.5,         "type": "number"},
+    "wallpattern_enabled":          {"default": False,        "type": "bool"},
+    "wallpattern_style":            {"default": "hexgrid",    "type": "string"},
+    "wallpattern_strength":         {"default": 2,            "type": "number"},
+    "wallpattern_walls":            {"default": [1, 1, 1, 1], "type": "array"},
+    "wallpattern_cell_size":        {"default": [10, 10],     "type": "array"},
+    "wallpattern_dividers_enabled": {"default": "disabled",   "type": "string"},
+    "wallpattern_hole_sides":       {"default": 6,            "type": "number"},
+    "wallpattern_hole_radius":      {"default": 0.5,          "type": "number"},
+    "wallpattern_fill":             {"default": "none",       "type": "string"},
+    "wallpattern_pattern_voronoi_noise": {"default": 0.75,    "type": "number"},
 
-    # Wall Cutout
-    "wallcutout_enabled":        {"default": False,        "type": "bool"},
-    "wallcutout_walls":          {"default": [0, 0, 0, 0], "type": "array"},
-    "wallcutout_width":          {"default": 0,            "type": "number"},
-    "wallcutout_angle":          {"default": 70,           "type": "number"},
-    "wallcutout_height":         {"default": 0,            "type": "number"},
-    "wallcutout_corner_radius":  {"default": 5,            "type": "number"},
+    # Wall Cutout (vertical: front/back walls, horizontal: left/right walls)
+    "wallcutout_vertical":               {"default": "disabled", "type": "string"},
+    "wallcutout_vertical_position":      {"default": [-2, -0.5, -0.5, -0.5], "type": "array"},
+    "wallcutout_vertical_width":         {"default": 0,  "type": "number"},
+    "wallcutout_vertical_angle":         {"default": 70, "type": "number"},
+    "wallcutout_vertical_height":        {"default": 0,  "type": "number"},
+    "wallcutout_vertical_corner_radius": {"default": 5,  "type": "number"},
+    "wallcutout_horizontal":               {"default": "disabled", "type": "string"},
+    "wallcutout_horizontal_position":      {"default": [-2, -0.5, -0.5, -0.5], "type": "array"},
+    "wallcutout_horizontal_width":         {"default": 0,  "type": "number"},
+    "wallcutout_horizontal_angle":         {"default": 70, "type": "number"},
+    "wallcutout_horizontal_height":        {"default": 0,  "type": "number"},
+    "wallcutout_horizontal_corner_radius": {"default": 5,  "type": "number"},
 
     # Extendable
-    "extension_x_enabled":   {"default": False, "type": "bool"},
-    "extension_y_enabled":   {"default": False, "type": "bool"},
-    "extension_tabs_enabled":{"default": True,  "type": "bool"},
+    "extension_x_enabled":   {"default": "disabled", "type": "string"},
+    "extension_y_enabled":   {"default": "disabled", "type": "string"},
+    "extension_tabs_enabled":{"default": True,       "type": "bool"},
 
     # Debug
-    "cutx":        {"default": 0,     "type": "number"},
-    "cuty":        {"default": 0,     "type": "number"},
-    "enable_help": {"default": False, "type": "bool"},
+    "cut":         {"default": [0, 0, 0], "type": "array"},
+    "enable_help": {"default": "disabled", "type": "string"},
 }
 
 

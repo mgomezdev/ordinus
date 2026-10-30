@@ -6,6 +6,7 @@ import * as m004 from './migrations/004_ref_image_alignment.js';
 import * as m005 from './migrations/005_placed_items_custom_spec.js';
 import * as m006 from './migrations/006_layout_grid_resolution.js';
 import * as m007 from './migrations/007_favorites_custom_spec.js';
+import * as m008 from './migrations/008_custom_spec_generator_params.js';
 
 interface Migration {
   version: number;
@@ -14,7 +15,7 @@ interface Migration {
   down: (client: Client) => Promise<void>;
 }
 
-const MIGRATIONS: Migration[] = [m001, m002, m003, m004, m005, m006, m007].sort((a, b) => a.version - b.version);
+const MIGRATIONS: Migration[] = [m001, m002, m003, m004, m005, m006, m007, m008].sort((a, b) => a.version - b.version);
 
 async function ensureTable(client: Client): Promise<void> {
   await client.execute(`

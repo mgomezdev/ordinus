@@ -2,7 +2,7 @@ import { spawn } from 'child_process';
 import { eq, and, sql } from 'drizzle-orm';
 import fs from 'fs/promises';
 import path from 'path';
-import { AppError, ErrorCodes, gridfinityExtendedDefaultParams, buildCustomBinParams, validateCustomBinSpec, CUSTOM_LIBRARY_ID } from '@gridfinity/shared';
+import { AppError, ErrorCodes, gridfinityExtendedDefaultParams, buildCustomBinParams, validateCustomBinSpec, wallCutoutToParams, CUSTOM_LIBRARY_ID } from '@gridfinity/shared';
 import type { BOMItem, ApiBomGeneration, BomGenerationManifestEntry, BinCustomization, GeneratorParams } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
 import { bomGenerations, libraries, libraryItems } from '../db/schema.js';
@@ -396,17 +396,9 @@ export function buildGenerateParams(cfg: UniqueConfig): Record<string, unknown> 
     params.wallpattern_style = c.wallPattern;
   } else {
     delete params.wallpattern_enabled;
-    delete params.wallpattern_style;
   }
 
-  const wc = c.wallCutout;
-  params.wallcutout_enabled = wc.front || wc.back || wc.left || wc.right;
-  params.wallcutout_walls = [
-    wc.front ? -2 : 0,
-    wc.back  ? -2 : 0,
-    wc.left  ? -2 : 0,
-    wc.right ? -2 : 0,
-  ];
+  Object.assign(params, wallCutoutToParams(c.wallCutout));
 
   return params;
 }

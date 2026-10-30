@@ -231,6 +231,11 @@ Before merging into `develop` or `main`:
 - `app/src/hooks/useCustomBins.ts` — Custom bins as synthetic library items
 - `app/src/utils/customItem.ts` — `buildCustomItem` / `customItemId` (shared by grid drops, favorites, useCustomBins)
 
+### Generator
+- `generator/gridfinity_basic_cup.scad` is upstream gridfinity_extended_openscad's `combined/gridfinity_basic_cup.scad`; the same file is copied into each `app/public/libraries/bins_*/` directory
+- Template version, parameter renames, pinned defaults and known geometry differences are logged in `generator/TEMPLATE_HISTORY.md` (read it when generated bins behave unexpectedly; add an entry for every template update)
+- After updating it: sync `PARAM_REGISTRY` (`generator/generate_bin.py`) and `GENERATOR_PARAM_SCHEMA` to the new parameter names/defaults, then run `generator/regression/compare_geometry.py` (see its docstring) against the previous scad
+
 ### Backend
 - `server/src/index.ts` — Express app entry point
 - `server/src/db/schema.ts` — drizzle-orm database schema
@@ -243,4 +248,6 @@ Before merging into `develop` or `main`:
 - `shared/src/errors.ts` — Shared error definitions
 - `shared/src/generatorParamSchema.ts` — Every generator parameter (group, default, bounds); must match `generator/generate_bin.py` PARAM_REGISTRY (test enforces)
 - `shared/src/gridResolution.ts` — Placed-item x/y/width/height are integer half-cells (`GRID_RESOLUTION`=2); layouts carry `gridResolution`, resolution-1 payloads are rescaled (DB migration 006 converts saved layouts)
+- `shared/src/wallCutout.ts` — Library wall cutout toggles <-> generator `wallcutout_vertical`/`wallcutout_horizontal` (left/right are mirrored)
+- `shared/src/gridfinity-extended-default-params.json` — Ordinus generator defaults: pins the previous template's defaults where upstream changed them, and sets `sub_pitch` 2 (half pitch)
 - `shared/src/customBin.ts` — `buildCustomBinParams` / `validateCustomBinSpec` (overrides equal to their default are pruned so explicit ≡ untouched)
