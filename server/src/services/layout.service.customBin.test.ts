@@ -22,24 +22,26 @@ beforeAll(async () => {
   await runMigrations(testClient);
 });
 
+// Geometry is in integer half-cells: 2.5 units = 5.
 const spec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { magnet_diameter: 6.5 } };
 const layoutData = {
   name: 'Half units', gridX: 6, gridY: 6, widthMm: 252, depthMm: 252,
-  placedItems: [{ itemId: 'custom:custom-abc', x: 0.5, y: 1.5, width: 2.5, height: 1.5, rotation: 0, customSpec: spec }],
+  placedItems: [{ itemId: 'custom:custom-abc', x: 1, y: 3, width: 5, height: 3, rotation: 0, customSpec: spec }],
 };
 
 describe('layout service — custom bins', () => {
   it('round-trips half-unit geometry and customSpec', async () => {
     const created = await createLayout(layoutData);
     const loaded = await getLayoutById(created.id);
+    expect(loaded.gridResolution).toBe(2);
     expect(loaded.placedItems[0]).toMatchObject({
-      libraryId: 'custom', itemId: 'custom-abc', x: 0.5, y: 1.5, width: 2.5, height: 1.5, customSpec: spec,
+      libraryId: 'custom', itemId: 'custom-abc', x: 1, y: 3, width: 5, height: 3, customSpec: spec,
     });
   });
 
   it('keeps customSpec when a layout is duplicated', async () => {
     const created = await createLayout(layoutData);
     const copy = await cloneLayout(created.id);
-    expect(copy.placedItems[0]).toMatchObject({ x: 0.5, width: 2.5, customSpec: spec });
+    expect(copy.placedItems[0]).toMatchObject({ x: 1, width: 5, customSpec: spec });
   });
 });

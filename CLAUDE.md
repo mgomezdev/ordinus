@@ -229,6 +229,7 @@ Before merging into `develop` or `main`:
 - `app/src/types/gridfinity.ts` — Core type definitions
 - `app/src/components/custombin/CustomBinDialog.tsx` — Custom bin flow (0.5-unit sizes + overridable generator params)
 - `app/src/hooks/useCustomBins.ts` — Custom bins as synthetic library items
+- `app/src/utils/customItem.ts` — `buildCustomItem` / `customItemId` (shared by grid drops, favorites, useCustomBins)
 
 ### Backend
 - `server/src/index.ts` — Express app entry point
@@ -241,4 +242,5 @@ Before merging into `develop` or `main`:
 - `shared/src/types.ts` — Shared TypeScript types
 - `shared/src/errors.ts` — Shared error definitions
 - `shared/src/generatorParamSchema.ts` — Every generator parameter (group, default, bounds); must match `generator/generate_bin.py` PARAM_REGISTRY (test enforces)
+- `shared/src/gridResolution.ts` — Placed-item x/y/width/height are integer half-cells (`GRID_RESOLUTION`=2); layouts carry `gridResolution`, resolution-1 payloads are rescaled (DB migration 006 converts saved layouts)
 - `shared/src/customBin.ts` — `buildCustomBinParams` / `validateCustomBinSpec` (overrides equal to their default are pruned so explicit ≡ untouched)

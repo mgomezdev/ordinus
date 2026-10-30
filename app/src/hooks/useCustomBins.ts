@@ -1,31 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CUSTOM_LIBRARY_ID } from '@gridfinity/shared';
 import type { CustomBinSpec } from '@gridfinity/shared';
 import type { LibraryItem, PlacedItem } from '../types/gridfinity';
 import { requestCustomGenerationApi } from '../api/generation.api';
+import { buildCustomItem, customItemId } from '../utils/customItem';
 
-const ID_HASH_LENGTH = 12;
-const CUSTOM_BIN_COLOR = '#3B82F6';
-const CUSTOM_CATEGORY = 'custom';
-
-/** Id used for a custom bin in layouts: `custom:custom-<hash prefix>`. */
-export function customItemId(hash: string): string {
-  return `${CUSTOM_LIBRARY_ID}:custom-${hash.slice(0, ID_HASH_LENGTH)}`;
-}
-
-function buildCustomItem(id: string, spec: CustomBinSpec, hash: string): LibraryItem {
-  return {
-    id,
-    libraryId: CUSTOM_LIBRARY_ID,
-    name: `Custom ${spec.width}×${spec.depth}×${spec.height}`,
-    widthUnits: spec.width,
-    heightUnits: spec.depth,
-    color: CUSTOM_BIN_COLOR,
-    categories: [CUSTOM_CATEGORY],
-    paramHash: hash,
-    customSpec: spec,
-  };
-}
+export { customItemId };
 
 /**
  * Custom bins live outside the library: each one is a synthetic LibraryItem so the rest of the

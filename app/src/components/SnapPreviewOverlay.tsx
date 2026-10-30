@@ -1,3 +1,6 @@
+import { GRID_RESOLUTION } from '@gridfinity/shared';
+
+/** col, row, w and d are in half-cells; gridX and gridY in units. */
 export interface SnapPreviewOverlayProps {
   col: number;
   row: number;
@@ -14,10 +17,10 @@ export function SnapPreviewOverlay({ col, row, w, d, valid, gridX, gridY }: Snap
       className={`snap-preview ${valid ? 'snap-preview--valid' : 'snap-preview--invalid'}`}
       style={{
         position: 'absolute',
-        left: `${(col / gridX) * 100}%`,
-        top: `${(row / gridY) * 100}%`,
-        width: `${(w / gridX) * 100}%`,
-        height: `${(d / gridY) * 100}%`,
+        left: `${(col / (gridX * GRID_RESOLUTION)) * 100}%`,
+        top: `${(row / (gridY * GRID_RESOLUTION)) * 100}%`,
+        width: `${(w / (gridX * GRID_RESOLUTION)) * 100}%`,
+        height: `${(d / (gridY * GRID_RESOLUTION)) * 100}%`,
         pointerEvents: 'none',
         zIndex: 1,
       }}

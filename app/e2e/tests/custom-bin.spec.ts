@@ -2,8 +2,11 @@ import { test, expect } from '@playwright/test';
 import { GridPage } from '../pages/GridPage';
 import { LibraryPage } from '../pages/LibraryPage';
 import { CustomBinDialog } from '../pages/CustomBinDialog';
+import { dragToGridCell } from '../utils/drag-drop';
 
 const HASH_PATTERN = /^[0-9a-f]{64}$/;
+// The library's favorites tab is labelled with a heart glyph.
+const FAVORITES_TAB_LABEL = '♥';
 
 test.describe('Custom bin', () => {
   let gridPage: GridPage;
@@ -93,5 +96,80 @@ test.describe('Custom bin', () => {
     await dialog.add();
     await expect(page.locator('.placed-item')).toHaveCount(2);
     expect(await gridPage.hasInvalidItems()).toBe(false);
+  });
+});
+
+test.describe('Custom bin favorites', () => {
+  const FAVORITES_URL = '/api/v1/favorites';
+
+  test.afterEach(async ({ request }) => {
+    const { data } = await (await request.get(FAVORITES_URL)).json() as { data: Array<{ id: string; libraryId: string }> };
+    for (const favorite of data.filter(f => f.libraryId === 'custom')) {
+      await request.delete(`${FAVORITES_URL}/${favorite.id}`);
+    }
+  });
+
+  test('a half-unit custom bin can be favorited, survives a reload and is placed from the favorites tab', async ({ page }) => {
+    const gridPage = new GridPage(page);
+    const dialog = new CustomBinDialog(page);
+    await gridPage.goto();
+    await gridPage.waitForGridReady();
+    await new LibraryPage(page).waitForLibraryReady();
+
+    await dialog.open();
+    await dialog.setSize(1.5, 1, 2);
+    await dialog.add();
+    await expect(page.locator('.placed-item')).toHaveCount(1);
+
+    const created = page.waitForResponse(r => r.url().endsWith('/favorites') && r.request().method() === 'POST');
+    await page.getByRole('button', { name: 'Add to favorites' }).click();
+    const { data } = await (await created).json() as { data: { libraryId: string; widthUnits: number; customSpec: unknown } };
+    expect(data).toMatchObject({ libraryId: 'custom', widthUnits: 1.5, customSpec: { width: 1.5, depth: 1, height: 2, overrides: {} } });
+    await expect(page.getByRole('button', { name: 'Remove from favorites' })).toBeVisible();
+
+    await page.reload();
+    await gridPage.waitForGridReady();
+    await page.locator('.library-cat-tab', { hasText: FAVORITES_TAB_LABEL }).click();
+    const card = page.locator('.favorite-card', { hasText: 'Custom 1.5×1×2' });
+    await expect(card).toBeVisible();
+
+    await dragToGridCell(page, card, gridPage.gridContainer, 2, 2, 4, 4);
+    await expect(page.locator('.placed-item')).toHaveCount(1);
+    expect(await gridPage.hasInvalidItems()).toBe(false);
+  });
+});
+
+test.describe('Half-cell layout persistence', () => {
+  const geometry = { x: 1, y: 3, width: 5, height: 3 };
+  const base = { name: 'Half-cell e2e', gridX: 4, gridY: 4, widthMm: 168, depthMm: 168 };
+  const customSpec = { width: 2.5, depth: 1.5, height: 3.5, overrides: {} };
+  const placed = { itemId: 'custom:custom-e2e', rotation: 0, customSpec };
+
+  test('stores and returns half-cell geometry at resolution 2', async ({ request }) => {
+    const created = await request.post('/api/v1/layouts', {
+      data: { ...base, gridResolution: 2, placedItems: [{ ...placed, ...geometry }] },
+    });
+    expect(created.status()).toBe(201);
+    const { data } = await created.json() as { data: { id: number; gridResolution: number; placedItems: Array<Record<string, unknown>> } };
+    try {
+      expect(data.gridResolution).toBe(2);
+      expect(data.placedItems[0]).toMatchObject(geometry);
+    } finally {
+      await request.delete(`/api/v1/layouts/${data.id}`);
+    }
+  });
+
+  test('rescales a whole-unit payload (no resolution) to half-cells', async ({ request }) => {
+    const created = await request.post('/api/v1/layouts', {
+      data: { ...base, placedItems: [{ itemId: 'bins_standard:bin-3x2', rotation: 0, x: 1, y: 2, width: 3, height: 2 }] },
+    });
+    expect(created.status()).toBe(201);
+    const { data } = await created.json() as { data: { id: number; gridResolution: number; placedItems: Array<Record<string, unknown>> } };
+    try {
+      expect(data.gridResolution).toBe(2);
+      expect(data.placedItems[0]).toMatchObject({ x: 2, y: 4, width: 6, height: 4 });
+    } finally {
+      await request.delete(`/api/v1/layouts/${data.id}`);
+    }
   });
 });

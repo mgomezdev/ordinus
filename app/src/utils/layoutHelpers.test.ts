@@ -43,6 +43,12 @@ describe('buildPayload', () => {
     expect(result.depthMm).toBe(168);
   });
 
+  it('tags the payload with the half-cell grid resolution', () => {
+    const result = buildPayload('L', '', 4, 4, 168, 168, BASE_SPACER, [makeItem({ width: 5, height: 3 })], []);
+    expect(result.gridResolution).toBe(2);
+    expect(result.placedItems[0]).toMatchObject({ width: 5, height: 3 });
+  });
+
   it('trims name and description', () => {
     const result = buildPayload('  My Layout  ', '  desc  ', 4, 4, 168, 168, BASE_SPACER, [], []);
     expect(result.name).toBe('My Layout');

@@ -32,10 +32,10 @@ vi.mock('./PlacedItemOverlay', () => ({
       }}
       style={{
         position: 'absolute',
-        left: `${(item.x / gridX) * 100}%`,
-        top: `${(item.y / gridY) * 100}%`,
-        width: `${(item.width / gridX) * 100}%`,
-        height: `${(item.height / gridY) * 100}%`,
+        left: `${(item.x / (gridX * 2)) * 100}%`,
+        top: `${(item.y / (gridY * 2)) * 100}%`,
+        width: `${(item.width / (gridX * 2)) * 100}%`,
+        height: `${(item.height / (gridY * 2)) * 100}%`,
       }}
     >
       {item.itemId}
@@ -61,15 +61,15 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0, 0);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0 * 2, 0 * 2);
       });
 
       expect(result.current.placedItems).toHaveLength(1);
       expect(result.current.placedItems[0]).toMatchObject({
         x: 0,
         y: 0,
-        width: 1,
-        height: 1,
+        width: 2,
+        height: 2,
         isValid: true,
       });
     });
@@ -78,12 +78,12 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 3, 3);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 3 * 2, 3 * 2);
       });
 
       expect(result.current.placedItems[0]).toMatchObject({
-        x: 3,
-        y: 3,
+        x: 6,
+        y: 6,
         isValid: true,
       });
     });
@@ -92,14 +92,14 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 2, 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 2 * 2, 2 * 2);
       });
 
       expect(result.current.placedItems[0]).toMatchObject({
-        x: 2,
-        y: 2,
-        width: 2,
-        height: 2,
+        x: 4,
+        y: 4,
+        width: 4,
+        height: 4,
         isValid: true,
       });
     });
@@ -108,12 +108,12 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 3, 3);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 3 * 2, 3 * 2);
       });
 
       expect(result.current.placedItems[0]).toMatchObject({
-        x: 3,
-        y: 3,
+        x: 6,
+        y: 6,
         isValid: false,
       });
     });
@@ -124,9 +124,9 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 2, 2);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 3, 3);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 2 * 2, 2 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 3 * 2, 3 * 2);
       });
 
       expect(result.current.placedItems).toHaveLength(3);
@@ -137,8 +137,8 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 1, 1);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 1 * 2, 1 * 2);
       });
 
       const invalidItems = result.current.placedItems.filter(item => !item.isValid);
@@ -149,8 +149,8 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 2, 0);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 2 * 2, 0 * 2);
       });
 
       expect(result.current.placedItems.every(item => item.isValid)).toBe(true);
@@ -162,7 +162,7 @@ describe('Bin Placement Integration Tests', () => {
       act(() => {
         for (let y = 0; y < 4; y++) {
           for (let x = 0; x < 4; x++) {
-            result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, x, y);
+            result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, x * 2, y * 2);
           }
         }
       });
@@ -175,10 +175,10 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 2, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0, 2);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 2, 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 2 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0 * 2, 2 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 2 * 2, 2 * 2);
       });
 
       expect(result.current.placedItems).toHaveLength(4);
@@ -191,18 +191,18 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0, 0);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0 * 2, 0 * 2);
       });
 
       const instanceId = result.current.placedItems[0].instanceId;
 
       act(() => {
-        result.current.handleDrop({ type: 'placed', itemId: 'bin-1x1', instanceId }, 3, 3);
+        result.current.handleDrop({ type: 'placed', itemId: 'bin-1x1', instanceId }, 3 * 2, 3 * 2);
       });
 
       expect(result.current.placedItems[0]).toMatchObject({
-        x: 3,
-        y: 3,
+        x: 6,
+        y: 6,
         isValid: true,
       });
     });
@@ -211,17 +211,17 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0, 0);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0 * 2, 0 * 2);
       });
 
       const movingId = result.current.placedItems[0].instanceId;
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 2, 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 2 * 2, 2 * 2);
       });
 
       act(() => {
-        result.current.handleDrop({ type: 'placed', itemId: 'bin-2x2', instanceId: movingId }, 1, 1);
+        result.current.handleDrop({ type: 'placed', itemId: 'bin-2x2', instanceId: movingId }, 1 * 2, 1 * 2);
       });
 
       const invalidItems = result.current.placedItems.filter(item => !item.isValid);
@@ -232,13 +232,13 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0, 0);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0 * 2, 0 * 2);
       });
 
       const instanceId = result.current.placedItems[0].instanceId;
 
       act(() => {
-        result.current.handleDrop({ type: 'placed', itemId: 'bin-2x2', instanceId }, 3, 3);
+        result.current.handleDrop({ type: 'placed', itemId: 'bin-2x2', instanceId }, 3 * 2, 3 * 2);
       });
 
       expect(result.current.placedItems[0].isValid).toBe(false);
@@ -250,14 +250,14 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x2' }, 0, 0);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x2' }, 0 * 2, 0 * 2);
       });
 
       const instanceId = result.current.placedItems[0].instanceId;
 
       expect(result.current.placedItems[0]).toMatchObject({
-        width: 1,
-        height: 2,
+        width: 2,
+        height: 4,
         isValid: true,
       });
 
@@ -266,8 +266,8 @@ describe('Bin Placement Integration Tests', () => {
       });
 
       expect(result.current.placedItems[0]).toMatchObject({
-        width: 2,
-        height: 1,
+        width: 4,
+        height: 2,
         isValid: true,
       });
     });
@@ -276,14 +276,14 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-3x2' }, 2, 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-3x2' }, 2 * 2, 2 * 2);
       });
 
       const instanceId = result.current.placedItems[0].instanceId;
 
       expect(result.current.placedItems[0]).toMatchObject({
-        width: 3,
-        height: 2,
+        width: 6,
+        height: 4,
         isValid: false, // 3x2 at position (2,2) goes out of bounds on a 4x4 grid
       });
 
@@ -292,8 +292,8 @@ describe('Bin Placement Integration Tests', () => {
       });
 
       expect(result.current.placedItems[0]).toMatchObject({
-        width: 2,
-        height: 3,
+        width: 4,
+        height: 6,
         isValid: false,
       });
     });
@@ -302,13 +302,13 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x2' }, 0, 0);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x2' }, 0 * 2, 0 * 2);
       });
 
       const rotatingId = result.current.placedItems[0].instanceId;
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 1, 0);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 1 * 2, 0 * 2);
       });
 
       expect(result.current.placedItems.every(item => item.isValid)).toBe(true);
@@ -327,10 +327,10 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0, 0); // Top-left
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 3, 0); // Top-right
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0, 3); // Bottom-left
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 3, 3); // Bottom-right
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0 * 2, 0 * 2); // Top-left
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 3 * 2, 0 * 2); // Top-right
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0 * 2, 3 * 2); // Bottom-left
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 3 * 2, 3 * 2); // Bottom-right
       });
 
       expect(result.current.placedItems).toHaveLength(4);
@@ -341,10 +341,10 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(6, 6, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 4, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0, 4);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 4, 4);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 4 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0 * 2, 4 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 4 * 2, 4 * 2);
       });
 
       expect(result.current.placedItems).toHaveLength(4);
@@ -355,14 +355,14 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(2, 2, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0, 0);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0 * 2, 0 * 2);
       });
 
       expect(result.current.placedItems[0]).toMatchObject({
         x: 0,
         y: 0,
-        width: 2,
-        height: 2,
+        width: 4,
+        height: 4,
         isValid: true,
       });
     });
@@ -376,7 +376,7 @@ describe('Bin Placement Integration Tests', () => {
       );
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 3, 3);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 3 * 2, 3 * 2);
       });
 
       expect(result.current.placedItems[0].isValid).toBe(true);
@@ -393,7 +393,7 @@ describe('Bin Placement Integration Tests', () => {
       );
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 2, 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 2 * 2, 2 * 2);
       });
 
       expect(result.current.placedItems[0].isValid).toBe(false);
@@ -410,7 +410,7 @@ describe('Bin Placement Integration Tests', () => {
       );
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 2, 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 2 * 2, 2 * 2);
       });
 
       expect(result.current.placedItems[0].isValid).toBe(true);
@@ -429,7 +429,7 @@ describe('Bin Placement Integration Tests', () => {
         for (let y = 0; y < 4; y++) {
           for (let x = 0; x < 4; x++) {
             if ((x + y) % 2 === 0) {
-              result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, x, y);
+              result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, x * 2, y * 2);
             }
           }
         }
@@ -443,11 +443,11 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(6, 6, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-3x2' }, 2, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x2' }, 5, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0, 2);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 1, 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-3x2' }, 2 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x2' }, 5 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0 * 2, 2 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 1 * 2, 2 * 2);
       });
 
       expect(result.current.placedItems.every(item => item.isValid)).toBe(true);
@@ -457,9 +457,9 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 1, 1);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 1, 1);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 1 * 2, 1 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 1 * 2, 1 * 2);
       });
 
       const validItems = result.current.placedItems.filter(item => item.isValid);
@@ -475,7 +475,7 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 1, 1);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 1 * 2, 1 * 2);
       });
 
       const { container } = render(
@@ -503,8 +503,8 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 3, 3);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 3 * 2, 3 * 2);
       });
 
       const { container } = render(
@@ -533,8 +533,8 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 1, 1);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 1 * 2, 1 * 2);
       });
 
       const { container } = render(
@@ -566,7 +566,7 @@ describe('Bin Placement Integration Tests', () => {
         for (let i = 0; i < 50; i++) {
           const x = Math.floor(Math.random() * 10);
           const y = Math.floor(Math.random() * 10);
-          result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, x, y);
+          result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, x * 2, y * 2);
         }
       });
 
@@ -579,7 +579,7 @@ describe('Bin Placement Integration Tests', () => {
       act(() => {
         for (let y = 0; y < 10; y++) {
           for (let x = 0; x < 10; x++) {
-            result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, x, y);
+            result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, x * 2, y * 2);
           }
         }
       });
@@ -593,7 +593,7 @@ describe('Bin Placement Integration Tests', () => {
 
       act(() => {
         for (let i = 0; i < 10; i++) {
-          result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, i * 2, i * 2);
+          result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, i * 2 * 2, i * 2 * 2);
         }
       });
 
@@ -607,8 +607,8 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(1, 5, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0, 4);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0 * 2, 4 * 2);
       });
 
       expect(result.current.placedItems).toHaveLength(2);
@@ -619,8 +619,8 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(5, 1, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 4, 0);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 0 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 4 * 2, 0 * 2);
       });
 
       expect(result.current.placedItems).toHaveLength(2);
@@ -631,9 +631,9 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x2' }, 0, 0);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x2' }, 0 * 2, 0 * 2);
         // Place at (1, 0) so rotation will cause collision
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 1, 0);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 1 * 2, 0 * 2);
       });
 
       const rotatingId = result.current.placedItems[0].instanceId;
@@ -653,18 +653,18 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 1, 1);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-1x1' }, 1 * 2, 1 * 2);
       });
 
       const instanceId = result.current.placedItems[0].instanceId;
 
       act(() => {
-        result.current.handleDrop({ type: 'placed', itemId: 'bin-1x1', instanceId }, 1, 1);
+        result.current.handleDrop({ type: 'placed', itemId: 'bin-1x1', instanceId }, 1 * 2, 1 * 2);
       });
 
       expect(result.current.placedItems[0]).toMatchObject({
-        x: 1,
-        y: 1,
+        x: 2,
+        y: 2,
         isValid: true,
       });
     });
@@ -673,8 +673,8 @@ describe('Bin Placement Integration Tests', () => {
       const { result } = renderHook(() => useGridItems(4, 4, mockGetItemById));
 
       act(() => {
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0, 0);
-        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0, 0);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0 * 2, 0 * 2);
+        result.current.handleDrop({ type: 'library', itemId: 'bin-2x2' }, 0 * 2, 0 * 2);
       });
 
       expect(result.current.placedItems).toHaveLength(2);

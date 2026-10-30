@@ -68,6 +68,7 @@ export interface LibraryItem {
   customSpec?: CustomBinSpec;
 }
 
+/** x, y, width and height are in integer half-cells (GRID_RESOLUTION per grid unit). */
 export interface PlacedItem {
   instanceId: string;
   itemId: string;
@@ -96,7 +97,8 @@ export interface DragData {
   refImageName?: string;
   favoriteCustomization?: BinCustomization;
   favoriteParamHash?: string | null;
-  /** Grid step the drop position snaps to; defaults to whole cells. */
+  favoriteCustomSpec?: CustomBinSpec;
+  /** Grid step, in half-cells, the drop position snaps to; defaults to whole units. */
   snapStep?: number;
 }
 
@@ -193,6 +195,8 @@ export interface FavoriteItem {
   perspectiveImageUrl180: string | null;
   perspectiveImageUrl270: string | null;
   customization: BinCustomization;
+  /** Set for custom bins; libraryId is then 'custom' and libraryItemId encodes the generation hash. */
+  customSpec?: CustomBinSpec;
 }
 
 export function serializeCustomization(c: BinCustomization | undefined): string {

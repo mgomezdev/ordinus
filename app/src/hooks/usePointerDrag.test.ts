@@ -1353,7 +1353,7 @@ describe('usePointerDrag', () => {
       });
 
       expect(onDrop).toHaveBeenCalledTimes(1);
-      expect(onDrop).toHaveBeenCalledWith(dragData, 1, 1);
+      expect(onDrop).toHaveBeenCalledWith(dragData, 2, 2);
     });
 
     it('should calculate correct grid cell from drop coordinates', () => {
@@ -1418,7 +1418,7 @@ describe('usePointerDrag', () => {
         document.dispatchEvent(pointerUpEvent);
       });
 
-      expect(onDrop).toHaveBeenCalledWith(dragData, 2, 3);
+      expect(onDrop).toHaveBeenCalledWith(dragData, 4, 6);
     });
 
     it('should clamp drop coordinates at grid edge to last cell', () => {
@@ -1482,7 +1482,7 @@ describe('usePointerDrag', () => {
       });
 
       // Should clamp to (3, 3) which is max valid position
-      expect(onDrop).toHaveBeenCalledWith(dragData, 3, 3);
+      expect(onDrop).toHaveBeenCalledWith(dragData, 6, 6);
     });
 
     it('should not call onDrop when drag ends outside grid', () => {
@@ -1571,18 +1571,18 @@ describe('usePointerDrag snap step', () => {
     return onDrop;
   }
 
-  it('drops on whole cells by default', () => {
+  it('drops on whole units (even half-cells) by default', () => {
     const onDrop = dragAndDrop({ type: 'library', itemId: 'a' }, { x: 260, y: 140 });
-    expect(onDrop).toHaveBeenCalledWith(expect.anything(), 2, 1);
+    expect(onDrop).toHaveBeenCalledWith(expect.anything(), 4, 2);
   });
 
-  it('drops on half cells when the drag data asks for a half-unit step', () => {
-    const onDrop = dragAndDrop({ type: 'placed', itemId: 'custom:x', instanceId: 'i', snapStep: 0.5 }, { x: 260, y: 140 });
-    expect(onDrop).toHaveBeenCalledWith(expect.anything(), 2.5, 1);
+  it('drops on single half-cells when the drag data asks for a half-cell step', () => {
+    const onDrop = dragAndDrop({ type: 'placed', itemId: 'custom:x', instanceId: 'i', snapStep: 1 }, { x: 260, y: 140 });
+    expect(onDrop).toHaveBeenCalledWith(expect.anything(), 5, 2);
   });
 
   it('keeps half-unit drops inside the grid', () => {
-    const onDrop = dragAndDrop({ type: 'placed', itemId: 'custom:x', instanceId: 'i', snapStep: 0.5 }, { x: 399, y: 399 });
-    expect(onDrop).toHaveBeenCalledWith(expect.anything(), 3.5, 3.5);
+    const onDrop = dragAndDrop({ type: 'placed', itemId: 'custom:x', instanceId: 'i', snapStep: 1 }, { x: 399, y: 399 });
+    expect(onDrop).toHaveBeenCalledWith(expect.anything(), 7, 7);
   });
 });

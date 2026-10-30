@@ -107,6 +107,7 @@ export const layouts = sqliteTable('layouts', {
   description: text('description'),
   gridX: integer('grid_x').notNull(),
   gridY: integer('grid_y').notNull(),
+  gridResolution: integer('grid_resolution').notNull().default(1),
   widthMm: real('width_mm').notNull(),
   depthMm: real('depth_mm').notNull(),
   spacerHorizontal: text('spacer_horizontal').notNull().default('none'),
@@ -239,6 +240,7 @@ export const favorites = sqliteTable('favorites', {
   perspectiveImageUrl180: text('perspective_image_url180'),
   perspectiveImageUrl270: text('perspective_image_url270'),
   customization: text('customization').notNull(),
+  customSpec: text('custom_spec'),
   createdAt: integer('created_at').notNull(),
 });
 

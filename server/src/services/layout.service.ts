@@ -1,5 +1,5 @@
 import { eq, and, lt, desc, sql, or, inArray } from 'drizzle-orm';
-import { AppError, ErrorCodes } from '@gridfinity/shared';
+import { AppError, ErrorCodes, GRID_RESOLUTION } from '@gridfinity/shared';
 import { logger } from '../logger.js';
 import type { ApiLayout, ApiLayoutDetail, ApiRefImagePlacement, BinCustomization, CustomBinSpec, Quad } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
@@ -243,6 +243,7 @@ export async function createLayout(
       description: data.description ?? null,
       gridX: data.gridX,
       gridY: data.gridY,
+      gridResolution: GRID_RESOLUTION,
       widthMm: data.widthMm,
       depthMm: data.depthMm,
       spacerHorizontal: data.spacerHorizontal ?? 'none',
@@ -399,6 +400,7 @@ export async function updateLayout(
         description: data.description ?? null,
         gridX: data.gridX,
         gridY: data.gridY,
+        gridResolution: GRID_RESOLUTION,
         widthMm: data.widthMm,
         depthMm: data.depthMm,
         spacerHorizontal: data.spacerHorizontal ?? 'none',
@@ -600,6 +602,7 @@ export async function cloneLayout(
       description: source.description,
       gridX: source.gridX,
       gridY: source.gridY,
+      gridResolution: source.gridResolution,
       widthMm: source.widthMm,
       depthMm: source.depthMm,
       spacerHorizontal: source.spacerHorizontal,

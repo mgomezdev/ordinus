@@ -10,8 +10,8 @@ import { getRotatedPerspectiveUrl } from '../utils/imageHelpers';
 import { BinContextMenu } from './BinContextMenu';
 import { useFavorites } from '../hooks/useFavorites';
 import { generatedImageUrl } from '../api/generation.api';
-import { isHalfUnitStep } from '../utils/snap';
-import { HALF_UNIT } from '../utils/constants';
+import { GRID_RESOLUTION, halfCellsToUnits } from '@gridfinity/shared';
+import { footprintSnapStep, WHOLE_CELL_STEP } from '../utils/snap';
 
 interface PlacedItemOverlayProps {
   item: PlacedItemWithValidity;
@@ -187,7 +187,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
       type: 'placed',
       itemId: item.itemId,
       instanceId: item.instanceId,
-      ...(isHalfUnitStep(item) ? { snapStep: HALF_UNIT } : {}),
+      ...(footprintSnapStep(item) !== WHOLE_CELL_STEP ? { snapStep: footprintSnapStep(item) } : {}),
     },
     onTap: (e: PointerEvent) => onSelect(item.instanceId, { shift: e.shiftKey, ctrl: e.ctrlKey || e.metaKey }),
   });
@@ -283,17 +283,17 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
     <div
       className={`placed-item ${isSelected ? 'selected' : ''} ${!item.isValid ? 'invalid' : ''}`}
       style={{
-        left: `${(item.x / gridX) * 100}%`,
-        top: `${(item.y / gridY) * 100}%`,
-        width: `${(item.width / gridX) * 100}%`,
-        height: `${(item.height / gridY) * 100}%`,
+        left: `${(item.x / (gridX * GRID_RESOLUTION)) * 100}%`,
+        top: `${(item.y / (gridY * GRID_RESOLUTION)) * 100}%`,
+        width: `${(item.width / (gridX * GRID_RESOLUTION)) * 100}%`,
+        height: `${(item.height / (gridY * GRID_RESOLUTION)) * 100}%`,
         backgroundColor: `${color}66`,
         borderColor: color,
         touchAction: 'none',
       }}
       role="button"
       tabIndex={0}
-      aria-label={`${libraryItem?.name ?? 'Item'} at position ${item.x},${item.y}${isSelected ? ', selected' : ''}${!item.isValid ? ', invalid placement' : ''}`}
+      aria-label={`${libraryItem?.name ?? 'Item'} at position ${halfCellsToUnits(item.x)},${halfCellsToUnits(item.y)}${isSelected ? ', selected' : ''}${!item.isValid ? ', invalid placement' : ''}`}
       onPointerDown={onPointerDown}
       onClick={(e) => e.stopPropagation()}
       onContextMenu={handleContextMenu}
@@ -349,7 +349,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          {libraryItem && !libraryItem.customSpec && (
+          {libraryItem && (
             <button
               className={`placed-item-toolbar-btn placed-item-toolbar-btn--heart${isFavorited ? ' favorited' : ''}`}
               onClick={(e) => {

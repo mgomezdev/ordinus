@@ -34,6 +34,7 @@ export function formatLayout(
     description: row.description,
     gridX: row.gridX,
     gridY: row.gridY,
+    gridResolution: row.gridResolution,
     widthMm: row.widthMm,
     depthMm: row.depthMm,
     spacerHorizontal: row.spacerHorizontal,

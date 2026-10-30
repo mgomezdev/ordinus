@@ -1,3 +1,4 @@
+import { GRID_RESOLUTION } from '@gridfinity/shared';
 import type { PlacedItemWithValidity, GridSpacerConfig } from '../types/gridfinity';
 import type { RefImagePlacement } from '../hooks/useRefImagePlacements';
 
@@ -35,6 +36,7 @@ export function buildPayload(
     description: description.trim() || undefined,
     gridX,
     gridY,
+    gridResolution: GRID_RESOLUTION,
     widthMm,
     depthMm,
     spacerHorizontal: spacerConfig.horizontal,

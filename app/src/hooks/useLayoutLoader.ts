@@ -3,6 +3,7 @@ import type { PlacedItem, GridSpacerConfig, Rotation, SpacerMode, UnitSystem } f
 import type { RefImagePlacement } from './useRefImagePlacements';
 import type { LoadedLayoutConfig } from '../types/layoutConfig';
 import type { LayoutMetaAction } from '../reducers/layoutMetaReducer';
+import { LEGACY_GRID_RESOLUTION, rescalePlacedGeometry } from '@gridfinity/shared';
 import { mmToInches } from '../utils/conversions';
 import { fetchLayout } from '../api/layouts.api';
 
@@ -54,7 +55,8 @@ export function useLayoutLoader({
       const detail = await fetchLayout(id);
       const loadPrefix = Date.now();
 
-      const loadedPlacedItems: PlacedItem[] = detail.placedItems.map((item, index) => ({
+      const sourceResolution = detail.gridResolution ?? LEGACY_GRID_RESOLUTION;
+      const loadedPlacedItems: PlacedItem[] = detail.placedItems.map(rawItem => rescalePlacedGeometry(rawItem, sourceResolution)).map((item, index) => ({
         instanceId: `loaded-${loadPrefix}-${index}`,
         itemId: `${item.libraryId}:${item.itemId}`,
         x: item.x, y: item.y, width: item.width, height: item.height,

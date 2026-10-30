@@ -1,3 +1,5 @@
+import { halfCellsToUnits } from '@gridfinity/shared';
+
 const CELL = 8;
 const PAD = 3;
 const DEFAULT_COLOR = '#3B82F6';
@@ -37,10 +39,10 @@ export function generateThumbnailSvg(
 
   const itemRects = items.map(item => {
     const color = safeColor(colorMap.get(`${item.libraryId}:${item.itemId}`) ?? DEFAULT_COLOR);
-    const sw = item.width * CELL;
-    const sh = item.height * CELL;
-    const sx = PAD + item.x * CELL;
-    const sy = PAD + item.y * CELL;
+    const sw = halfCellsToUnits(item.width) * CELL;
+    const sh = halfCellsToUnits(item.height) * CELL;
+    const sx = PAD + halfCellsToUnits(item.x) * CELL;
+    const sy = PAD + halfCellsToUnits(item.y) * CELL;
     return `<rect x="${sx}" y="${sy}" width="${sw}" height="${sh}" rx="1" fill="${color}" fill-opacity="0.85" stroke="${color}" stroke-width="1"/>`;
   });
 

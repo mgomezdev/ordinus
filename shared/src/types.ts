@@ -244,6 +244,8 @@ export interface ApiLayout {
   description: string | null;
   gridX: number;
   gridY: number;
+  /** Half-cells per unit for placed-item geometry; see gridResolution.ts */
+  gridResolution: number;
   widthMm: number;
   depthMm: number;
   spacerHorizontal: string;

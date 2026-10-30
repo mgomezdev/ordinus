@@ -2,7 +2,9 @@ import { useState, useRef, useCallback } from 'react';
 import type { FavoriteItem } from '../types/gridfinity';
 import { usePointerDragSource } from '../hooks/usePointerDrag';
 import { useImageLoadState } from '../hooks/useImageLoadState';
+import { GRID_RESOLUTION } from '@gridfinity/shared';
 import { generatedImageUrl } from '../api/generation.api';
+import { footprintSnapStep, WHOLE_CELL_STEP } from '../utils/snap';
 
 interface FavoriteCardProps {
   favorite: FavoriteItem;
@@ -12,6 +14,16 @@ interface FavoriteCardProps {
 
 const LONG_PRESS_DELAY = 500;
 const MAX_PREVIEW_SIZE = 3;
+
+function favoriteSnapStep(favorite: FavoriteItem): number | undefined {
+  const step = footprintSnapStep({
+    x: 0,
+    y: 0,
+    width: favorite.widthUnits * GRID_RESOLUTION,
+    height: favorite.heightUnits * GRID_RESOLUTION,
+  });
+  return step === WHOLE_CELL_STEP ? undefined : step;
+}
 
 export function FavoriteCard({ favorite, onRemove, onRename }: FavoriteCardProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -34,6 +46,7 @@ export function FavoriteCard({ favorite, onRemove, onRename }: FavoriteCardProps
       itemId: `${favorite.libraryId}:${favorite.libraryItemId}`,
       favoriteCustomization: favorite.customization,
       favoriteParamHash: favorite.paramHash,
+      ...(favorite.customSpec ? { favoriteCustomSpec: favorite.customSpec, snapStep: favoriteSnapStep(favorite) } : {}),
     },
   });
 

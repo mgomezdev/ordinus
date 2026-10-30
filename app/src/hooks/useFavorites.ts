@@ -6,6 +6,8 @@ import {
   deleteFavoriteApi,
   renameFavoriteApi,
 } from '../api/favorites.api';
+import { CUSTOM_LIBRARY_ID } from '@gridfinity/shared';
+import { DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
 import type { FavoriteItem, BinCustomization, LibraryItem } from '../types/gridfinity';
 
 const QUERY_KEY = ['favorites'] as const;
@@ -24,6 +26,12 @@ function binCustomizationsEqual(a: BinCustomization, b: BinCustomization): boole
     a.wallCutout.right === b.wallCutout.right &&
     a.height === b.height
   );
+}
+
+/** A custom bin's id already encodes its full parameter hash, so the id alone identifies the favorite. */
+function matchesFavorite(f: FavoriteItem, libId: string, itemPartId: string, customization: BinCustomization): boolean {
+  if (f.libraryId !== libId || f.libraryItemId !== itemPartId) return false;
+  return libId === CUSTOM_LIBRARY_ID || binCustomizationsEqual(f.customization, customization);
 }
 
 export function generateFavoriteName(libraryItemName: string, customization: BinCustomization): string {
@@ -111,12 +119,7 @@ export function useFavorites(): UseFavoritesResult {
   const isFavorite = useCallback(
     (itemId: string, customization: BinCustomization): boolean => {
       const [libId, itemPartId] = itemId.split(':');
-      return favorites.some(
-        (f) =>
-          f.libraryId === libId &&
-          f.libraryItemId === itemPartId &&
-          binCustomizationsEqual(f.customization, customization),
-      );
+      return favorites.some((f) => matchesFavorite(f, libId, itemPartId, customization));
     },
     [favorites],
   );
@@ -124,17 +127,12 @@ export function useFavorites(): UseFavoritesResult {
   const toggleFavorite = useCallback(
     (libraryItem: LibraryItem, customization: BinCustomization, paramHash: string | null) => {
       const [libId, itemPartId] = libraryItem.id.split(':');
-      const existing = favorites.find(
-        (f) =>
-          f.libraryId === libId &&
-          f.libraryItemId === itemPartId &&
-          binCustomizationsEqual(f.customization, customization),
-      );
+      const existing = favorites.find((f) => matchesFavorite(f, libId, itemPartId, customization));
       if (existing) {
         deleteMutation.mutate(existing.id);
       } else {
         createMutation.mutate({
-          name: generateFavoriteName(libraryItem.name, customization),
+          name: libraryItem.customSpec ? libraryItem.name : generateFavoriteName(libraryItem.name, customization),
           libraryId: libId,
           libraryItemId: itemPartId,
           libraryItemName: libraryItem.name,
@@ -147,7 +145,8 @@ export function useFavorites(): UseFavoritesResult {
           perspectiveImageUrl90: libraryItem.perspectiveImageUrl90 ?? null,
           perspectiveImageUrl180: libraryItem.perspectiveImageUrl180 ?? null,
           perspectiveImageUrl270: libraryItem.perspectiveImageUrl270 ?? null,
-          customization,
+          customization: libraryItem.customSpec ? DEFAULT_BIN_CUSTOMIZATION : customization,
+          ...(libraryItem.customSpec ? { customSpec: libraryItem.customSpec } : {}),
         });
       }
     },

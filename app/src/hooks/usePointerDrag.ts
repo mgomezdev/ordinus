@@ -1,8 +1,7 @@
 import { useCallback, useRef, useEffect } from 'react';
 import type { DragData } from '../types/gridfinity';
-import { snapPointerToCell } from '../utils/snap';
-
-const WHOLE_CELL_STEP = 1;
+import { GRID_RESOLUTION } from '@gridfinity/shared';
+import { snapPointerToCell, WHOLE_CELL_STEP } from '../utils/snap';
 
 // --- Drag store — encapsulated singleton replacing loose module-level vars ---
 
@@ -107,8 +106,10 @@ function attemptDrop(clientX: number, clientY: number, pointerId: number): void 
       clientY < rect.top || clientY > rect.bottom) return;
 
   const step = activeDrag.data.snapStep ?? WHOLE_CELL_STEP;
-  const dropX = snapPointerToCell(clientX - rect.left, rect.width / dropTarget.gridX, dropTarget.gridX, step);
-  const dropY = snapPointerToCell(clientY - rect.top, rect.height / dropTarget.gridY, dropTarget.gridY, step);
+  const halfCellsX = dropTarget.gridX * GRID_RESOLUTION;
+  const halfCellsY = dropTarget.gridY * GRID_RESOLUTION;
+  const dropX = snapPointerToCell(clientX - rect.left, rect.width / halfCellsX, halfCellsX, step);
+  const dropY = snapPointerToCell(clientY - rect.top, rect.height / halfCellsY, halfCellsY, step);
 
   dropTarget.onDrop(activeDrag.data, dropX, dropY);
 }
@@ -213,8 +214,10 @@ export function usePointerDragSource(
           moveEvent.clientY >= rect.top && moveEvent.clientY <= rect.bottom
         ) {
           const step = dragStore.activeDrag!.data.snapStep ?? WHOLE_CELL_STEP;
-          const col = snapPointerToCell(moveEvent.clientX - rect.left, rect.width / tgX, tgX, step);
-          const row = snapPointerToCell(moveEvent.clientY - rect.top, rect.height / tgY, tgY, step);
+          const halfCellsX = tgX * GRID_RESOLUTION;
+          const halfCellsY = tgY * GRID_RESOLUTION;
+          const col = snapPointerToCell(moveEvent.clientX - rect.left, rect.width / halfCellsX, halfCellsX, step);
+          const row = snapPointerToCell(moveEvent.clientY - rect.top, rect.height / halfCellsY, halfCellsY, step);
           onSnapChange?.({ dragData: dragStore.activeDrag!.data, col, row });
         } else {
           onSnapChange?.(null);

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AppError, ErrorCodes, validateCustomBinSpec } from '@gridfinity/shared';
+import { AppError, ErrorCodes, GRID_RESOLUTION, LEGACY_GRID_RESOLUTION, rescalePlacedGeometry, validateCustomBinSpec } from '@gridfinity/shared';
 import type { CustomBinSpec } from '@gridfinity/shared';
 import { WARPED_IMAGE_PATH_PATTERN } from '../services/refImageWarp.service.js';
 import type { ApiResponse, ApiListResponse, ApiLayout, ApiLayoutDetail } from '@gridfinity/shared';
@@ -34,8 +34,7 @@ const binCustomizationSchema = z.preprocess(
   })
 );
 
-const HALF_UNIT = 0.5;
-const MAX_PLACED_SIZE = 20;
+const MAX_PLACED_SIZE_HALF_CELLS = 20 * GRID_RESOLUTION;
 
 const customSpecSchema = z.custom<CustomBinSpec>((raw) => validateCustomBinSpec(raw).ok, {
   message: 'Invalid custom bin spec',
@@ -43,10 +42,10 @@ const customSpecSchema = z.custom<CustomBinSpec>((raw) => validateCustomBinSpec(
 
 const placedItemSchema = z.object({
   itemId: z.string().min(1),
-  x: z.number().min(0).multipleOf(HALF_UNIT),
-  y: z.number().min(0).multipleOf(HALF_UNIT),
-  width: z.number().min(HALF_UNIT).max(MAX_PLACED_SIZE).multipleOf(HALF_UNIT),
-  height: z.number().min(HALF_UNIT).max(MAX_PLACED_SIZE).multipleOf(HALF_UNIT),
+  x: z.number().int().min(0),
+  y: z.number().int().min(0),
+  width: z.number().int().min(1).max(MAX_PLACED_SIZE_HALF_CELLS),
+  height: z.number().int().min(1).max(MAX_PLACED_SIZE_HALF_CELLS),
   rotation: z.number().refine((v) => [0, 90, 180, 270].includes(v), {
     message: 'Rotation must be 0, 90, 180, or 270',
   }),
@@ -74,18 +73,29 @@ const refImagePlacementSchema = z.object({
   warpedImageUrl: z.string().regex(WARPED_IMAGE_PATH_PATTERN).nullable().optional(),
 });
 
+const gridResolutionSchema = z.union([z.literal(LEGACY_GRID_RESOLUTION), z.literal(GRID_RESOLUTION)]);
+
 const createLayoutSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
   customerId: z.number().int().positive().optional().nullable(),
   gridX: z.number().int().min(1).max(20),
   gridY: z.number().int().min(1).max(20),
+  gridResolution: gridResolutionSchema.default(LEGACY_GRID_RESOLUTION),
   widthMm: z.number().positive(),
   depthMm: z.number().positive(),
   spacerHorizontal: z.string().optional(),
   spacerVertical: z.string().optional(),
   placedItems: z.array(placedItemSchema).max(200),
   refImagePlacements: z.array(refImagePlacementSchema).max(50).optional(),
+}).transform((layout, ctx) => {
+  // Payloads in whole units (no/1 resolution) are rescaled so everything downstream sees half-cells.
+  const placedItems = layout.placedItems.map(item => rescalePlacedGeometry(item, layout.gridResolution));
+  if (placedItems.some(item => item.width > MAX_PLACED_SIZE_HALF_CELLS || item.height > MAX_PLACED_SIZE_HALF_CELLS)) {
+    ctx.addIssue({ code: 'custom', message: 'Placed item exceeds the maximum size' });
+    return z.NEVER;
+  }
+  return { ...layout, gridResolution: GRID_RESOLUTION, placedItems };
 });
 
 const updateLayoutMetaSchema = z.object({
