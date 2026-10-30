@@ -23,7 +23,7 @@ beforeAll(async () => {
 });
 
 // Geometry is in integer half-cells: 2.5 units = 5.
-const spec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { magnet_diameter: 6.5 } };
+const spec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { floor_thickness: 1.2 } };
 const layoutData = {
   name: 'Half units', gridX: 6, gridY: 6, widthMm: 252, depthMm: 252,
   placedItems: [{ itemId: 'custom:custom-abc', x: 1, y: 3, width: 5, height: 3, rotation: 0, customSpec: spec }],

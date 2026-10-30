@@ -46,34 +46,34 @@ describe('CustomBinDialog', () => {
 
   it('lets the user override, edit and reset a parameter', () => {
     setup();
-    const magnet = field('magnet_diameter');
-    overrideNumber('magnet_diameter', 'Magnet diameter (mm)', '6.5');
+    const magnet = field('floor_thickness');
+    overrideNumber('floor_thickness', 'Floor thickness (mm)', '1.2');
     expect(magnet).toHaveAttribute('data-state', 'override');
-    fireEvent.click(within(magnet).getByRole('button', { name: 'Reset Magnet diameter (mm)' }));
+    fireEvent.click(within(magnet).getByRole('button', { name: 'Reset Floor thickness (mm)' }));
     expect(magnet).toHaveAttribute('data-state', 'default');
   });
 
   it('returns to greyed when the typed value equals the default after leaving the field', () => {
     setup();
-    const input = overrideNumber('magnet_diameter', 'Magnet diameter (mm)', '6.5');
-    fireEvent.change(input, { target: { value: '0' } });
+    const input = overrideNumber('floor_thickness', 'Floor thickness (mm)', '1.2');
+    fireEvent.change(input, { target: { value: '0.7' } });
     fireEvent.blur(input);
-    expect(field('magnet_diameter')).toHaveAttribute('data-state', 'default');
+    expect(field('floor_thickness')).toHaveAttribute('data-state', 'default');
   });
 
   it('disables dependent parameters until their enabler is overridden on', () => {
     setup();
-    const size = field('wallpattern_hole_size');
-    expect(within(size).getByRole('button', { name: 'Override Hole size (mm)' })).toBeDisabled();
+    const size = field('wallpattern_strength');
+    expect(within(size).getByRole('button', { name: 'Override Strength between holes (mm)' })).toBeDisabled();
     const enabler = field('wallpattern_enabled');
     fireEvent.click(within(enabler).getByRole('button', { name: 'Override Wall pattern' }));
     fireEvent.click(within(enabler).getByRole('checkbox'));
-    expect(within(size).getByRole('button', { name: 'Override Hole size (mm)' })).toBeEnabled();
+    expect(within(size).getByRole('button', { name: 'Override Strength between holes (mm)' })).toBeEnabled();
   });
 
   it('badges a group with its override count', () => {
     setup();
-    overrideNumber('magnet_diameter', 'Magnet diameter (mm)', '6.5');
+    overrideNumber('floor_thickness', 'Floor thickness (mm)', '1.2');
     expect(screen.getByTestId('group-count-Base')).toHaveTextContent('1');
   });
 
@@ -85,13 +85,13 @@ describe('CustomBinDialog', () => {
 
   it('adds the overrides the user chose', () => {
     const { onAdd } = setup({ initial: { width: 2.5, depth: 1.5, height: 3.5, overrides: {} } });
-    overrideNumber('magnet_diameter', 'Magnet diameter (mm)', '6.5');
+    overrideNumber('floor_thickness', 'Floor thickness (mm)', '1.2');
     fireEvent.click(screen.getByRole('button', { name: 'Add to layout' }));
-    expect(onAdd).toHaveBeenCalledWith({ width: 2.5, depth: 1.5, height: 3.5, overrides: { magnet_diameter: 6.5 } });
+    expect(onAdd).toHaveBeenCalledWith({ width: 2.5, depth: 1.5, height: 3.5, overrides: { floor_thickness: 1.2 } });
   });
 
   it('resets everything', () => {
-    setup({ initial: { width: 3, depth: 2, height: 4, overrides: { magnet_diameter: 6.5 } } });
+    setup({ initial: { width: 3, depth: 2, height: 4, overrides: { floor_thickness: 1.2 } } });
     fireEvent.click(screen.getByRole('button', { name: 'Reset all' }));
     expect(screen.getByTestId('overrides-summary')).toHaveTextContent('No overrides');
   });

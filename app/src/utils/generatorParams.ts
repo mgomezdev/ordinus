@@ -1,3 +1,4 @@
+import { wallCutoutFromParams } from '@gridfinity/shared';
 import type { GeneratorParams, BinCustomization, CustomizableFieldDef, WallPattern, LipStyle, FingerSlide } from '../types/gridfinity';
 
 export function mergeGeneratorParams(...layers: (GeneratorParams | undefined)[]): GeneratorParams {
@@ -27,14 +28,9 @@ export function generatorParamsToBinCustomization(
     result.wallPattern = ((params.wallpattern_style ?? 'grid') as WallPattern);
   }
 
-  if (hasField(customizableFields, 'wallCutout') && params.wallcutout_enabled !== undefined) {
-    const walls = (params.wallcutout_walls as number[] | undefined) ?? [0, 0, 0, 0];
-    result.wallCutout = {
-      front: walls[0] === -2,
-      back:  walls[1] === -2,
-      left:  walls[2] === -2,
-      right: walls[3] === -2,
-    };
+  if (hasField(customizableFields, 'wallCutout')) {
+    const wallCutout = wallCutoutFromParams(params);
+    if (wallCutout) result.wallCutout = wallCutout;
   }
 
   if (hasField(customizableFields, 'height') && params.height !== undefined) {

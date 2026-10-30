@@ -83,7 +83,7 @@ describe('useFavorites', () => {
 void act;
 
 describe('useFavorites — custom bins', () => {
-  const customSpec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { magnet_diameter: 6.5 } };
+  const customSpec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { floor_thickness: 1.2 } };
   const customItem = {
     id: 'custom:custom-abc123', libraryId: 'custom', name: 'Custom 2.5×1.5×3.5',
     widthUnits: 2.5, heightUnits: 1.5, color: '#3B82F6', categories: ['custom'], paramHash: 'a'.repeat(64), customSpec,

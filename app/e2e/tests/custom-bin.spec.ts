@@ -76,12 +76,12 @@ test.describe('Custom bin', () => {
   test('an override changes the hash and is sent to the server', async ({ page }) => {
     await dialog.open();
     await dialog.setSize(2, 2, 3);
-    await dialog.overrideNumber('Base', 'magnet_diameter', 'Magnet diameter (mm)', 6.5);
-    await expect(dialog.param('magnet_diameter')).toHaveAttribute('data-state', 'override');
+    await dialog.overrideNumber('Base', 'floor_thickness', 'Floor thickness (mm)', 1.2);
+    await expect(dialog.param('floor_thickness')).toHaveAttribute('data-state', 'override');
     await expect(dialog.dialog.getByTestId('group-count-Base')).toHaveText('1');
 
     const body = await dialog.add();
-    expect(body).toEqual({ width: 2, depth: 2, height: 3, overrides: { magnet_diameter: 6.5 } });
+    expect(body).toEqual({ width: 2, depth: 2, height: 3, overrides: { floor_thickness: 1.2 } });
     await expect(page.locator('.placed-item')).toHaveCount(1);
   });
 

@@ -18,7 +18,7 @@ function loadRegistry(): Record<string, RegistryEntry> {
   return JSON.parse(out) as Record<string, RegistryEntry>;
 }
 
-const SIZE_AND_DEBUG = new Set(['width', 'depth', 'height', 'cutx', 'cuty', 'enable_help']);
+const SIZE_AND_DEBUG = new Set(['width', 'depth', 'height', 'cut', 'enable_help']);
 const KIND_FOR_TYPE: Record<string, string[]> = {
   array: ['array'],
   string: ['string', 'enum'],
@@ -67,7 +67,9 @@ describe('GENERATOR_PARAM_SCHEMA', () => {
   it('effectiveDefault prefers the Ordinus defaults over the schema default', () => {
     const byName = (n: string) => GENERATOR_PARAM_SCHEMA.find(p => p.name === n)!;
     expect(effectiveDefault(byName('label_style'))).toBe('disabled');
-    expect(effectiveDefault(byName('half_pitch'))).toBe('true');
+    expect(effectiveDefault(byName('sub_pitch'))).toBe(2);
+    expect(effectiveDefault(byName('fingerslide_radius'))).toBe(8);
+    expect(effectiveDefault(byName('lip_top_notches'))).toBe(false);
     expect(effectiveDefault(byName('lip_style'))).toBe('normal');
   });
 });

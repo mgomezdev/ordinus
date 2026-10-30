@@ -216,8 +216,8 @@ describe('buildGenerateParams', () => {
     expect(params.filled_in).toBe('enabled');
   });
 
-  it('always sets label_style to disabled', () => {
-    expect(buildGenerateParams(baseConfig()).label_style).toBe('disabled');
+  it('leaves label_style at the generator default (disabled)', () => {
+    expect(buildGenerateParams(baseConfig())).not.toHaveProperty('label_style');
   });
 
   it('passes lip_style and fingerslide through', () => {
@@ -239,51 +239,42 @@ describe('buildGenerateParams', () => {
 });
 
 describe('buildGenerateParams — wall cutout', () => {
-  it('no walls → enabled=false, all zeros', () => {
-    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: false, back: false, left: false, right: false } }));
-    expect(params.wallcutout_enabled).toBe(false);
-    expect(params.wallcutout_walls).toEqual([0, 0, 0, 0]);
+  const cutout = (wallCutout: { front: boolean; back: boolean; left: boolean; right: boolean }) => {
+    const params = buildGenerateParams(makeCustomization({ wallCutout }));
+    return [params.wallcutout_vertical, params.wallcutout_horizontal];
+  };
+
+  it('no walls → both axes disabled', () => {
+    expect(cutout({ front: false, back: false, left: false, right: false })).toEqual(['disabled', 'disabled']);
   });
 
-  it('front only → enabled=true, walls=[-2,0,0,0]', () => {
-    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: true, back: false, left: false, right: false } }));
-    expect(params.wallcutout_enabled).toBe(true);
-    expect(params.wallcutout_walls).toEqual([-2, 0, 0, 0]);
+  it('front only → vertical frontonly', () => {
+    expect(cutout({ front: true, back: false, left: false, right: false })).toEqual(['frontonly', 'disabled']);
   });
 
-  it('back only → walls=[0,-2,0,0]', () => {
-    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: false, back: true, left: false, right: false } }));
-    expect(params.wallcutout_enabled).toBe(true);
-    expect(params.wallcutout_walls).toEqual([0, -2, 0, 0]);
+  it('back only → vertical backonly', () => {
+    expect(cutout({ front: false, back: true, left: false, right: false })).toEqual(['backonly', 'disabled']);
   });
 
-  it('left only → walls=[0,0,-2,0]', () => {
-    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: false, back: false, left: true, right: false } }));
-    expect(params.wallcutout_enabled).toBe(true);
-    expect(params.wallcutout_walls).toEqual([0, 0, -2, 0]);
+  it('left only → horizontal rightonly (the generator mirrors left and right)', () => {
+    expect(cutout({ front: false, back: false, left: true, right: false })).toEqual(['disabled', 'rightonly']);
   });
 
-  it('right only → walls=[0,0,0,-2]', () => {
-    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: false, back: false, left: false, right: true } }));
-    expect(params.wallcutout_enabled).toBe(true);
-    expect(params.wallcutout_walls).toEqual([0, 0, 0, -2]);
+  it('right only → horizontal leftonly', () => {
+    expect(cutout({ front: false, back: false, left: false, right: true })).toEqual(['disabled', 'leftonly']);
   });
 
-  it('front + left → walls=[-2,0,-2,0]', () => {
-    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: true, back: false, left: true, right: false } }));
-    expect(params.wallcutout_enabled).toBe(true);
-    expect(params.wallcutout_walls).toEqual([-2, 0, -2, 0]);
+  it('front + left → one wall on each axis', () => {
+    expect(cutout({ front: true, back: false, left: true, right: false })).toEqual(['frontonly', 'rightonly']);
   });
 
-  it('all walls → enabled=true, all -2', () => {
-    const params = buildGenerateParams(makeCustomization({ wallCutout: { front: true, back: true, left: true, right: true } }));
-    expect(params.wallcutout_enabled).toBe(true);
-    expect(params.wallcutout_walls).toEqual([-2, -2, -2, -2]);
+  it('all walls → both axes enabled', () => {
+    expect(cutout({ front: true, back: true, left: true, right: true })).toEqual(['enabled', 'enabled']);
   });
 });
 
 describe('resolveItemSources — custom bins', () => {
-  const spec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { magnet_diameter: 6.5 } };
+  const spec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { floor_thickness: 1.2 } };
   const customItem = (qty: number): BOMItem => ({
     ...BASE_BOM_ITEM, libraryId: 'custom', itemId: 'custom-x', widthUnits: 2.5, heightUnits: 1.5, quantity: qty, customSpec: spec,
   });
