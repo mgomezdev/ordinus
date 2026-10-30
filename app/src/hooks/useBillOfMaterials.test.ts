@@ -583,7 +583,7 @@ describe('useBillOfMaterials', () => {
 });
 
 describe('useBillOfMaterials — custom bins', () => {
-  const spec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { magnet_diameter: 6.5 } };
+  const spec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { floor_thickness: 1.2 } };
   const customItem: LibraryItem = {
     id: 'custom:custom-abc', libraryId: 'custom', name: 'Custom 2.5x1.5x3.5',
     widthUnits: 2.5, heightUnits: 1.5, color: '#3B82F6', categories: ['custom'], customSpec: spec,

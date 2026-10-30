@@ -144,7 +144,7 @@ describe('buildPayload', () => {
 });
 
 describe('buildPayload — custom bins', () => {
-  const customSpec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { magnet_diameter: 6.5 } };
+  const customSpec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { floor_thickness: 1.2 } };
 
   it('sends half-unit geometry and the custom spec', () => {
     const item = makeItem({ itemId: 'custom:custom-abc', x: 0.5, y: 1.5, width: 2.5, height: 1.5, customSpec });

@@ -32,17 +32,17 @@ describe('snapPointerToCell', () => {
 describe('footprintSnapStep', () => {
   it('snaps bases with half pitch (the default) to half-cells', () => {
     expect(footprintSnapStep({})).toBe(HALF_CELL_STEP);
-    expect(footprintSnapStep({ parameters: { half_pitch: 'true' } })).toBe(HALF_CELL_STEP);
+    expect(footprintSnapStep({ parameters: { sub_pitch: 2 } })).toBe(HALF_CELL_STEP);
   });
 
   it('snaps classic bases without half pitch to whole units', () => {
-    expect(footprintSnapStep({ parameters: { half_pitch: 'false' } })).toBe(WHOLE_CELL_STEP);
-    expect(footprintSnapStep({ customSpec: { width: 3, depth: 2, height: 4, overrides: { half_pitch: false } } })).toBe(WHOLE_CELL_STEP);
+    expect(footprintSnapStep({ parameters: { sub_pitch: 1 } })).toBe(WHOLE_CELL_STEP);
+    expect(footprintSnapStep({ customSpec: { width: 3, depth: 2, height: 4, overrides: { sub_pitch: 1 } } })).toBe(WHOLE_CELL_STEP);
   });
 });
 
 describe('half pitch gating', () => {
-  const noHalf = { width: 3, depth: 2, height: 4, overrides: { half_pitch: false } };
+  const noHalf = { width: 3, depth: 2, height: 4, overrides: { sub_pitch: 1 } };
   const withHalf = { width: 3, depth: 2, height: 4, overrides: {} };
 
   it('lets custom bins with half pitch drag in half-cell steps even at whole-unit sizes', () => {
@@ -56,8 +56,8 @@ describe('half pitch gating', () => {
 
   it('treats a library item as half-capable unless its parameters turn half pitch off', () => {
     expect(supportsHalfGrid({})).toBe(true);
-    expect(supportsHalfGrid({ parameters: { half_pitch: 'true' } })).toBe(true);
-    expect(supportsHalfGrid({ parameters: { half_pitch: 'false' } })).toBe(false);
+    expect(supportsHalfGrid({ parameters: { sub_pitch: 2 } })).toBe(true);
+    expect(supportsHalfGrid({ parameters: { sub_pitch: 1 } })).toBe(false);
   });
 
   it('flags only items that sit on a half-unit boundary without half pitch', () => {

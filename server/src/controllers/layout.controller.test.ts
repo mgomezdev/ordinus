@@ -82,7 +82,7 @@ describe('POST /api/v1/layouts — customization field', () => {
 
 describe('POST /api/v1/layouts — half-cell geometry', () => {
   const base = { name: 'L', gridX: 4, gridY: 4, widthMm: 168, depthMm: 168 };
-  const customSpec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { magnet_diameter: 6.5 } };
+  const customSpec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { floor_thickness: 1.2 } };
   // Half-cells: 1 unit = 2, so 2.5 x 1.5 units at (0.5, 1.5) is 5 x 3 at (1, 3).
   const item = { itemId: 'custom:custom-abc', x: 1, y: 3, width: 5, height: 3, rotation: 0, customSpec };
 
@@ -124,18 +124,18 @@ describe('POST /api/v1/layouts — half-cell geometry', () => {
     expect(res.status).toBe(400);
   });
 
-  it('rejects half-cell placement of a custom bin whose base does not use half pitch', async () => {
-    const noHalf = { ...customSpec, width: 3, depth: 2, overrides: { half_pitch: false } };
-    const { res } = await post({ ...base, gridResolution: 2, placedItems: [{ ...item, x: 1, width: 6, height: 4, customSpec: noHalf }] });
-    expect(res.status).toBe(400);
-  });
-
-  it('accepts whole-unit placement of a custom bin without half pitch', async () => {
-    const noHalf = { ...customSpec, width: 3, depth: 2, overrides: { half_pitch: false } };
-    const { res } = await post({ ...base, gridResolution: 2, placedItems: [{ ...item, x: 2, y: 4, width: 6, height: 4, customSpec: noHalf }] });
-    expect(res.status).toBe(201);
-  });
-
+  it('rejects half-cell placement of a custom bin whose base does not use half pitch', async () => {
+    const noHalf = { ...customSpec, width: 3, depth: 2, overrides: { sub_pitch: 1 } };
+    const { res } = await post({ ...base, gridResolution: 2, placedItems: [{ ...item, x: 1, width: 6, height: 4, customSpec: noHalf }] });
+    expect(res.status).toBe(400);
+  });
+
+  it('accepts whole-unit placement of a custom bin without half pitch', async () => {
+    const noHalf = { ...customSpec, width: 3, depth: 2, overrides: { sub_pitch: 1 } };
+    const { res } = await post({ ...base, gridResolution: 2, placedItems: [{ ...item, x: 2, y: 4, width: 6, height: 4, customSpec: noHalf }] });
+    expect(res.status).toBe(201);
+  });
+
   it('rejects unknown grid resolutions', async () => {
     const { res } = await post({ ...base, gridResolution: 3, placedItems: [item] });
     expect(res.status).toBe(400);
