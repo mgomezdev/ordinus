@@ -20,6 +20,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, '../../..');
 const LIBRARIES_DIR = path.join(REPO_ROOT, 'app/public/libraries');
 const GOLDEN_FILE = path.join(HERE, 'libraryHashes.golden.json');
+const BOM_PATTERN = new RegExp('^' + String.fromCharCode(0xfeff));
 const PYTHON_CMD = process.platform === 'win32' ? 'python' : 'python3';
 
 const DEFAULT_CUSTOMIZATION: BinCustomization = {
@@ -38,7 +39,7 @@ interface LibraryIndexFile {
 }
 
 function readLibraryIndex(libraryId: string): LibraryIndexFile {
-  const raw = fs.readFileSync(path.join(LIBRARIES_DIR, libraryId, 'index.json'), 'utf8').replace(/^﻿/, '');
+  const raw = fs.readFileSync(path.join(LIBRARIES_DIR, libraryId, 'index.json'), 'utf8').replace(BOM_PATTERN, '');
   return JSON.parse(raw) as LibraryIndexFile;
 }
 
@@ -67,7 +68,7 @@ describe('buildCustomBinParams - equivalence with the library', () => {
   });
 
   it('keeps every existing library item hash unchanged (golden)', () => {
-    const manifest = JSON.parse(fs.readFileSync(path.join(LIBRARIES_DIR, 'manifest.json'), 'utf8').replace(/^﻿/, '')) as {
+    const manifest = JSON.parse(fs.readFileSync(path.join(LIBRARIES_DIR, 'manifest.json'), 'utf8').replace(BOM_PATTERN, '')) as {
       libraries: { id: string }[];
     };
     const actual: Record<string, string> = {};
