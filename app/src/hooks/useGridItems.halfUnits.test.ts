@@ -66,3 +66,30 @@ describe('useGridItems with half-unit items', () => {
     expect(result.current.placedItems[0]).toMatchObject({ x: 2.5, y: 1.5 });
   });
 });
+
+describe('addCustomItem', () => {
+  const customItem = {
+    id: 'custom:custom-abc', libraryId: 'custom', name: 'Custom 2.5×1.5×3.5', widthUnits: 2.5, heightUnits: 1.5,
+    color: '#3B82F6', categories: ['custom'], paramHash: 'h', customSpec: { width: 2.5, depth: 1.5, height: 3.5, overrides: {} },
+  };
+
+  it('places the bin at the first free spot, selects it and keeps its spec and hash', () => {
+    const { result } = renderHook(() => useGridItems(4, 4, () => undefined));
+    let instanceId: string | null = null;
+    act(() => { instanceId = result.current.addCustomItem(customItem); });
+    expect(instanceId).toBe(result.current.placedItems[0].instanceId);
+    expect(result.current.placedItems[0]).toMatchObject({
+      itemId: 'custom:custom-abc', x: 0, y: 0, width: 2.5, height: 1.5, rotation: 0,
+      paramHash: 'h', customSpec: customItem.customSpec, isValid: true,
+    });
+    expect(result.current.selectedItemId).toBe(result.current.placedItems[0].instanceId);
+  });
+
+  it('avoids existing items', () => {
+    const { result } = load([item({ instanceId: 'a', x: 0, y: 0, width: 4, height: 4 })], 4, 4);
+    let instanceId: string | null = 'unset';
+    act(() => { instanceId = result.current.addCustomItem(customItem); });
+    expect(instanceId).toBeNull();
+    expect(result.current.placedItems).toHaveLength(1);
+  });
+});

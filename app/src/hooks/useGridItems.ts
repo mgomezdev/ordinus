@@ -237,6 +237,28 @@ export function useGridItems(
     updateSelected(new Set([newItem.instanceId]));
   }, [getItemById, updateItems, updateSelected]);
 
+  /** Places a custom bin at the first free spot; returns its instance id, or null when the grid has no room. */
+  const addCustomItem = useCallback((libraryItem: LibraryItem): string | null => {
+    const pos = findValidPosition(itemsRef.current, libraryItem.widthUnits, libraryItem.heightUnits, 0, 0, gridX, gridY);
+    if (!pos) return null;
+
+    const newItem: PlacedItem = {
+      instanceId: generateInstanceId(),
+      itemId: libraryItem.id,
+      x: pos.x,
+      y: pos.y,
+      width: libraryItem.widthUnits,
+      height: libraryItem.heightUnits,
+      rotation: 0,
+      customSpec: libraryItem.customSpec,
+      paramHash: libraryItem.paramHash ?? null,
+    };
+
+    updateItems([...itemsRef.current, newItem]);
+    updateSelected(new Set([newItem.instanceId]));
+    return newItem.instanceId;
+  }, [gridX, gridY, updateItems, updateSelected]);
+
   const addItemWithCustomization = useCallback(
     (itemId: string, x: number, y: number, customization: BinCustomization, paramHash?: string | null) => {
       const libraryItem = getItemById(itemId);
@@ -515,6 +537,7 @@ export function useGridItems(
     clipboard,
     addItem,
     addItemWithCustomization,
+    addCustomItem,
     moveItem,
     rotateItem,
     updateItemCustomization,

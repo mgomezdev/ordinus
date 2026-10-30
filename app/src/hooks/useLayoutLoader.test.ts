@@ -171,3 +171,26 @@ describe('loadLayout', () => {
     ]);
   });
 });
+
+describe('loadLayout — custom bins', () => {
+  it('restores the custom spec on placed items', async () => {
+    const customSpec = { width: 2.5, depth: 1.5, height: 3.5, overrides: {} };
+    vi.mocked(fetchLayout).mockResolvedValue({
+      ...MOCK_DETAIL,
+      placedItems: [{
+        id: 1, layoutId: 42, libraryId: 'custom', itemId: 'custom-abc',
+        x: 0.5, y: 1.5, width: 2.5, height: 1.5, rotation: 0, sortOrder: 0, customSpec,
+      }],
+    } as never);
+    const params = makeParams();
+    const { result } = renderHook(() => useLayoutLoader(params));
+
+    await act(async () => {
+      await result.current.loadLayout(42);
+    });
+
+    expect(params.loadItems).toHaveBeenCalledWith([
+      expect.objectContaining({ itemId: 'custom:custom-abc', x: 0.5, width: 2.5, customSpec }),
+    ]);
+  });
+});

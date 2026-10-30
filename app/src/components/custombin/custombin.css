@@ -156,3 +156,13 @@
     grid-column: 1 / -1;
   }
 }
+.custom-bin-open-button {
+  width: 100%;
+  margin: 8px 0;
+}
+
+.custom-bin-error {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  margin: 4px 0;
+}

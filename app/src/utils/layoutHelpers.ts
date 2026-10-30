@@ -47,6 +47,7 @@ export function buildPayload(
       height: item.height,
       rotation: item.rotation,
       ...(item.customization ? { customization: item.customization } : {}),
+      ...(item.customSpec ? { customSpec: item.customSpec } : {}),
     })),
     ...(validPlacements.length > 0 ? { refImagePlacements: validPlacements } : {}),
     ...(customerId != null ? { customerId } : {}),

@@ -1,12 +1,16 @@
 import { useState } from 'react';
+import type { CustomBinSpec } from '@gridfinity/shared';
 import type { LibraryItem } from '../types/gridfinity';
 import { LibraryItemCard } from './LibraryItemCard';
+import { CustomBinDialog } from './custombin/CustomBinDialog';
 
 interface ItemLibraryProps {
   items: LibraryItem[];
   isLoading: boolean;
   error: Error | null;
   activeCategory?: string | null;
+  /** Places a custom bin on the grid; resolves false when there is no room. */
+  onAddCustomBin?: (spec: CustomBinSpec) => Promise<boolean>;
 }
 
 export function ItemLibrary({
@@ -14,11 +18,28 @@ export function ItemLibrary({
   isLoading,
   error,
   activeCategory,
+  onAddCustomBin,
 }: ItemLibraryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWidths, setSelectedWidths] = useState<Set<number>>(new Set());
   const [selectedHeights, setSelectedHeights] = useState<Set<number>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
+  const [customBinOpen, setCustomBinOpen] = useState(false);
+  const [customBinError, setCustomBinError] = useState<string | null>(null);
+
+  const handleAddCustomBin = async (spec: CustomBinSpec) => {
+    if (!onAddCustomBin) return;
+    setCustomBinError(null);
+    try {
+      if (await onAddCustomBin(spec)) {
+        setCustomBinOpen(false);
+      } else {
+        setCustomBinError('There is no room on the grid for this bin.');
+      }
+    } catch {
+      setCustomBinError('Could not create the custom bin. Please try again.');
+    }
+  };
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -34,6 +55,16 @@ export function ItemLibrary({
     <div className="item-library">
       <h3 className="item-library-title">Item Library</h3>
       <p className="item-library-hint">Drag items onto the grid</p>
+
+      {onAddCustomBin && (
+        <button type="button" className="custom-bin-open-button" onClick={() => { setCustomBinError(null); setCustomBinOpen(true); }}>
+          + Custom bin…
+        </button>
+      )}
+      {onAddCustomBin && (
+        <CustomBinDialog open={customBinOpen} onClose={() => setCustomBinOpen(false)} onAdd={handleAddCustomBin} />
+      )}
+      {customBinError && <p className="custom-bin-error" role="alert">{customBinError}</p>}
 
       {error && (
         <div className="library-error">

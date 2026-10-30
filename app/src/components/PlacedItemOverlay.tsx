@@ -349,7 +349,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          {libraryItem && (
+          {libraryItem && !libraryItem.customSpec && (
             <button
               className={`placed-item-toolbar-btn placed-item-toolbar-btn--heart${isFavorited ? ' favorited' : ''}`}
               onClick={(e) => {

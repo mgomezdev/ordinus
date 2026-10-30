@@ -1,3 +1,5 @@
+import type { CustomBinSpec } from '@gridfinity/shared';
+
 export type UnitSystem = 'metric' | 'imperial';
 export type ImperialFormat = 'decimal' | 'fractional';
 
@@ -62,6 +64,8 @@ export interface LibraryItem {
   price?: number;
   parameters?: GeneratorParams;
   paramHash?: string;
+  /** Set on synthetic items that represent a user-defined custom bin. */
+  customSpec?: CustomBinSpec;
 }
 
 export interface PlacedItem {
@@ -73,6 +77,7 @@ export interface PlacedItem {
   height: number;
   rotation: Rotation;
   customization?: BinCustomization;
+  customSpec?: CustomBinSpec;
   shadowBoxId?: string | null;
   parameters?: GeneratorParams;
   paramHash?: string | null;

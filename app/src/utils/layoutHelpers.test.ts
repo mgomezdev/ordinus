@@ -136,3 +136,18 @@ describe('buildPayload', () => {
     expect(result.refImagePlacements![0].warpedImageUrl).toBeNull();
   });
 });
+
+describe('buildPayload — custom bins', () => {
+  const customSpec = { width: 2.5, depth: 1.5, height: 3.5, overrides: { magnet_diameter: 6.5 } };
+
+  it('sends half-unit geometry and the custom spec', () => {
+    const item = makeItem({ itemId: 'custom:custom-abc', x: 0.5, y: 1.5, width: 2.5, height: 1.5, customSpec });
+    const mapped = buildPayload('L', '', 6, 6, 252, 252, BASE_SPACER, [item], []).placedItems[0];
+    expect(mapped).toMatchObject({ itemId: 'custom:custom-abc', x: 0.5, y: 1.5, width: 2.5, height: 1.5, customSpec });
+  });
+
+  it('omits customSpec for library items', () => {
+    const mapped = buildPayload('L', '', 4, 4, 168, 168, BASE_SPACER, [makeItem()], []).placedItems[0];
+    expect('customSpec' in mapped).toBe(false);
+  });
+});

@@ -60,6 +60,7 @@ export function useLayoutLoader({
         x: item.x, y: item.y, width: item.width, height: item.height,
         rotation: item.rotation as Rotation,
         ...(item.customization ? { customization: item.customization } : {}),
+        ...(item.customSpec ? { customSpec: item.customSpec } : {}),
       }));
 
       const loadedRefImagePlacements: RefImagePlacement[] = (detail.refImagePlacements ?? []).map((p, index) => ({
