@@ -13,7 +13,8 @@ test.describe('App dialogs', () => {
     const dialog = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
 
     await page.getByRole('button', { name: 'Keyboard shortcuts' }).click();
-    await expect(dialog).toBeVisible();
+    // Focus moves in the same effect pass that attaches the Escape listener.
+    await expect(dialog).toBeFocused();
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
 
