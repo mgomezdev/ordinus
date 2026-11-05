@@ -137,6 +137,8 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
+      # The API dev server resolves @gridfinity/shared from its built dist.
+      - run: npm run build --workspace=shared
       # Playwright starts the Vite dev server and the API (test mode, in-memory DB).
       - run: npm run test:e2e
         env:
