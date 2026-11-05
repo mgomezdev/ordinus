@@ -4,6 +4,7 @@ import type { ApiResponse, ApiRefImage, ApiRefImageWarp, Quad } from '@gridfinit
 import type { Request, Response, NextFunction } from 'express';
 import * as refImageService from '../services/refImage.service.js';
 import * as refImageWarpService from '../services/refImageWarp.service.js';
+import { parseIntParam } from '../utils/params.js';
 
 const renameSchema = z.object({
   name: z.string().min(1).max(255),
@@ -66,10 +67,7 @@ export async function renameRefImage(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const imageId = parseInt(req.params.id as string, 10);
-    if (isNaN(imageId)) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid image ID');
-    }
+    const imageId = parseIntParam(req, 'id', 'image ID');
 
     const parsed = renameSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -91,10 +89,7 @@ export async function deleteRefImage(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const imageId = parseInt(req.params.id as string, 10);
-    if (isNaN(imageId)) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid image ID');
-    }
+    const imageId = parseIntParam(req, 'id', 'image ID');
 
     await refImageService.deleteRefImage(imageId);
 
@@ -110,10 +105,7 @@ export async function warpRefImage(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const imageId = parseInt(req.params.id as string, 10);
-    if (isNaN(imageId)) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid image ID');
-    }
+    const imageId = parseIntParam(req, 'id', 'image ID');
 
     const parsed = warpSchema.safeParse(req.body);
     if (!parsed.success) {

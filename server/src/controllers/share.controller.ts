@@ -3,6 +3,7 @@ import { AppError, ErrorCodes } from '@gridfinity/shared';
 import type { ApiResponse, ApiSharedProject, ApiSharedLayoutView } from '@gridfinity/shared';
 import type { Request, Response, NextFunction } from 'express';
 import * as shareService from '../services/share.service.js';
+import { parseIntParam } from '../utils/params.js';
 
 const createShareSchema = z.object({
   expiresInDays: z.number().int().min(1).max(365).optional(),
@@ -14,10 +15,7 @@ export async function createShare(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const layoutId = parseInt(req.params.id as string, 10);
-    if (isNaN(layoutId)) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
-    }
+    const layoutId = parseIntParam(req, 'id', 'layout ID');
 
     const parsed = createShareSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -59,10 +57,7 @@ export async function deleteShare(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const shareId = parseInt(req.params.shareId as string, 10);
-    if (isNaN(shareId)) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid share ID');
-    }
+    const shareId = parseIntParam(req, 'shareId', 'share ID');
 
     await shareService.deleteShare(shareId);
     res.status(204).send();
@@ -77,10 +72,7 @@ export async function listSharesByLayout(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const layoutId = parseInt(req.params.id as string, 10);
-    if (isNaN(layoutId)) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
-    }
+    const layoutId = parseIntParam(req, 'id', 'layout ID');
 
     const shares = await shareService.getSharesByLayout(layoutId);
 
