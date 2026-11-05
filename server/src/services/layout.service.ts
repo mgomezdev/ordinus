@@ -1,17 +1,57 @@
 import { eq, and, lt, desc, sql, or, inArray } from 'drizzle-orm';
 import { AppError, ErrorCodes, GRID_RESOLUTION } from '@gridfinity/shared';
 import { logger } from '../logger.js';
-import type { ApiLayout, ApiLayoutDetail, ApiRefImagePlacement, BinCustomization, CustomBinSpec, Quad } from '@gridfinity/shared';
+import type { ApiLayout, ApiLayoutDetail, ApiRefImagePlacement, ApiReferenceImage, BinCustomization, CustomBinSpec, Quad } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
 import { layouts, placedItems, referenceImages, refImages, customers } from '../db/schema.js';
-import * as referenceImageService from './referenceImage.service.js';
 import { formatLayout, formatPlacedItem } from './formatters.js';
 import * as layoutThumbnailService from './layoutThumbnail.service.js';
 import { releaseWarps } from './refImageWarp.service.js';
 
+type LayoutRow = typeof layouts.$inferSelect;
+type PlacedItemRow = typeof placedItems.$inferSelect;
+type PlacedItemInsert = typeof placedItems.$inferInsert;
+type RefPlacementInsert = typeof referenceImages.$inferInsert;
+
 interface CursorData {
   createdAt: string;
   id: number;
+}
+
+interface CreateLayoutData {
+  name: string;
+  description?: string;
+  customerId?: number | null;
+  gridX: number;
+  gridY: number;
+  widthMm: number;
+  depthMm: number;
+  spacerHorizontal?: string;
+  spacerVertical?: string;
+  placedItems: Array<{
+    itemId: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotation: number;
+    customization?: BinCustomization;
+    customSpec?: CustomBinSpec;
+  }>;
+  refImagePlacements?: Array<{
+    refImageId: number;
+    name: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    opacity: number;
+    scale: number;
+    isLocked: boolean;
+    rotation: number;
+    corners?: Quad | null;
+    warpedImageUrl?: string | null;
+  }>;
 }
 
 async function layoutWarpPaths(layoutId: number): Promise<Array<string | null>> {
@@ -31,8 +71,28 @@ function parseCorners(raw: string | null): Quad | null {
   }
 }
 
+type ReferenceImageRow = typeof referenceImages.$inferSelect;
+
+function formatReferenceImage(row: ReferenceImageRow): ApiReferenceImage {
+  return {
+    id: row.id,
+    layoutId: row.layoutId,
+    name: row.name,
+    filePath: row.filePath,
+    x: row.x,
+    y: row.y,
+    width: row.width,
+    height: row.height,
+    opacity: row.opacity,
+    scale: row.scale,
+    isLocked: row.isLocked,
+    rotation: row.rotation,
+    createdAt: row.createdAt,
+  };
+}
+
 function formatRefPlacement(
-  row: typeof referenceImages.$inferSelect,
+  row: ReferenceImageRow,
   imageUrl: string | null,
 ): ApiRefImagePlacement {
   const corners = parseCorners(row.corners);
@@ -84,6 +144,112 @@ function unprefixItemId(prefixedId: string): { libraryId: string; itemId: string
   };
 }
 
+async function findLayoutOrThrow(layoutId: number): Promise<LayoutRow> {
+  const rows = await db.select().from(layouts).where(eq(layouts.id, layoutId)).limit(1);
+  if (rows.length === 0) {
+    throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
+  }
+  return rows[0];
+}
+
+async function customerNameFor(customerId: number | null | undefined): Promise<string | undefined> {
+  if (!customerId) return undefined;
+  const rows = await db.select({ name: customers.name }).from(customers).where(eq(customers.id, customerId)).limit(1);
+  return rows[0]?.name;
+}
+
+function toPlacedItemValues(layoutId: number, items: CreateLayoutData['placedItems']): PlacedItemInsert[] {
+  return items.map((item, index) => {
+    const { libraryId, itemId } = unprefixItemId(item.itemId);
+    return {
+      layoutId,
+      libraryId,
+      itemId,
+      x: item.x,
+      y: item.y,
+      width: item.width,
+      height: item.height,
+      rotation: item.rotation,
+      sortOrder: index,
+      customization: item.customization ? JSON.stringify(item.customization) : null,
+      customSpec: item.customSpec ? JSON.stringify(item.customSpec) : null,
+    };
+  });
+}
+
+function toRefPlacementValues(
+  layoutId: number,
+  placements: CreateLayoutData['refImagePlacements'] = [],
+  now: string,
+): RefPlacementInsert[] {
+  return placements.map(p => ({
+    layoutId,
+    refImageId: p.refImageId,
+    name: p.name,
+    filePath: '',
+    x: p.x,
+    y: p.y,
+    width: p.width,
+    height: p.height,
+    opacity: p.opacity,
+    scale: p.scale,
+    isLocked: p.isLocked,
+    rotation: p.rotation,
+    corners: p.corners ? JSON.stringify(p.corners) : null,
+    warpedFilePath: p.corners ? (p.warpedImageUrl ?? null) : null,
+    createdAt: now,
+  }));
+}
+
+async function insertPlacedItems(values: PlacedItemInsert[]): Promise<PlacedItemRow[]> {
+  if (values.length === 0) return [];
+  return db.insert(placedItems).values(values).returning();
+}
+
+async function insertRefPlacements(values: RefPlacementInsert[]): Promise<ApiRefImagePlacement[]> {
+  if (values.length === 0) return [];
+  const rows = await db.insert(referenceImages).values(values).returning();
+  return rows.map(row => formatRefPlacement(row, null)); // imageUrl resolved on load
+}
+
+// Thumbnail failures never block saving the layout.
+async function tryGenerateThumbnail(
+  layoutId: number,
+  gridX: number,
+  gridY: number,
+  items: PlacedItemRow[],
+): Promise<string | undefined> {
+  try {
+    return await layoutThumbnailService.generate(
+      layoutId,
+      gridX,
+      gridY,
+      items.map(({ libraryId, itemId, x, y, width, height, rotation }) => ({
+        libraryId, itemId, x, y, width, height, rotation,
+      })),
+    );
+  } catch (err) {
+    logger.warn({ err, layoutId }, 'Thumbnail generation failed — layout saved without thumbnail');
+    return undefined;
+  }
+}
+
+// Inserting a stale/unknown ref image id trips the FK constraint, so reject
+// it before any existing placements are touched.
+async function assertRefImagesExist(placements: CreateLayoutData['refImagePlacements'] = []): Promise<void> {
+  if (placements.length === 0) return;
+  const requestedIds = [...new Set(placements.map(p => p.refImageId))];
+  const foundRows = await db
+    .select({ id: refImages.id })
+    .from(refImages)
+    .where(inArray(refImages.id, requestedIds));
+  const foundIds = new Set(foundRows.map(r => r.id));
+  const missingIds = requestedIds.filter(id => !foundIds.has(id));
+  if (missingIds.length > 0) {
+    throw new AppError(ErrorCodes.CONFLICT, `Reference image(s) not found: ${missingIds.join(', ')}`);
+  }
+}
+
 export async function getAllLayouts(
   cursor?: string,
   limit: number = 20,
@@ -103,13 +269,9 @@ export async function getAllLayouts(
     );
   }
 
-  let conditions;
-  if (customerId !== undefined && !isNaN(customerId)) {
-    const customerFilter = eq(layouts.customerId, customerId);
-    conditions = cursorCondition ? and(customerFilter, cursorCondition) : customerFilter;
-  } else {
-    conditions = cursorCondition;
-  }
+  const customerFilter = customerId !== undefined && !isNaN(customerId)
+    ? eq(layouts.customerId, customerId)
+    : undefined;
 
   // Fetch layouts with customer name via LEFT JOIN
   const rows = await db
@@ -119,7 +281,7 @@ export async function getAllLayouts(
     })
     .from(layouts)
     .leftJoin(customers, eq(layouts.customerId, customers.id))
-    .where(conditions)
+    .where(and(customerFilter, cursorCondition))
     .orderBy(desc(layouts.createdAt), desc(layouts.id))
     .limit(safeLimit + 1);
 
@@ -128,20 +290,13 @@ export async function getAllLayouts(
     formatLayout(row.layout, row.customerName ?? undefined),
   );
 
-  let nextCursor: string | undefined;
-  if (hasMore && data.length > 0) {
-    const lastItem = data[data.length - 1];
-    nextCursor = encodeCursor({
-      createdAt: lastItem.createdAt,
-      id: lastItem.id,
-    });
-  }
+  const lastItem = data[data.length - 1];
+  const nextCursor = hasMore && lastItem
+    ? encodeCursor({ createdAt: lastItem.createdAt, id: lastItem.id })
+    : undefined;
 
   return { data, nextCursor, hasMore };
 }
-
-// Keep the old name as an alias for backward compatibility
-export const getLayoutsByUser = getAllLayouts;
 
 export async function getLayoutById(
   layoutId: number,
@@ -168,8 +323,6 @@ export async function getLayoutById(
     .where(eq(placedItems.layoutId, layoutId))
     .orderBy(placedItems.sortOrder);
 
-  const legacyRefImages = await referenceImageService.getReferenceImagesByLayout(layoutId);
-
   // Fetch ref image placements with LEFT JOIN to resolve imageUrl
   const refPlacementRows = await db
     .select({
@@ -188,45 +341,9 @@ export async function getLayoutById(
   return {
     ...formatLayout(layout, customerName ?? undefined),
     placedItems: itemRows.map(formatPlacedItem),
-    referenceImages: legacyRefImages,
+    referenceImages: refPlacementRows.map(row => formatReferenceImage(row.ri)),
     refImagePlacements,
   };
-}
-
-interface CreateLayoutData {
-  name: string;
-  description?: string;
-  customerId?: number | null;
-  gridX: number;
-  gridY: number;
-  widthMm: number;
-  depthMm: number;
-  spacerHorizontal?: string;
-  spacerVertical?: string;
-  placedItems: Array<{
-    itemId: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    rotation: number;
-    customization?: BinCustomization;
-    customSpec?: CustomBinSpec;
-  }>;
-  refImagePlacements?: Array<{
-    refImageId: number;
-    name: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    opacity: number;
-    scale: number;
-    isLocked: boolean;
-    rotation: number;
-    corners?: Quad | null;
-    warpedImageUrl?: string | null;
-  }>;
 }
 
 export async function createLayout(
@@ -234,7 +351,7 @@ export async function createLayout(
 ): Promise<ApiLayoutDetail> {
   const now = new Date().toISOString();
 
-  const layoutRows = await db
+  const [layout] = await db
     .insert(layouts)
     .values({
       userId: null,
@@ -254,96 +371,16 @@ export async function createLayout(
     })
     .returning();
 
-  const layout = layoutRows[0];
-
-  // Insert placed items
-  const itemValues = data.placedItems.map((item, index) => {
-    const { libraryId, itemId } = unprefixItemId(item.itemId);
-    return {
-      layoutId: layout.id,
-      libraryId,
-      itemId,
-      x: item.x,
-      y: item.y,
-      width: item.width,
-      height: item.height,
-      rotation: item.rotation,
-      sortOrder: index,
-      customization: item.customization ? JSON.stringify(item.customization) : null,
-      customSpec: item.customSpec ? JSON.stringify(item.customSpec) : null,
-    };
-  });
-
-  let insertedItems: Array<typeof placedItems.$inferSelect> = [];
-  if (itemValues.length > 0) {
-    insertedItems = await db
-      .insert(placedItems)
-      .values(itemValues)
-      .returning();
-  }
-
-  // Insert ref image placements
-  const refPlacementPlacements: ApiRefImagePlacement[] = [];
-  if (data.refImagePlacements && data.refImagePlacements.length > 0) {
-    const refValues = data.refImagePlacements.map(p => ({
-      layoutId: layout.id,
-      refImageId: p.refImageId,
-      name: p.name,
-      filePath: '',
-      x: p.x,
-      y: p.y,
-      width: p.width,
-      height: p.height,
-      opacity: p.opacity,
-      scale: p.scale,
-      isLocked: p.isLocked,
-      rotation: p.rotation,
-      corners: p.corners ? JSON.stringify(p.corners) : null,
-      warpedFilePath: p.corners ? (p.warpedImageUrl ?? null) : null,
-      createdAt: now,
-    }));
-
-    const insertedRefs = await db
-      .insert(referenceImages)
-      .values(refValues)
-      .returning();
-
-    for (const row of insertedRefs) {
-      refPlacementPlacements.push(formatRefPlacement(row, null)); // imageUrl resolved on load
-    }
-  }
-
-  let thumbnailFilename: string | undefined;
-  try {
-    thumbnailFilename = await layoutThumbnailService.generate(
-      layout.id,
-      data.gridX,
-      data.gridY,
-      insertedItems.map(i => ({
-        libraryId: i.libraryId,
-        itemId: i.itemId,
-        x: i.x,
-        y: i.y,
-        width: i.width,
-        height: i.height,
-        rotation: i.rotation,
-      })),
-    );
-  } catch (err) {
-    logger.warn({ err, layoutId: layout.id }, 'Thumbnail generation failed — layout saved without thumbnail');
-  }
-
-  // Fetch customer name if needed
-  let customerName: string | undefined;
-  if (data.customerId) {
-    const custRows = await db.select({ name: customers.name }).from(customers).where(eq(customers.id, data.customerId)).limit(1);
-    customerName = custRows[0]?.name;
-  }
+  const insertedItems = await insertPlacedItems(toPlacedItemValues(layout.id, data.placedItems));
+  const refImagePlacements = await insertRefPlacements(
+    toRefPlacementValues(layout.id, data.refImagePlacements, now),
+  );
+  const thumbnailFilename = await tryGenerateThumbnail(layout.id, data.gridX, data.gridY, insertedItems);
 
   return {
-    ...formatLayout({ ...layout, thumbnailPath: thumbnailFilename ?? null }, customerName),
+    ...formatLayout({ ...layout, thumbnailPath: thumbnailFilename ?? null }, await customerNameFor(data.customerId)),
     placedItems: insertedItems.map(formatPlacedItem),
-    refImagePlacements: refPlacementPlacements,
+    refImagePlacements,
   };
 }
 
@@ -351,33 +388,11 @@ export async function updateLayout(
   layoutId: number,
   data: CreateLayoutData,
 ): Promise<ApiLayoutDetail> {
-  const existing = await db
-    .select()
-    .from(layouts)
-    .where(eq(layouts.id, layoutId))
-    .limit(1);
-
-  if (existing.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
-  }
-
+  const existing = await findLayoutOrThrow(layoutId);
   const now = new Date().toISOString();
+  const customerId = data.customerId !== undefined ? data.customerId : existing.customerId;
 
-  // Validate ref image ids up front — inserting a stale/unknown id trips the
-  // FK constraint after the old placements have already been deleted below,
-  // so catching it here avoids losing data to a doomed insert.
-  if (data.refImagePlacements && data.refImagePlacements.length > 0) {
-    const requestedIds = [...new Set(data.refImagePlacements.map(p => p.refImageId))];
-    const foundRows = await db
-      .select({ id: refImages.id })
-      .from(refImages)
-      .where(inArray(refImages.id, requestedIds));
-    const foundIds = new Set(foundRows.map(r => r.id));
-    const missingIds = requestedIds.filter(id => !foundIds.has(id));
-    if (missingIds.length > 0) {
-      throw new AppError(ErrorCodes.CONFLICT, `Reference image(s) not found: ${missingIds.join(', ')}`);
-    }
-  }
+  await assertRefImagesExist(data.refImagePlacements);
 
   // Delete-and-reinsert runs in one transaction so a failure partway through
   // (e.g. an FK violation) rolls back instead of leaving the layout without
@@ -386,16 +401,16 @@ export async function updateLayout(
   // in tests) it hands the connection to a separate Transaction object, and
   // any later query on `db` lazily opens a brand-new, empty in-memory
   // database. Plain BEGIN/COMMIT/ROLLBACK on the same connection avoids that.
-  let updatedRows: Array<typeof layouts.$inferSelect>;
-  let insertedItems: Array<typeof placedItems.$inferSelect> = [];
-  const refPlacementPlacements: ApiRefImagePlacement[] = [];
+  let updated: LayoutRow;
+  let insertedItems: PlacedItemRow[];
+  let refImagePlacements: ApiRefImagePlacement[];
   const previousWarps = await layoutWarpPaths(layoutId);
   await db.run(sql`BEGIN`);
   try {
-    updatedRows = await db
+    [updated] = await db
       .update(layouts)
       .set({
-        customerId: data.customerId !== undefined ? data.customerId : existing[0].customerId,
+        customerId,
         name: data.name,
         description: data.description ?? null,
         gridX: data.gridX,
@@ -410,68 +425,13 @@ export async function updateLayout(
       .where(eq(layouts.id, layoutId))
       .returning();
 
-    // Delete old placed items and ref image placements
-    await db
-      .delete(placedItems)
-      .where(eq(placedItems.layoutId, layoutId));
-    await db
-      .delete(referenceImages)
-      .where(eq(referenceImages.layoutId, layoutId));
+    await db.delete(placedItems).where(eq(placedItems.layoutId, layoutId));
+    await db.delete(referenceImages).where(eq(referenceImages.layoutId, layoutId));
 
-    // Insert new placed items
-    const itemValues = data.placedItems.map((item, index) => {
-      const { libraryId, itemId } = unprefixItemId(item.itemId);
-      return {
-        layoutId,
-        libraryId,
-        itemId,
-        x: item.x,
-        y: item.y,
-        width: item.width,
-        height: item.height,
-        rotation: item.rotation,
-        sortOrder: index,
-        customization: item.customization ? JSON.stringify(item.customization) : null,
-      customSpec: item.customSpec ? JSON.stringify(item.customSpec) : null,
-      };
-    });
-
-    if (itemValues.length > 0) {
-      insertedItems = await db
-        .insert(placedItems)
-        .values(itemValues)
-        .returning();
-    }
-
-    // Insert ref image placements
-    if (data.refImagePlacements && data.refImagePlacements.length > 0) {
-      const refValues = data.refImagePlacements.map(p => ({
-        layoutId,
-        refImageId: p.refImageId,
-        name: p.name,
-        filePath: '',
-        x: p.x,
-        y: p.y,
-        width: p.width,
-        height: p.height,
-        opacity: p.opacity,
-        scale: p.scale,
-        isLocked: p.isLocked,
-        rotation: p.rotation,
-        corners: p.corners ? JSON.stringify(p.corners) : null,
-        warpedFilePath: p.corners ? (p.warpedImageUrl ?? null) : null,
-        createdAt: now,
-      }));
-
-      const insertedRefs = await db
-        .insert(referenceImages)
-        .values(refValues)
-        .returning();
-
-      for (const row of insertedRefs) {
-        refPlacementPlacements.push(formatRefPlacement(row, null));
-      }
-    }
+    insertedItems = await insertPlacedItems(toPlacedItemValues(layoutId, data.placedItems));
+    refImagePlacements = await insertRefPlacements(
+      toRefPlacementValues(layoutId, data.refImagePlacements, now),
+    );
     await db.run(sql`COMMIT`);
   } catch (err) {
     await db.run(sql`ROLLBACK`);
@@ -481,38 +441,15 @@ export async function updateLayout(
   // Re-aligned or unaligned images leave their old warp behind
   await releaseWarps(previousWarps);
 
-  let thumbnailFilename: string | undefined;
-  try {
-    thumbnailFilename = await layoutThumbnailService.generate(
-      layoutId,
-      data.gridX,
-      data.gridY,
-      insertedItems.map(i => ({
-        libraryId: i.libraryId,
-        itemId: i.itemId,
-        x: i.x,
-        y: i.y,
-        width: i.width,
-        height: i.height,
-        rotation: i.rotation,
-      })),
-    );
-  } catch (err) {
-    logger.warn({ err, layoutId }, 'Thumbnail generation failed — layout saved without thumbnail');
-  }
-
-  // Fetch customer name
-  const effectiveCustomerId = data.customerId !== undefined ? data.customerId : existing[0].customerId;
-  let customerName: string | undefined;
-  if (effectiveCustomerId) {
-    const custRows = await db.select({ name: customers.name }).from(customers).where(eq(customers.id, effectiveCustomerId)).limit(1);
-    customerName = custRows[0]?.name;
-  }
+  const thumbnailFilename = await tryGenerateThumbnail(layoutId, data.gridX, data.gridY, insertedItems);
 
   return {
-    ...formatLayout({ ...updatedRows[0], thumbnailPath: thumbnailFilename ?? updatedRows[0].thumbnailPath ?? null }, customerName),
+    ...formatLayout(
+      { ...updated, thumbnailPath: thumbnailFilename ?? updated.thumbnailPath ?? null },
+      await customerNameFor(customerId),
+    ),
     placedItems: insertedItems.map(formatPlacedItem),
-    refImagePlacements: refPlacementPlacements,
+    refImagePlacements,
   };
 }
 
@@ -520,51 +457,27 @@ export async function updateLayoutMeta(
   layoutId: number,
   data: { name?: string; description?: string; customerId?: number | null },
 ): Promise<ApiLayout> {
-  const existing = await db
-    .select()
-    .from(layouts)
-    .where(eq(layouts.id, layoutId))
-    .limit(1);
+  const existing = await findLayoutOrThrow(layoutId);
 
-  if (existing.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
-  }
-
-  const now = new Date().toISOString();
-  const setValues: Record<string, unknown> = { updatedAt: now };
-
+  const setValues: Partial<typeof layouts.$inferInsert> = { updatedAt: new Date().toISOString() };
   if (data.name !== undefined) setValues.name = data.name;
   if (data.description !== undefined) setValues.description = data.description;
   if (data.customerId !== undefined) setValues.customerId = data.customerId;
 
-  const updatedRows = await db
+  const [updated] = await db
     .update(layouts)
     .set(setValues)
     .where(eq(layouts.id, layoutId))
     .returning();
 
-  const effectiveCustomerId = data.customerId !== undefined ? data.customerId : existing[0].customerId;
-  let customerName: string | undefined;
-  if (effectiveCustomerId) {
-    const custRows = await db.select({ name: customers.name }).from(customers).where(eq(customers.id, effectiveCustomerId)).limit(1);
-    customerName = custRows[0]?.name;
-  }
-
-  return formatLayout(updatedRows[0], customerName);
+  const customerId = data.customerId !== undefined ? data.customerId : existing.customerId;
+  return formatLayout(updated, await customerNameFor(customerId));
 }
 
 export async function deleteLayout(
   layoutId: number,
 ): Promise<void> {
-  const existing = await db
-    .select()
-    .from(layouts)
-    .where(eq(layouts.id, layoutId))
-    .limit(1);
-
-  if (existing.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
-  }
+  await findLayoutOrThrow(layoutId);
 
   await layoutThumbnailService.deleteThumbnail(layoutId);
   const warps = await layoutWarpPaths(layoutId);
@@ -577,23 +490,11 @@ export async function deleteLayout(
 export async function cloneLayout(
   sourceLayoutId: number,
 ): Promise<ApiLayoutDetail> {
-  // Fetch source layout
-  const sourceRows = await db
-    .select()
-    .from(layouts)
-    .where(eq(layouts.id, sourceLayoutId))
-    .limit(1);
-
-  if (sourceRows.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
-  }
-
-  const source = sourceRows[0];
-
+  const source = await findLayoutOrThrow(sourceLayoutId);
   const now = new Date().toISOString();
 
   // Create new layout preserving customer association
-  const newLayoutRows = await db
+  const [newLayout] = await db
     .insert(layouts)
     .values({
       userId: null,
@@ -613,108 +514,29 @@ export async function cloneLayout(
     })
     .returning();
 
-  const newLayout = newLayoutRows[0];
-
-  // Copy placed items
   const sourceItems = await db
     .select()
     .from(placedItems)
     .where(eq(placedItems.layoutId, sourceLayoutId))
     .orderBy(placedItems.sortOrder);
+  const insertedItems = await insertPlacedItems(
+    sourceItems.map(({ id, ...item }) => ({ ...item, layoutId: newLayout.id })),
+  );
 
-  let insertedItems: Array<typeof placedItems.$inferSelect> = [];
-  if (sourceItems.length > 0) {
-    const itemValues = sourceItems.map(item => ({
-      layoutId: newLayout.id,
-      libraryId: item.libraryId,
-      itemId: item.itemId,
-      x: item.x,
-      y: item.y,
-      width: item.width,
-      height: item.height,
-      rotation: item.rotation,
-      sortOrder: item.sortOrder,
-      customization: item.customization,
-      customSpec: item.customSpec,
-    }));
-    insertedItems = await db
-      .insert(placedItems)
-      .values(itemValues)
-      .returning();
-  }
-
-  // Copy ref image placements
   const sourceRefPlacements = await db
     .select()
     .from(referenceImages)
     .where(eq(referenceImages.layoutId, sourceLayoutId))
     .orderBy(referenceImages.id);
+  const refImagePlacements = await insertRefPlacements(
+    sourceRefPlacements.map(({ id, ...p }) => ({ ...p, layoutId: newLayout.id, createdAt: now })),
+  );
 
-  const refPlacementResults: ApiRefImagePlacement[] = [];
-  if (sourceRefPlacements.length > 0) {
-    const refValues = sourceRefPlacements.map(p => ({
-      layoutId: newLayout.id,
-      refImageId: p.refImageId,
-      name: p.name,
-      filePath: p.filePath,
-      x: p.x,
-      y: p.y,
-      width: p.width,
-      height: p.height,
-      opacity: p.opacity,
-      scale: p.scale,
-      isLocked: p.isLocked,
-      rotation: p.rotation,
-      corners: p.corners,
-      warpedFilePath: p.warpedFilePath,
-      createdAt: now,
-    }));
-
-    const insertedRefs = await db
-      .insert(referenceImages)
-      .values(refValues)
-      .returning();
-
-    for (const row of insertedRefs) {
-      refPlacementResults.push(formatRefPlacement(row, null));
-    }
-  }
-
-  let thumbnailFilename: string | undefined;
-  try {
-    thumbnailFilename = await layoutThumbnailService.generate(
-      newLayout.id,
-      newLayout.gridX,
-      newLayout.gridY,
-      insertedItems.map(i => ({
-        libraryId: i.libraryId,
-        itemId: i.itemId,
-        x: i.x,
-        y: i.y,
-        width: i.width,
-        height: i.height,
-        rotation: i.rotation,
-      })),
-    );
-  } catch (err) {
-    logger.warn({ err, layoutId: newLayout.id }, 'Thumbnail generation failed — layout saved without thumbnail');
-  }
-
-  // Fetch customer name
-  let customerName: string | undefined;
-  if (source.customerId) {
-    const custRows = await db.select({ name: customers.name }).from(customers).where(eq(customers.id, source.customerId)).limit(1);
-    customerName = custRows[0]?.name;
-  }
+  const thumbnailFilename = await tryGenerateThumbnail(newLayout.id, newLayout.gridX, newLayout.gridY, insertedItems);
 
   return {
-    ...formatLayout({ ...newLayout, thumbnailPath: thumbnailFilename ?? null }, customerName),
+    ...formatLayout({ ...newLayout, thumbnailPath: thumbnailFilename ?? null }, await customerNameFor(source.customerId)),
     placedItems: insertedItems.map(formatPlacedItem),
-    refImagePlacements: refPlacementResults,
+    refImagePlacements,
   };
-}
-
-// Legacy compatibility — kept but no longer called internally
-export async function getUsers(): Promise<Array<{ id: number; username: string }>> {
-  return [];
 }

@@ -25,8 +25,6 @@ vi.mock('../src/config.js', () => ({
     DB_PATH: ':memory:',
     LOG_LEVEL: 'silent',
     CORS_ORIGIN: 'http://localhost:5173',
-    JWT_SECRET: 'test-secret',
-    JWT_REFRESH_SECRET: 'test-refresh-secret',
     MAX_STL_WORKERS: 1,
     PYTHON_SCRIPT_DIR: '/tmp/test-scripts',
   },
@@ -50,7 +48,9 @@ const { client } = await import('../src/db/connection.js');
 const { runMigrations } = await import('../src/db/migrate.js');
 
 afterAll(() => {
-  rmSync(imageDir, { recursive: true, force: true });
+  // sharp's file cache keeps handles open, which blocks deletion on Windows
+  sharp.cache(false);
+  rmSync(imageDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
 });
 
 const NEAR_RECT = [

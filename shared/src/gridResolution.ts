@@ -13,10 +13,6 @@ export interface PlacedGeometry {
   height: number;
 }
 
-export function unitsToHalfCells(units: number): number {
-  return Math.round(units * GRID_RESOLUTION);
-}
-
 export function halfCellsToUnits(halfCells: number): number {
   return halfCells / GRID_RESOLUTION;
 }

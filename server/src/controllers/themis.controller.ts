@@ -10,6 +10,7 @@ import { config } from '../config.js';
 import { uploadStlToThemis, createThemisProject, addThemisProjectItem, addThemisProjectLink, getThemisProject, ThemisTimeoutError } from '../services/themis.service.js';
 import { getSetting } from '../services/settings.service.js';
 import { logger } from '../logger.js';
+import { parseIntParam } from '../utils/params.js';
 
 
 export async function sendToThemisHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -21,8 +22,7 @@ export async function sendToThemisHandler(req: Request, res: Response, next: Nex
     }
     const themisApiKey = await getSetting('themis_api_key') || undefined;
 
-    const layoutId = parseInt(req.params['layoutId'] as string, 10);
-    if (isNaN(layoutId)) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
+    const layoutId = parseIntParam(req, 'layoutId', 'layout ID');
 
     const layoutRows = await db.select().from(layouts).where(eq(layouts.id, layoutId)).limit(1);
     if (!layoutRows.length) throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');

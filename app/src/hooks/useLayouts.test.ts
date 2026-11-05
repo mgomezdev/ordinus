@@ -9,7 +9,6 @@ vi.mock('../api/layouts.api.js', () => ({
   fetchLayout: vi.fn(),
   createLayout: vi.fn(),
   updateLayout: vi.fn(),
-  updateLayoutMeta: vi.fn(),
   deleteLayoutApi: vi.fn(),
   cloneLayout: vi.fn(),
 }));

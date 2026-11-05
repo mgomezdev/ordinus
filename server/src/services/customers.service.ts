@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
 import { db } from '../db/connection.js';
 import { customers, customerParts, customerRefImages, userStlUploads, refImages } from '../db/schema.js';
@@ -18,6 +18,19 @@ function formatCustomer(row: typeof customers.$inferSelect): ApiCustomer {
     updatedAt: row.updatedAt,
   };
 }
+
+async function assertExists(
+  table: typeof customers | typeof userStlUploads | typeof refImages,
+  id: number | string,
+  label: string,
+): Promise<void> {
+  const rows = await db.select({ id: table.id }).from(table).where(eq(table.id, id)).limit(1);
+  if (rows.length === 0) {
+    throw new AppError(ErrorCodes.NOT_FOUND, `${label} not found`);
+  }
+}
+
+const assertCustomerExists = (id: number) => assertExists(customers, id, 'Customer');
 
 export async function listCustomers(): Promise<ApiCustomer[]> {
   const rows = await db.select().from(customers).orderBy(customers.name);
@@ -47,20 +60,14 @@ export async function updateCustomer(id: number, name: string): Promise<ApiCusto
 }
 
 export async function deleteCustomer(id: number): Promise<void> {
-  const existing = await db.select({ id: customers.id }).from(customers).where(eq(customers.id, id)).limit(1);
-  if (existing.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Customer not found');
-  }
+  await assertCustomerExists(id);
   // layouts.customer_id will be set to NULL via ON DELETE SET NULL
   // customer_parts and customer_ref_images will cascade delete
   await db.delete(customers).where(eq(customers.id, id));
 }
 
 export async function getCustomerParts(customerId: number): Promise<typeof userStlUploads.$inferSelect[]> {
-  const existing = await db.select({ id: customers.id }).from(customers).where(eq(customers.id, customerId)).limit(1);
-  if (existing.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Customer not found');
-  }
+  await assertCustomerExists(customerId);
   const rows = await db
     .select({ part: userStlUploads })
     .from(customerParts)
@@ -70,34 +77,19 @@ export async function getCustomerParts(customerId: number): Promise<typeof userS
 }
 
 export async function associatePart(customerId: number, partId: string): Promise<void> {
-  const customerExists = await db.select({ id: customers.id }).from(customers).where(eq(customers.id, customerId)).limit(1);
-  if (customerExists.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Customer not found');
-  }
-  const partExists = await db.select({ id: userStlUploads.id }).from(userStlUploads).where(eq(userStlUploads.id, partId)).limit(1);
-  if (partExists.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Part not found');
-  }
-  try {
-    await db.insert(customerParts).values({ customerId, partId });
-  } catch {
-    // Already associated — ignore
-  }
+  await assertCustomerExists(customerId);
+  await assertExists(userStlUploads, partId, 'Part');
+  await db.insert(customerParts).values({ customerId, partId }).onConflictDoNothing();
 }
 
 export async function dissociatePart(customerId: number, partId: string): Promise<void> {
-  const { client } = await import('../db/connection.js');
-  await client.execute({
-    sql: `DELETE FROM customer_parts WHERE customer_id = ? AND part_id = ?`,
-    args: [customerId, partId],
-  });
+  await db
+    .delete(customerParts)
+    .where(and(eq(customerParts.customerId, customerId), eq(customerParts.partId, partId)));
 }
 
 export async function getCustomerRefImages(customerId: number): Promise<typeof refImages.$inferSelect[]> {
-  const existing = await db.select({ id: customers.id }).from(customers).where(eq(customers.id, customerId)).limit(1);
-  if (existing.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Customer not found');
-  }
+  await assertCustomerExists(customerId);
   const rows = await db
     .select({ refImage: refImages })
     .from(customerRefImages)
@@ -107,25 +99,13 @@ export async function getCustomerRefImages(customerId: number): Promise<typeof r
 }
 
 export async function associateRefImage(customerId: number, refImageId: number): Promise<void> {
-  const customerExists = await db.select({ id: customers.id }).from(customers).where(eq(customers.id, customerId)).limit(1);
-  if (customerExists.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Customer not found');
-  }
-  const imgExists = await db.select({ id: refImages.id }).from(refImages).where(eq(refImages.id, refImageId)).limit(1);
-  if (imgExists.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Reference image not found');
-  }
-  try {
-    await db.insert(customerRefImages).values({ customerId, refImageId });
-  } catch {
-    // Already associated — ignore
-  }
+  await assertCustomerExists(customerId);
+  await assertExists(refImages, refImageId, 'Reference image');
+  await db.insert(customerRefImages).values({ customerId, refImageId }).onConflictDoNothing();
 }
 
 export async function dissociateRefImage(customerId: number, refImageId: number): Promise<void> {
-  const { client } = await import('../db/connection.js');
-  await client.execute({
-    sql: `DELETE FROM customer_ref_images WHERE customer_id = ? AND ref_image_id = ?`,
-    args: [customerId, refImageId],
-  });
+  await db
+    .delete(customerRefImages)
+    .where(and(eq(customerRefImages.customerId, customerId), eq(customerRefImages.refImageId, refImageId)));
 }

@@ -57,11 +57,23 @@ npm run build
 # Seed the database
 npm run server:seed
 
-# Run linter
+# Run linter (warnings fail)
 npm run lint
+
+# Type-check shared, app and server
+npm run typecheck
 
 # Run all unit tests (frontend + server)
 npm run test:run
+
+# Run unit tests with coverage thresholds (what CI runs)
+npm run test:coverage
+
+# Run Python tests (tools/library-builder)
+npm run test:py
+
+# Run every CI gate locally: lint, typecheck, coverage, build
+npm run ci
 
 # Run unit tests in watch mode
 npm test
@@ -89,7 +101,6 @@ app/src/
 │   ├── layouts.api.ts
 │   └── ...         # Per-domain API modules
 ├── components/     # React components
-│   └── share/      # Share feature components
 ├── contexts/       # React contexts (Customer, DataSource, Grid, Library, Settings, Workspace)
 ├── hooks/          # Custom React hooks
 ├── pages/          # Route-level page components
@@ -117,7 +128,7 @@ server/src/
 ```
 
 - API prefix: `/api/v1/`
-- Endpoints: `libraries`, `items`, `categories`, `images`, `layouts`, `favorites`, `generation`, `customers`, `refImages`, `userStls`, `thumbnails`, `share`, `settings`, `health`, `bom`
+- Endpoints: `libraries`, `items`, `categories`, `images`, `layouts`, `favorites`, `generation`, `customers`, `refImages`, `userStls`, `thumbnails`, `settings`, `health`, `bom`
 - Logger: pino + pino-http. Tests mock logger with `pino({ level: 'silent' })` (NOT a plain object — pino-http requires a real pino instance)
 - Drizzle `COUNT(*)` subqueries can fail with libsql; use a separate GROUP BY query + Map instead
 - DB client: import `{ db }` from `server/src/db/connection.ts` (the `client.ts` shim was removed)
@@ -203,9 +214,13 @@ When debugging rendering or visual issues, verify assumptions about the underlyi
 
 ## Before Committing
 
-1. Run `npm run lint` — fix all errors
+1. Run `npm run lint` — fix all errors and warnings
 2. Run `npm run test:run` — all unit tests pass
 3. Keep commits focused; one logical change per commit
+
+## CI (`.github/workflows/ci.yml`)
+
+Runs on every PR and on push to `develop`/`main`: `lint`, `typecheck`, `test-app` / `test-server` (vitest coverage thresholds in `app/vitest.config.ts` / `server/vitest.config.ts` — ratchet them up, never down), `test-python`, `build`, `e2e` (Playwright vs. dev stack), `image` + `e2e-push` (Concordia cross-service E2E). `ci-success` aggregates all gates — require only that check in branch protection. `publish` runs on push to `main` after `ci-success`.
 
 ## Quality Gate for Merges
 

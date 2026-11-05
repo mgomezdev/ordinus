@@ -196,19 +196,6 @@ export const referenceImages = sqliteTable('reference_images', {
   index('idx_reference_images_layout').on(table.layoutId),
 ]);
 
-// Sharing tables — open sharing, no user FK
-export const sharedProjects = sqliteTable('shared_projects', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  layoutId: integer('layout_id').notNull().references(() => layouts.id, { onDelete: 'cascade' }),
-  slug: text('slug').notNull().unique(),
-  createdBy: integer('created_by'),  // nullable — no user ownership
-  expiresAt: text('expires_at'),
-  viewCount: integer('view_count').notNull().default(0),
-  createdAt: text('created_at').notNull().default(''),
-}, (table) => [
-  index('idx_shared_projects_slug').on(table.slug),
-]);
-
 // BOM tables
 export const bomGenerations = sqliteTable('bom_generations', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -335,13 +322,6 @@ export const userStorageRelations = relations(userStorage, ({ one }) => ({
   user: one(users, {
     fields: [userStorage.userId],
     references: [users.id],
-  }),
-}));
-
-export const sharedProjectsRelations = relations(sharedProjects, ({ one }) => ({
-  layout: one(layouts, {
-    fields: [sharedProjects.layoutId],
-    references: [layouts.id],
   }),
 }));
 

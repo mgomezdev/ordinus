@@ -26,8 +26,6 @@ vi.mock('../src/config.js', () => ({
     DB_PATH: ':memory:',
     LOG_LEVEL: 'silent',
     CORS_ORIGIN: 'http://localhost:5173',
-    JWT_SECRET: 'test-secret',
-    JWT_REFRESH_SECRET: 'test-refresh-secret',
     MAX_STL_WORKERS: 1,
     PYTHON_SCRIPT_DIR: '/tmp/test-scripts',
   },

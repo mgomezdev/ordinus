@@ -40,11 +40,6 @@ export async function uploadUserStl(
   return res.json() as Promise<ApiUserStl>;
 }
 
-export async function fetchPublicUserStls(): Promise<ApiUserStl[]> {
-  const res = await userStlFetch(`${API_BASE}/public`);
-  return res.json() as Promise<ApiUserStl[]>;
-}
-
 export async function updateUserStl(
   id: string,
   data: { name?: string; gridX?: number | null; gridY?: number | null },

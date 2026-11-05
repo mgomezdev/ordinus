@@ -8,12 +8,7 @@ import { db } from '../db/connection.js';
 import { layouts } from '../db/schema.js';
 import * as bomGenerationService from '../services/bomGeneration.service.js';
 import { config } from '../config.js';
-
-function parseLayoutId(req: Request): number {
-  const id = parseInt(req.params.layoutId as string, 10);
-  if (isNaN(id)) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
-  return id;
-}
+import { parseIntParam } from '../utils/params.js';
 
 async function assertLayoutExists(layoutId: number): Promise<void> {
   const rows = await db.select({ id: layouts.id }).from(layouts).where(eq(layouts.id, layoutId)).limit(1);
@@ -22,7 +17,7 @@ async function assertLayoutExists(layoutId: number): Promise<void> {
 
 export async function generateHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const layoutId = parseLayoutId(req);
+    const layoutId = parseIntParam(req, 'layoutId', 'layout ID');
     await assertLayoutExists(layoutId);
     const bomItems = (req.body as { bomItems?: BOMItem[] }).bomItems ?? [];
     const generation = await bomGenerationService.triggerGeneration(layoutId, bomItems);
@@ -35,7 +30,7 @@ export async function generateHandler(req: Request, res: Response, next: NextFun
 
 export async function getGenerationHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const layoutId = parseLayoutId(req);
+    const layoutId = parseIntParam(req, 'layoutId', 'layout ID');
     await assertLayoutExists(layoutId);
     const generation = await bomGenerationService.getGeneration(layoutId);
     if (!generation) throw new AppError(ErrorCodes.NOT_FOUND, 'No generation record for this layout');
@@ -48,7 +43,7 @@ export async function getGenerationHandler(req: Request, res: Response, next: Ne
 
 export async function serveFileHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const layoutId = parseLayoutId(req);
+    const layoutId = parseIntParam(req, 'layoutId', 'layout ID');
     await assertLayoutExists(layoutId);
     const filename = req.params.filename as string;
 
