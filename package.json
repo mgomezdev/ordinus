@@ -2,7 +2,7 @@
   "name": "gridfinity-customizer",
   "private": true,
   "version": "3.2.1",
-  "description": "Ordinus — web-based visual design tool for creating custom Gridfinity modular storage layouts with drag-and-drop, reference images, and bill of materials generation",
+  "description": "Ordinus \u2014 web-based visual design tool for creating custom Gridfinity modular storage layouts with drag-and-drop, reference images, and bill of materials generation",
   "repository": {
     "type": "git",
     "url": "https://github.com/mgomezdev/GridfinityCustomizer"
@@ -28,8 +28,12 @@
   "scripts": {
     "dev": "npm run dev --workspace=app",
     "build": "npm run build --workspace=shared && npm run build --workspace=app && npm run build --workspace=server",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "npm run build --workspace=shared && npm run typecheck --workspace=app && npm run typecheck --workspace=server",
     "test:run": "npm run test:run --workspace=app && npm run test --workspace=server",
+    "test:coverage": "npm run test:coverage --workspace=app && npm run test:coverage --workspace=server",
+    "test:py": "python -m pytest tools/library-builder/tests -q",
+    "ci": "npm run lint && npm run typecheck && npm run test:coverage && npm run build",
     "test:e2e": "playwright test --config=app/playwright.config.ts",
     "test:e2e:ui": "playwright test --config=app/playwright.config.ts --ui",
     "test:e2e:debug": "playwright test --config=app/playwright.config.ts --debug",
