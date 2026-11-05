@@ -76,4 +76,19 @@ export class BOMPage {
     const entry = await this.getEntryByName(name);
     return entry !== null;
   }
+
+  get extrasRows(): Locator {
+    return this.page.locator('.bom-section', { hasText: 'Extras' }).locator('.order-bom-table tbody tr');
+  }
+
+  get fullOrderQuantities(): Locator {
+    return this.page.locator('.order-panel-section', { hasText: 'Full Order' }).locator('.order-panel-item-qty');
+  }
+
+  async addFirstExtra(): Promise<void> {
+    const select = this.page.getByLabel('Select item to add as extra');
+    const firstValue = await select.locator('option:not([value=""])').first().getAttribute('value');
+    await select.selectOption(firstValue ?? '');
+    await this.page.locator('.bom-add-btn').click();
+  }
 }

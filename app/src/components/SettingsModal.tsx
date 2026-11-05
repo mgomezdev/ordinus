@@ -2,6 +2,14 @@ import { useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext.js';
 import type { ServiceStatus } from '../api/settings.api.js';
 
+const INPUT_STYLE: React.CSSProperties = {
+  width: '100%', boxSizing: 'border-box',
+  padding: '7px 10px', borderRadius: 6,
+  border: '1px solid var(--border-primary)',
+  background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+  fontSize: 13, fontFamily: 'var(--font-body)',
+};
+
 function StatusDot({ status }: { status: ServiceStatus }) {
   const color = status === 'up' ? 'var(--valid-primary, #22c55e)' : status === 'down' ? 'var(--invalid-primary, #ef4444)' : 'var(--text-tertiary, #9ca3af)';
   const label = status === 'up' ? 'Up' : status === 'down' ? 'Down' : 'Not configured';
@@ -49,18 +57,13 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Themis URL</label>
+              <label htmlFor="settings-themis-url" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Themis URL</label>
               <StatusDot status={health.themis} />
             </div>
             <input
               type="url"
-              style={{
-                width: '100%', boxSizing: 'border-box',
-                padding: '7px 10px', borderRadius: 6,
-                border: '1px solid var(--border-primary)',
-                background: 'var(--bg-secondary)', color: 'var(--text-primary)',
-                fontSize: 13, fontFamily: 'var(--font-body)',
-              }}
+              id="settings-themis-url"
+            style={INPUT_STYLE}
               placeholder="http://localhost:8000"
               value={themisUrl}
               onChange={e => setThemisUrl(e.target.value)}
@@ -68,19 +71,14 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
+            <label htmlFor="settings-themis-api-key" style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)', marginBottom: 6 }}>
               Themis API Key
             </label>
             <input
               type="password"
               autoComplete="off"
-              style={{
-                width: '100%', boxSizing: 'border-box',
-                padding: '7px 10px', borderRadius: 6,
-                border: '1px solid var(--border-primary)',
-                background: 'var(--bg-secondary)', color: 'var(--text-primary)',
-                fontSize: 13, fontFamily: 'var(--font-body)',
-              }}
+              id="settings-themis-api-key"
+            style={INPUT_STYLE}
               placeholder="Paste the key from Themis → Settings → API Keys"
               value={themisApiKey}
               onChange={e => setThemisApiKey(e.target.value)}
@@ -89,18 +87,13 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Laminus URL</label>
+              <label htmlFor="settings-laminus-url" style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>Laminus URL</label>
               <StatusDot status={health.laminus} />
             </div>
             <input
               type="url"
-              style={{
-                width: '100%', boxSizing: 'border-box',
-                padding: '7px 10px', borderRadius: 6,
-                border: '1px solid var(--border-primary)',
-                background: 'var(--bg-secondary)', color: 'var(--text-primary)',
-                fontSize: 13, fontFamily: 'var(--font-body)',
-              }}
+              id="settings-laminus-url"
+            style={INPUT_STYLE}
               placeholder="http://localhost:5000"
               value={laminusUrl}
               onChange={e => setLaminusUrl(e.target.value)}
