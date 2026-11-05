@@ -11,6 +11,9 @@ export async function pointerDragDrop(
   target: Locator,
   targetPosition?: { x: number; y: number }
 ): Promise<void> {
+  // Center the source so overlays at the viewport edges (status bar, zoom
+  // controls) can't intercept the mouse-down.
+  await source.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'center' }));
   const sourceBox = await source.boundingBox();
   const targetBox = await target.boundingBox();
 
