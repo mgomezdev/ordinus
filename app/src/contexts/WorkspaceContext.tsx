@@ -3,11 +3,10 @@ import type { ReactNode } from 'react';
 import type {
   UnitSystem, ImperialFormat, GridSpacerConfig, LibraryItem,
   LibraryMeta, DragData, BinCustomization, Category,
-  GridResult, ReferenceImage, PlacedItem, PlacedItemWithValidity,
+  GridResult, ReferenceImage, PlacedItemWithValidity,
   ComputedSpacer, BOMExtras,
 } from '../types/gridfinity';
 import type { SelectModifiers } from '../hooks/useGridItems';
-import type { LoadedLayoutConfig } from '../types/layoutConfig';
 import type { BOMItem, CustomBinSpec } from '@gridfinity/shared';
 import type { RefImagePlacement, UseRefImagePlacementsReturn } from '../hooks/useRefImagePlacements';
 import type { LayoutMetaState } from '../reducers/layoutMetaReducer';
@@ -25,18 +24,12 @@ import { useCategoryData } from '../hooks/useCategoryData';
 import { useCustomBins } from '../hooks/useCustomBins';
 import { useRefImagePlacements } from '../hooks/useRefImagePlacements';
 import { useReleaseDroppedWarps } from '../hooks/useReleaseDroppedWarps';
-import {
-  useCloneLayoutMutation,
-} from '../hooks/useLayouts';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { useLayoutLoader } from '../hooks/useLayoutLoader';
-import { useLayoutActions } from '../hooks/useLayoutActions';
 import { useGenerationState } from '../hooks/useGenerationState';
 import type { GenerationEntry } from '../hooks/useGenerationState';
-import { requestGenerationApi, generatedImageUrl } from '../api/generation.api';
+import { requestGenerationApi } from '../api/generation.api';
 import { API_BASE_URL } from '../api/apiClient';
-import { GridDimensionsContext } from './GridDimensionsContext';
-import { LibraryContext } from './LibraryContext';
 
 // ConfirmDialog props shape returned by useConfirmDialog
 interface ConfirmDialogProps {
@@ -57,7 +50,6 @@ interface WorkspaceContextValue {
   depth: number;
   setDepth: (d: number) => void;
   unitSystem: UnitSystem;
-  setUnitSystem: (u: UnitSystem) => void;
   imperialFormat: ImperialFormat;
   setImperialFormat: (f: ImperialFormat) => void;
   spacerConfig: GridSpacerConfig;
@@ -76,8 +68,6 @@ interface WorkspaceContextValue {
   handleDrop: (dragData: DragData, x: number, y: number) => void;
   rotateItem: (instanceId: string, direction: 'cw' | 'ccw') => void;
   deleteItem: (instanceId: string) => void;
-  clearAll: () => void;
-  loadItems: (items: PlacedItem[]) => void;
   selectItem: (instanceId: string | null, modifiers?: SelectModifiers) => void;
   selectAll: () => void;
   deselectAll: () => void;
@@ -96,12 +86,10 @@ interface WorkspaceContextValue {
   addExtra: (key: string) => void;
   setExtraQty: (key: string, qty: number) => void;
   removeExtra: (key: string) => void;
-  clearExtras: () => void;
 
   // Layout meta
   layoutMeta: LayoutMetaState;
   handleSaveComplete: (layoutId: number, name: string) => void;
-  handleClearLayout: () => void;
 
   // Dirty state
   isDirty: boolean;
@@ -115,11 +103,8 @@ interface WorkspaceContextValue {
   updateRefImageOpacity: UseRefImagePlacementsReturn['updateOpacity'];
   updateRefImageRotation: UseRefImagePlacementsReturn['updateRotation'];
   toggleRefImageLock: UseRefImagePlacementsReturn['toggleLock'];
-  rebindRefImage: UseRefImagePlacementsReturn['rebindImage'];
   applyRefImageAlignment: UseRefImagePlacementsReturn['applyAlignment'];
   clearRefImageAlignment: UseRefImagePlacementsReturn['clearAlignment'];
-  loadRefImagePlacements: UseRefImagePlacementsReturn['loadPlacements'];
-  clearRefImages: UseRefImagePlacementsReturn['clearAll'];
   referenceImagesForGrid: ReferenceImage[];
 
   // Library
@@ -132,35 +117,20 @@ interface WorkspaceContextValue {
   getItemById: (prefixedId: string) => LibraryItem | undefined;
   addCustomBin: (spec: CustomBinSpec) => Promise<boolean>;
   getLibraryMeta: (libraryId: string) => Promise<LibraryMeta>;
-  refreshLibraries: () => Promise<void>;
-  refreshLibrary: () => Promise<void>;
-  selectedLibraryMeta: LibraryMeta;
 
   // Layout actions
-  handleLoadLayout: (config: LoadedLayoutConfig) => void;
   loadLayout: (id: number) => Promise<void>;
-  handleCloneCurrentLayout: () => Promise<void>;
   handleClearAll: () => Promise<void>;
   handleReset: () => void;
 
   // Mutations
-  cloneLayoutMutation: ReturnType<typeof useCloneLayoutMutation>;
 
   // Dialogs
   dialogs: DialogState;
   dialogDispatch: React.Dispatch<DialogAction>;
   closeRebind: () => void;
   handleRebindSelect: (refImageId: number, imageUrl: string, name: string) => void;
-  confirm: (options: {
-    title: string;
-    message: string;
-    confirmLabel?: string;
-    cancelLabel?: string;
-    variant?: 'default' | 'danger';
-  }) => Promise<boolean>;
   confirmDialogProps: ConfirmDialogProps;
-
-  // No auth — removed
 
   // Export
   exportPdfError: string | null;
@@ -169,9 +139,7 @@ interface WorkspaceContextValue {
   // Generation
   getGenerationEntry: (hash: string) => GenerationEntry | undefined;
   trackGeneration: (instanceId: string, libraryId: string, itemId: string, customization: BinCustomization | undefined) => Promise<void>;
-  generatedImageUrl: (hash: string, filename: string) => string;
   instanceGenerationHash: Map<string, string>;
-  recordInstanceHash: (instanceId: string, hash: string) => void;
   clearInstanceHash: (instanceId: string) => void;
 }
 
@@ -200,10 +168,6 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   });
 
   const [exportPdfError, setExportPdfError] = useState<string | null>(null);
-  const [selectedLibraryMeta, setSelectedLibraryMeta] = useState<LibraryMeta>({
-    customizableFields: [],
-    parameters: {},
-  });
 
   const [isDirty, setIsDirty] = useState(false);
   const mountedRef = useRef(false);
@@ -214,11 +178,9 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const {
     layoutMeta, layoutDispatch,
     handleSaveComplete: rawHandleSaveComplete,
-    handleCloneComplete, handleClearLayout,
+    handleClearLayout,
   } = useLayoutMeta();
 
-
-  const cloneLayoutMutation = useCloneLayoutMutation();
   const { confirm, dialogProps: confirmDialogProps } = useConfirmDialog();
 
   // Library
@@ -226,7 +188,6 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     availableLibraries,
     isLoading: isLibrariesLoading,
     error: librariesError,
-    refreshLibraries,
   } = useLibraries();
 
   const allLibraryIds = useMemo(() => availableLibraries.map(l => l.id), [availableLibraries]);
@@ -237,7 +198,6 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     error: libraryError,
     getItemById: getLibraryItemById,
     getLibraryMeta,
-    refreshLibrary,
   } = useLibraryData(allLibraryIds);
 
   const { categories } = useCategoryData(libraryItems);
@@ -287,18 +247,6 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const bomItems = useBillOfMaterials(placedItems, bomLibraryItems);
   const { extras, addExtra, setExtraQty, removeExtra, clearExtras } = useBOMExtras();
 
-  // Load library meta for the selected single item
-  useEffect(() => {
-    if (selectedItemIds.size !== 1) return;
-    const selectedId = selectedItemIds.values().next().value as string;
-    const selectedItem = placedItems.find(i => i.instanceId === selectedId);
-    if (!selectedItem) return;
-    const colonIdx = selectedItem.itemId.indexOf(':');
-    if (colonIdx === -1) return;
-    const libraryId = selectedItem.itemId.slice(0, colonIdx);
-    getLibraryMeta(libraryId).then(setSelectedLibraryMeta).catch(() => {});
-  }, [selectedItemIds, placedItems, getLibraryMeta]);
-
   // Convert ref image placements to ReferenceImage format for GridPreview
   const referenceImagesForGrid: ReferenceImage[] = useMemo(
     () =>
@@ -324,32 +272,16 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     setUnitSystem(newUnit);
   }, [unitSystem, width, depth]);
 
-  const {
-    handleSaveComplete: actionsHandleSaveComplete,
-    handleCloneCurrentLayout,
-  } = useLayoutActions({
-    layoutId: layoutMeta.id,
-    cloneLayoutMutation,
-    handleCloneComplete,
-    rawHandleSaveComplete,
-  });
-
   const handleSaveComplete = useCallback((id: number, name: string) => {
-    actionsHandleSaveComplete(id, name);
+    rawHandleSaveComplete(id, name);
     setIsDirty(false);
-  }, [actionsHandleSaveComplete]);
+  }, [rawHandleSaveComplete]);
 
-  const { handleLoadLayout: rawHandleLoadLayout, loadLayout: rawLoadLayout } = useLayoutLoader({
+  const { loadLayout: rawLoadLayout } = useLayoutLoader({
     unitSystem, setWidth, setDepth, setSpacerConfig,
     loadItems, loadRefImagePlacements, layoutDispatch,
     clearExtras,
   });
-
-  const handleLoadLayout = useCallback((config: LoadedLayoutConfig) => {
-    skipNextDirtyRef.current = true;
-    rawHandleLoadLayout(config);
-    setIsDirty(false);
-  }, [rawHandleLoadLayout]);
 
   const loadLayout = useCallback(async (id: number) => {
     skipNextDirtyRef.current = true;
@@ -438,7 +370,6 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     depth,
     setDepth,
     unitSystem,
-    setUnitSystem,
     imperialFormat,
     setImperialFormat,
     spacerConfig,
@@ -457,8 +388,6 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     handleDrop,
     rotateItem,
     deleteItem,
-    clearAll,
-    loadItems,
     selectItem,
     selectAll,
     deselectAll,
@@ -477,12 +406,10 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     addExtra,
     setExtraQty,
     removeExtra,
-    clearExtras,
 
     // Layout meta
     layoutMeta,
     handleSaveComplete,
-    handleClearLayout,
 
     // Dirty state
     isDirty,
@@ -496,11 +423,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     updateRefImageOpacity,
     updateRefImageRotation,
     toggleRefImageLock,
-    rebindRefImage,
     applyRefImageAlignment,
     clearRefImageAlignment,
-    loadRefImagePlacements,
-    clearRefImages,
     referenceImagesForGrid,
 
     // Library
@@ -513,26 +437,17 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     getItemById,
     addCustomBin,
     getLibraryMeta,
-    refreshLibraries,
-    refreshLibrary,
-    selectedLibraryMeta,
 
     // Layout actions
-    handleLoadLayout,
     loadLayout,
-    handleCloneCurrentLayout,
     handleClearAll,
     handleReset,
-
-    // Mutations
-    cloneLayoutMutation,
 
     // Dialogs
     dialogs,
     dialogDispatch,
     closeRebind,
     handleRebindSelect,
-    confirm,
     confirmDialogProps,
 
     // Export
@@ -542,60 +457,13 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     // Generation
     getGenerationEntry,
     trackGeneration,
-    generatedImageUrl,
     instanceGenerationHash,
-    recordInstanceHash,
     clearInstanceHash,
   };
 
-  const gridDimensionsValue = useMemo(() => ({
-    width,
-    setWidth,
-    depth,
-    setDepth,
-    unitSystem,
-    setUnitSystem,
-    imperialFormat,
-    setImperialFormat,
-    spacerConfig,
-    setSpacerConfig,
-    handleUnitChange,
-    gridResult,
-    drawerWidth,
-    drawerDepth,
-    spacers,
-  }), [
-    width, setWidth, depth, setDepth,
-    unitSystem, setUnitSystem, imperialFormat, setImperialFormat,
-    spacerConfig, setSpacerConfig, handleUnitChange,
-    gridResult, drawerWidth, drawerDepth, spacers,
-  ]);
-
-  const libraryValue = useMemo(() => ({
-    libraryItems,
-    isLibraryLoading,
-    isLibrariesLoading,
-    libraryError,
-    librariesError,
-    categories,
-    getItemById,
-    getLibraryMeta,
-    refreshLibraries,
-    refreshLibrary,
-    selectedLibraryMeta,
-  }), [
-    libraryItems, isLibraryLoading, isLibrariesLoading,
-    libraryError, librariesError, categories,
-    getItemById, getLibraryMeta, refreshLibraries, refreshLibrary, selectedLibraryMeta,
-  ]);
-
   return (
-    <GridDimensionsContext.Provider value={gridDimensionsValue}>
-      <LibraryContext.Provider value={libraryValue}>
-        <WorkspaceContext.Provider value={value}>
-          {children}
-        </WorkspaceContext.Provider>
-      </LibraryContext.Provider>
-    </GridDimensionsContext.Provider>
+    <WorkspaceContext.Provider value={value}>
+      {children}
+    </WorkspaceContext.Provider>
   );
 }

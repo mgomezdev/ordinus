@@ -120,42 +120,6 @@ describe('layoutMetaReducer', () => {
     });
   });
 
-  describe('CLONE_COMPLETE action', () => {
-    it('updates id and name', () => {
-      const existing: LayoutMetaState = {
-        id: 10,
-        name: 'Original',
-        description: 'Desc',
-        owner: 'alice',
-      };
-
-      const state = layoutMetaReducer(existing, {
-        type: 'CLONE_COMPLETE',
-        payload: { id: 20, name: 'Original (Copy)' },
-      });
-
-      expect(state.id).toBe(20);
-      expect(state.name).toBe('Original (Copy)');
-    });
-
-    it('preserves description and owner from existing state', () => {
-      const existing: LayoutMetaState = {
-        id: 10,
-        name: 'Original',
-        description: 'Keep desc',
-        owner: 'alice',
-      };
-
-      const state = layoutMetaReducer(existing, {
-        type: 'CLONE_COMPLETE',
-        payload: { id: 20, name: 'Clone' },
-      });
-
-      expect(state.description).toBe('Keep desc');
-      expect(state.owner).toBe('alice');
-    });
-  });
-
   describe('unknown action type', () => {
     it('returns current state unchanged', () => {
       const existing: LayoutMetaState = {

@@ -23,7 +23,6 @@ vi.mock('../api/userStls.api.js', () => ({
   deleteUserStl: vi.fn(),
   reprocessUserStl: vi.fn(),
   replaceUserStlFile: vi.fn(),
-  fetchPublicUserStls: vi.fn().mockResolvedValue([]),
 }));
 
 import { fetchUserStls } from '../api/userStls.api.js';

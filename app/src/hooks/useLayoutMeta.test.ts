@@ -28,44 +28,6 @@ describe('useLayoutMeta', () => {
     });
   });
 
-  describe('handleCloneComplete', () => {
-    it('should update id and name on clone', () => {
-      const { result } = renderHook(() => useLayoutMeta());
-
-      act(() => {
-        result.current.handleSaveComplete(1, 'Original');
-      });
-      act(() => {
-        result.current.handleCloneComplete(99, 'Original (copy)');
-      });
-
-      expect(result.current.layoutMeta.id).toBe(99);
-      expect(result.current.layoutMeta.name).toBe('Original (copy)');
-    });
-  });
-
-  describe('handleLoadLayout', () => {
-    it('should set all layout metadata fields', () => {
-      const { result } = renderHook(() => useLayoutMeta());
-
-      act(() => {
-        result.current.handleLoadLayout({
-          id: 42,
-          name: 'Loaded Layout',
-          description: 'A test layout',
-          owner: 'alice',
-        });
-      });
-
-      expect(result.current.layoutMeta).toEqual({
-        id: 42,
-        name: 'Loaded Layout',
-        description: 'A test layout',
-        owner: 'alice',
-      });
-    });
-  });
-
   describe('handleClearLayout', () => {
     it('should reset to initial state', () => {
       const { result } = renderHook(() => useLayoutMeta());

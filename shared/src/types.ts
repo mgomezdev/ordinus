@@ -222,8 +222,6 @@ export interface ReadyResponse {
   db: 'connected';
 }
 
-export type UserRole = 'user' | 'admin';
-
 // ============================================================
 // Layout API types
 // ============================================================
@@ -383,18 +381,6 @@ export interface UpdateLayoutMetaRequest {
 }
 
 // ============================================================
-// Auth API types
-// ============================================================
-
-export interface ApiUser {
-  id: number;
-  email: string;
-  username: string;
-  role: UserRole;
-  createdAt: string;
-}
-
-// ============================================================
 // Sharing API types
 // ============================================================
 
@@ -455,12 +441,5 @@ export interface ApiUserStl {
   status: 'pending' | 'processing' | 'ready' | 'error';
   errorMessage: string | null;
   createdAt: string;
-}
-
-export interface ApiUserStlAdmin extends ApiUserStl {
-  userId: number;
-  userName: string;
-  originalFilename: string;
-  updatedAt: string;
 }
 
