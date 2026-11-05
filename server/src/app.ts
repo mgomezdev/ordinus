@@ -10,7 +10,6 @@ import librariesRoutes from './routes/libraries.routes.js';
 import categoriesRoutes from './routes/categories.routes.js';
 import imagesRoutes from './routes/images.routes.js';
 import layoutsRoutes from './routes/layouts.routes.js';
-import sharedRoutes from './routes/shared.routes.js';
 import bomRoutes from './routes/bom.routes.js';
 import refImagesRoutes from './routes/refImages.routes.js';
 import userStlsRouter from './routes/userStls.routes.js';
@@ -57,7 +56,6 @@ export function createApp(): express.Express {
   app.use('/api/v1/libraries', librariesRoutes);
   app.use('/api/v1/categories', categoriesRoutes);
   app.use('/api/v1/layouts', layoutsRoutes);
-  app.use('/api/v1', sharedRoutes);
   app.use('/api/v1/bom', bomRoutes);
   app.use('/api/v1/generation', generationRoutes);
   app.use('/api/v1/ref-images', refImagesRoutes);

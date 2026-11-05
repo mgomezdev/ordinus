@@ -128,7 +128,7 @@ server/src/
 ```
 
 - API prefix: `/api/v1/`
-- Endpoints: `libraries`, `items`, `categories`, `images`, `layouts`, `favorites`, `generation`, `customers`, `refImages`, `userStls`, `thumbnails`, `share`, `settings`, `health`, `bom`
+- Endpoints: `libraries`, `items`, `categories`, `images`, `layouts`, `favorites`, `generation`, `customers`, `refImages`, `userStls`, `thumbnails`, `settings`, `health`, `bom`
 - Logger: pino + pino-http. Tests mock logger with `pino({ level: 'silent' })` (NOT a plain object — pino-http requires a real pino instance)
 - Drizzle `COUNT(*)` subqueries can fail with libsql; use a separate GROUP BY query + Map instead
 - DB client: import `{ db }` from `server/src/db/connection.ts` (the `client.ts` shim was removed)

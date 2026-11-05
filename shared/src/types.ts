@@ -381,26 +381,6 @@ export interface UpdateLayoutMetaRequest {
 }
 
 // ============================================================
-// Sharing API types
-// ============================================================
-
-export interface ApiSharedProject {
-  id: number;
-  layoutId: number;
-  slug: string;
-  createdBy: number;
-  expiresAt: string | null;
-  viewCount: number;
-  createdAt: string;
-}
-
-export interface ApiSharedLayoutView {
-  layout: ApiLayout;
-  placedItems: ApiPlacedItem[];
-  sharedBy: string;
-}
-
-// ============================================================
 // BOM API types
 // ============================================================
 
