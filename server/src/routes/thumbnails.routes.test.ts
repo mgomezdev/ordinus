@@ -19,7 +19,7 @@ vi.mock('../logger.js', async () => {
   return { logger: pino({ level: 'silent' }) };
 });
 
-const mockConfig = vi.hoisted(() => ({ THUMBNAIL_DIR: '', JWT_SECRET: 'test-secret' }));
+const mockConfig = vi.hoisted(() => ({ THUMBNAIL_DIR: '' }));
 vi.mock('../config.js', () => ({ config: mockConfig }));
 
 vi.mock('../middleware/rateLimiter.js', () => ({

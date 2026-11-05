@@ -41,14 +41,6 @@ async function main(): Promise<void> {
   logger.info('Generation cleanup service started');
   startWarpCleanup();
 
-  // Seed default users on first boot only (when users table is empty)
-  const userCount = await client.execute('SELECT COUNT(*) as count FROM users');
-  if (Number(userCount.rows[0].count) === 0) {
-    logger.info('No users found — seeding default accounts...');
-    const { seedDefaultUsers } = await import('./db/seedUsers.js');
-    await seedDefaultUsers(client, logger);
-  }
-
   // Create and start app
   const app = createApp();
 
