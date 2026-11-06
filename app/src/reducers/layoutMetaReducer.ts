@@ -8,8 +8,7 @@ export interface LayoutMetaState {
 export type LayoutMetaAction =
   | { type: 'LOAD_LAYOUT'; payload: { id: number; name: string; description: string; owner: string } }
   | { type: 'CLEAR_LAYOUT' }
-  | { type: 'SAVE_COMPLETE'; payload: { id: number; name: string } }
-  | { type: 'CLONE_COMPLETE'; payload: { id: number; name: string } };
+  | { type: 'SAVE_COMPLETE'; payload: { id: number; name: string } };
 
 export const initialLayoutMetaState: LayoutMetaState = {
   id: null,
@@ -25,8 +24,6 @@ export function layoutMetaReducer(state: LayoutMetaState, action: LayoutMetaActi
     case 'CLEAR_LAYOUT':
       return { ...initialLayoutMetaState };
     case 'SAVE_COMPLETE':
-      return { ...state, id: action.payload.id, name: action.payload.name };
-    case 'CLONE_COMPLETE':
       return { ...state, id: action.payload.id, name: action.payload.name };
     default:
       return state;

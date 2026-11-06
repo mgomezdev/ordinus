@@ -12,7 +12,7 @@ export default defineConfig({
   retries: isDocker ? 1 : (process.env.CI ? 2 : 0),
   workers: isDocker ? 4 : (process.env.CI ? 1 : undefined),
   timeout: isDocker ? 60000 : undefined,
-  reporter: 'html',
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'html',
   globalSetup: isDocker ? undefined : './e2e/global-setup.ts',
 
   use: {

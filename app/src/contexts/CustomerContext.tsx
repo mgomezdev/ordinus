@@ -38,7 +38,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     return stored ? parseInt(stored, 10) : null;
   });
 
-  const { data: customers = [], isLoading } = useQuery({
+  const { data: customers = [], isLoading, isFetching } = useQuery({
     queryKey: ['customers'],
     queryFn: fetchCustomers,
   });
@@ -54,7 +54,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId) ?? null;
-  const isStaleSelection = !isLoading && selectedCustomerId !== null && selectedCustomer === null;
+  const isStaleSelection = !isFetching && selectedCustomerId !== null && selectedCustomer === null;
 
   // Stored customer no longer exists: selectedCustomer already derives to null,
   // so only the persisted id needs clearing.
@@ -64,7 +64,9 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
 
   const createMutation = useMutation({
     mutationFn: (name: string) => createCustomerApi(name),
-    onSuccess: () => {
+    onSuccess: (created) => {
+      // Seed the cache so selecting the new customer right away isn't seen as stale
+      queryClient.setQueryData<ApiCustomer[]>(['customers'], (prev = []) => [...prev, created]);
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
   });

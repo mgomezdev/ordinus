@@ -201,14 +201,12 @@ test.describe('Reference Images', () => {
     // Change opacity to 80% via slider
     const opacitySlider = page.locator('#opacity-slider');
     await opacitySlider.fill('80');
-    await page.waitForTimeout(100);
 
-    // Verify opacity changed
-    const newOpacity = await contentDiv.evaluate(el =>
-      window.getComputedStyle(el).opacity,
-    );
-    expect(parseFloat(newOpacity)).toBeCloseTo(0.8, 1);
-    expect(newOpacity).not.toBe(initialOpacity);
+    // Poll: the computed value passes through intermediate values while the
+    // opacity transition runs.
+    const readOpacity = () => contentDiv.evaluate(el => window.getComputedStyle(el).opacity);
+    await expect.poll(async () => parseFloat(await readOpacity())).toBeCloseTo(0.8, 1);
+    expect(await readOpacity()).not.toBe(initialOpacity);
   });
 
   test('can lock and unlock image', async ({ page }) => {

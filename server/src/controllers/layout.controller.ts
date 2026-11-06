@@ -5,6 +5,7 @@ import { WARPED_IMAGE_PATH_PATTERN } from '../services/refImageWarp.service.js';
 import type { ApiResponse, ApiListResponse, ApiLayout, ApiLayoutDetail } from '@gridfinity/shared';
 import type { Request, Response, NextFunction } from 'express';
 import * as layoutService from '../services/layout.service.js';
+import { parseIntParam } from '../utils/params.js';
 
 const binCustomizationSchema = z.preprocess(
   (raw) => {
@@ -140,10 +141,7 @@ export async function getLayout(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const layoutId = parseInt(req.params.id as string, 10);
-    if (isNaN(layoutId)) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
-    }
+    const layoutId = parseIntParam(req, 'id', 'layout ID');
 
     const layout = await layoutService.getLayoutById(layoutId);
 
@@ -180,10 +178,7 @@ export async function updateLayout(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const layoutId = parseInt(req.params.id as string, 10);
-    if (isNaN(layoutId)) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
-    }
+    const layoutId = parseIntParam(req, 'id', 'layout ID');
 
     const parsed = createLayoutSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -205,10 +200,7 @@ export async function updateLayoutMeta(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const layoutId = parseInt(req.params.id as string, 10);
-    if (isNaN(layoutId)) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
-    }
+    const layoutId = parseIntParam(req, 'id', 'layout ID');
 
     const parsed = updateLayoutMetaSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -230,10 +222,7 @@ export async function deleteLayout(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const layoutId = parseInt(req.params.id as string, 10);
-    if (isNaN(layoutId)) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
-    }
+    const layoutId = parseIntParam(req, 'id', 'layout ID');
 
     await layoutService.deleteLayout(layoutId);
     res.status(204).send();
@@ -242,21 +231,13 @@ export async function deleteLayout(
   }
 }
 
-function parseLayoutId(req: Request): number {
-  const layoutId = parseInt(req.params.id as string, 10);
-  if (isNaN(layoutId)) {
-    throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
-  }
-  return layoutId;
-}
-
 export async function cloneLayout(
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
   try {
-    const layoutId = parseLayoutId(req);
+    const layoutId = parseIntParam(req, 'id', 'layout ID');
     const layout = await layoutService.cloneLayout(layoutId);
 
     const body: ApiResponse<ApiLayoutDetail> = { data: layout };

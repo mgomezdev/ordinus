@@ -1,8 +1,8 @@
-import { eq, desc } from 'drizzle-orm';
+import { and, desc, eq, exists, notExists, or } from 'drizzle-orm';
 import { AppError, ErrorCodes } from '@gridfinity/shared';
 import type { ApiRefImage } from '@gridfinity/shared';
-import { db, client } from '../db/connection.js';
-import { refImages } from '../db/schema.js';
+import { db } from '../db/connection.js';
+import { customerRefImages, refImages } from '../db/schema.js';
 import * as imageService from './image.service.js';
 
 function formatRefImage(row: typeof refImages.$inferSelect): ApiRefImage {
@@ -23,32 +23,38 @@ function formatRefImage(row: typeof refImages.$inferSelect): ApiRefImage {
  * Images with ONE OR MORE customer associations → only visible in those customers' contexts
  */
 export async function listRefImages(customerId?: number): Promise<ApiRefImage[]> {
+  let visibility;
   if (customerId !== undefined && !isNaN(customerId)) {
-    const result = await client.execute({
-      sql: `SELECT id, name, file_path, file_size, created_at
-            FROM ref_images ri
-            WHERE NOT EXISTS (SELECT 1 FROM customer_ref_images cri WHERE cri.ref_image_id = ri.id)
-               OR EXISTS (SELECT 1 FROM customer_ref_images cri WHERE cri.ref_image_id = ri.id AND cri.customer_id = ?)
-            ORDER BY ri.created_at DESC`,
-      args: [customerId],
-    });
-    return result.rows.map(row => ({
-      id: Number(row.id),
-      ownerId: null,
-      name: String(row.name),
-      isGlobal: true,
-      imageUrl: String(row.file_path),
-      fileSize: Number(row.file_size),
-      createdAt: String(row.created_at),
-    }));
+    const associations = db
+      .select({ id: customerRefImages.refImageId })
+      .from(customerRefImages)
+      .where(eq(customerRefImages.refImageId, refImages.id));
+    const ownAssociation = db
+      .select({ id: customerRefImages.refImageId })
+      .from(customerRefImages)
+      .where(and(eq(customerRefImages.refImageId, refImages.id), eq(customerRefImages.customerId, customerId)));
+    visibility = or(notExists(associations), exists(ownAssociation));
   }
 
   const rows = await db
     .select()
     .from(refImages)
+    .where(visibility)
     .orderBy(desc(refImages.createdAt));
 
   return rows.map(formatRefImage);
+}
+
+async function findRefImageOrThrow(imageId: number): Promise<typeof refImages.$inferSelect> {
+  const rows = await db
+    .select()
+    .from(refImages)
+    .where(eq(refImages.id, imageId))
+    .limit(1);
+  if (rows.length === 0) {
+    throw new AppError(ErrorCodes.NOT_FOUND, 'Reference image not found');
+  }
+  return rows[0];
 }
 
 export async function uploadRefImage(
@@ -71,26 +77,11 @@ export async function uploadRefImage(
   return formatRefImage(rows[0]);
 }
 
-// Kept for compatibility with the schema migration — no longer uploads global images separately
-export async function uploadGlobalRefImage(
-  file: { buffer: Buffer; originalname: string },
-): Promise<ApiRefImage> {
-  return uploadRefImage(file);
-}
-
 export async function renameRefImage(
   imageId: number,
   newName: string,
 ): Promise<ApiRefImage> {
-  const rows = await db
-    .select()
-    .from(refImages)
-    .where(eq(refImages.id, imageId))
-    .limit(1);
-
-  if (rows.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Reference image not found');
-  }
+  await findRefImageOrThrow(imageId);
 
   const updated = await db
     .update(refImages)
@@ -102,18 +93,10 @@ export async function renameRefImage(
 }
 
 export async function deleteRefImage(imageId: number): Promise<void> {
-  const rows = await db
-    .select()
-    .from(refImages)
-    .where(eq(refImages.id, imageId))
-    .limit(1);
-
-  if (rows.length === 0) {
-    throw new AppError(ErrorCodes.NOT_FOUND, 'Reference image not found');
-  }
+  const image = await findRefImageOrThrow(imageId);
 
   // Delete file from disk
-  await imageService.deleteImage(rows[0].filePath);
+  await imageService.deleteImage(image.filePath);
 
   // Delete DB row (ON DELETE SET NULL cascades to reference_images.ref_image_id)
   await db.delete(refImages).where(eq(refImages.id, imageId));

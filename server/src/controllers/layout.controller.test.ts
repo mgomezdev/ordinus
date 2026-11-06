@@ -15,7 +15,6 @@ const mockCreate = vi.fn().mockResolvedValue({
 vi.mock('../services/layout.service.js', () => ({
   createLayout: (...args: unknown[]) => mockCreate(...args),
   getAllLayouts: vi.fn().mockResolvedValue({ data: [], nextCursor: null, hasMore: false }),
-  getLayoutsByUser: vi.fn().mockResolvedValue({ data: [], nextCursor: null, hasMore: false }),
 }));
 
 async function buildTestApp() {

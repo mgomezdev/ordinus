@@ -4,7 +4,6 @@ import type {
   ApiLayout,
   ApiLayoutDetail,
   CreateLayoutRequest,
-  UpdateLayoutMetaRequest,
 } from '@gridfinity/shared';
 import { apiFetch } from './apiClient';
 
@@ -52,17 +51,6 @@ export async function updateLayout(
   const result = await apiFetch<ApiResponse<ApiLayoutDetail>>(
     `/layouts/${id}`,
     { method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify(data) },
-  );
-  return result.data;
-}
-
-export async function updateLayoutMeta(
-  id: number,
-  data: UpdateLayoutMetaRequest,
-): Promise<ApiLayout> {
-  const result = await apiFetch<ApiResponse<ApiLayout>>(
-    `/layouts/${id}`,
-    { method: 'PATCH', headers: JSON_HEADERS, body: JSON.stringify(data) },
   );
   return result.data;
 }

@@ -86,16 +86,6 @@ export async function listByCustomer(client: Client, customerId: number): Promis
 }
 
 
-export async function listPublic(client: Client): Promise<UploadRow[]> {
-  const result = await client.execute({
-    sql: `SELECT id, user_id, name, original_filename, file_path, image_url,
-                 persp_image_urls, grid_x, grid_y, grid_z, visibility, status, error_message, created_at, updated_at
-          FROM user_stl_uploads WHERE visibility = 'public' AND status = 'ready' ORDER BY created_at DESC`,
-    args: [],
-  });
-  return result.rows.map(rowToUpload);
-}
-
 export async function updateUploadStatus(
   client: Client,
   id: string,

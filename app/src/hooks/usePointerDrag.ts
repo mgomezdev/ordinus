@@ -31,15 +31,6 @@ interface DropTargetConfig {
 const dragStore = {
   activeDrag: null as ActiveDrag | null,
   dropTarget: null as DropTargetConfig | null,
-
-  /** Reset all state — useful for tests */
-  reset(): void {
-    if (this.activeDrag?.ghostElement) {
-      this.activeDrag.ghostElement.remove();
-    }
-    this.activeDrag = null;
-    this.dropTarget = null;
-  },
 };
 
 const DRAG_THRESHOLD = 5; // pixels — below this, treat as tap
@@ -61,11 +52,6 @@ export function registerDropTarget(config: DropTargetConfig): void {
 
 export function unregisterDropTarget(): void {
   dragStore.dropTarget = null;
-}
-
-/** Reset entire drag store (for testing) */
-export function resetDragStore(): void {
-  dragStore.reset();
 }
 
 // --- Ghost element ---

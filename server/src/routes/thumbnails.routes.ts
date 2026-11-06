@@ -7,15 +7,13 @@ import { db } from '../db/connection.js';
 import { layouts } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { config } from '../config.js';
+import { parseIntParam } from '../utils/params.js';
 
 const router = Router();
 
 router.get('/:layoutId', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const layoutId = parseInt(req.params.layoutId as string, 10);
-    if (isNaN(layoutId)) {
-      throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid layout ID');
-    }
+    const layoutId = parseIntParam(req, 'layoutId', 'layout ID');
 
     const [layout] = await db.select({ thumbnailPath: layouts.thumbnailPath })
       .from(layouts)
