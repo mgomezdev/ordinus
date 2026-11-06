@@ -1,5 +1,5 @@
 # Stage 1: Build frontend + backend
-FROM node:24-alpine AS build
+FROM node:25-alpine AS build
 RUN apk add --no-cache python3 make g++
 WORKDIR /app
 
@@ -24,7 +24,7 @@ RUN npm run build --workspace=server
 
 # Stage 2: Production image
 # Debian Slim (not Alpine) — AppImages require glibc, not musl
-FROM node:24-slim
+FROM node:25-slim
 WORKDIR /app
 
 # System deps: nginx, tini, Python, OpenSCAD headless rendering libs
