@@ -14,6 +14,9 @@ const API_BASE = process.env.TARGET === 'docker'
   ? 'http://localhost:32888/api/v1'
   : 'http://localhost:3001/api/v1';
 
+// nginx caches image 200s for 24h in docker; a unique query forces a cache miss.
+const imageUrl = (path: string) => `${API_BASE}/images/${path}?nocache=${Date.now()}`;
+
 type NormPoint = { x: number; y: number };
 type NormQuad = [NormPoint, NormPoint, NormPoint, NormPoint];
 
@@ -264,13 +267,13 @@ test.describe('Reference image corner alignment', () => {
     await overlay.click();
     const second = await markCornersAndApply(page, await openCornerEditor(page, overlay, /edit corners/i), NEAR_RECT);
     expect(second.warpedImageUrl).not.toBe(first.warpedImageUrl);
-    await expect.poll(async () => (await page.request.get(`${API_BASE}/images/${first.warpedImageUrl}`)).status())
+    await expect.poll(async () => (await page.request.get(imageUrl(first.warpedImageUrl))).status())
       .toBe(404);
 
     await overlay.click();
     await overlay.getByRole('button', { name: /remove alignment/i }).click();
     await expect(overlay.locator('img')).toHaveAttribute('src', /ref-lib\//);
-    await expect.poll(async () => (await page.request.get(`${API_BASE}/images/${second.warpedImageUrl}`)).status())
+    await expect.poll(async () => (await page.request.get(imageUrl(second.warpedImageUrl))).status())
       .toBe(404);
   });
 
