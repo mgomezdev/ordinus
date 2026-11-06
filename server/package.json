@@ -18,17 +18,17 @@
   },
   "dependencies": {
     "@gridfinity/shared": "*",
-    "@libsql/client": "^0.14.0",
+    "@libsql/client": "^0.18.0",
     "cors": "^2.8.5",
-    "drizzle-orm": "^0.38.0",
+    "drizzle-orm": "^0.45.4",
     "express": "^4.21.0",
-    "express-rate-limit": "^8.2.1",
-    "helmet": "^8.0.0",
+    "express-rate-limit": "^8.7.3",
+    "helmet": "^8.3.0",
     "multer": "^2.5.0",
     "nanoid": "^3.3.11",
     "pino": "^9.5.0",
     "pino-http": "^10.3.0",
-    "sharp": "^0.33.5",
+    "sharp": "^0.35.5",
     "zod": "^3.24.0"
   },
   "devDependencies": {
