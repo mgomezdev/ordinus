@@ -16,9 +16,9 @@ const props = () => ({ width: 320, isMobile: false, isOpen: false, selection: { 
 beforeEach(() => { vi.clearAllMocks(); mocks.libraries = [library]; mocks.error = null; mocks.place.mockResolvedValue(true); });
 
 describe('simple library picker', () => {
-  it('filters unavailable sources, resolves rotated fixed bins, and places the exact rectangle', async () => {
+  it('labels unavailable sources, resolves rotated fixed bins, and places the exact rectangle', async () => {
     const p = props(); render(<SimpleLibraryPanel {...p} />);
-    expect(screen.queryByRole('option', { name: 'Missing tray' })).not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Missing tray (Unsupported)' })).toBeInTheDocument();
     expect(screen.getByText('This bin will be rotated to fit.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Place bin' }));
     await waitFor(() => expect(p.onPlaced).toHaveBeenCalled());
@@ -59,9 +59,50 @@ describe('simple library picker', () => {
     mocks.libraries = [{ ...library, entries: [library.entries[0]] }];
     mocks.error = new Error('Offline');
     render(<SimpleLibraryPanel {...props()} selection={{ x: 0, y: 0, width: 2, depth: 2 }} />);
-    expect(screen.getByRole('status')).toHaveTextContent('No bins');
+    expect(screen.getByText(/No bins in this library/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Place bin' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Place bin' })).toBeDisabled();
+    expect(screen.getByText(/Width × depth not supported/)).toHaveTextContent('3 × 2');
+  });
+  it('lets users inspect an unsupported bin and recover by choosing a supported bin', () => {
+    render(<SimpleLibraryPanel {...props()} />);
+    fireEvent.change(screen.getByLabelText('Choose a bin'), { target: { value: 'missing' } });
+    expect(screen.getByText(/The source bin is unavailable/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Place bin' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Place bin' }));
+    expect(mocks.place).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('Choose a bin'), { target: { value: 'cup' } });
+    expect(screen.getByRole('button', { name: 'Place bin' })).toBeEnabled();
+  });
+  it.each([
+    { selection: { x: 0, y: 0, width: 3, depth: 4 }, name: 'half-grid dimensions' },
+    { selection: { x: 1, y: 0, width: 4, depth: 6 }, name: 'half-grid position' },
+  ])('explains unsupported $name', ({ selection }) => {
+    const cup = library.entries[2];
+    if (cup.kind !== 'parametric') throw new Error('Expected parametric fixture');
+    mocks.libraries = [{ ...library, entries: [{ ...cup, defaults: { sub_pitch: 1 } }] }];
+    render(<SimpleLibraryPanel {...props()} selection={selection} />);
+    expect(screen.getByRole('option', { name: 'Cup (Unsupported)' })).toBeInTheDocument();
+    expect(screen.getByText(/Half-grid steps are not supported/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Place bin' })).toBeDisabled();
+  });
+  it('explains axis restrictions and selected preset restrictions', () => {
+    const cup = library.entries[2];
+    if (cup.kind !== 'parametric') throw new Error('Expected parametric fixture');
+    mocks.libraries = [{ ...library, entries: [{ ...cup, width: { fixed: 1 }, depth: { values: [1, 2] } }] }];
+    const view = render(<SimpleLibraryPanel {...props()} />);
+    expect(screen.getByText(/Width × depth not supported/)).toHaveTextContent('width: 1; depth: 1, 2');
+    mocks.libraries = [{ ...library, entries: [{ ...cup, groups: [{ id: 'size', name: 'Size', choices: [
+      { id: 'fits', name: 'Fits', values: { width: 2, depth: 3 } },
+      { id: 'wide', name: 'Wide', values: { width: 4, depth: 4 } },
+    ] }] }] }];
+    view.rerender(<SimpleLibraryPanel {...props()} />);
+    expect(screen.getByRole('option', { name: 'Wide (Unsupported)' })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Size'), { target: { value: 'wide' } });
+    expect(screen.getByText(/These presets do not support/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Place bin' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Size'), { target: { value: 'fits' } });
+    expect(screen.getByRole('button', { name: 'Place bin' })).toBeEnabled();
   });
   it('creates a library through the editor and persists parametric choices', async () => {
     mocks.save.mockResolvedValue({});

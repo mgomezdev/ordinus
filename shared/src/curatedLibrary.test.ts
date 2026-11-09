@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { matchCuratedEntry, validateCuratedLibrary } from './curatedLibrary.js';
+import { assessCuratedEntry, matchCuratedEntry, validateCuratedLibrary } from './curatedLibrary.js';
 import type { CuratedEntry, CuratedLibrary } from './curatedLibrary.js';
 
 const entry: CuratedEntry = {
@@ -38,6 +38,24 @@ describe('curated preset resolution', () => {
     ] }] };
     expect(matchCuratedEntry(e, 3, 2)).toMatchObject({ choices: { size: 'three' } });
     expect(matchCuratedEntry(e, 3, 2, { size: 'one' })).toBeNull();
+  });
+  it('explains dimensional restrictions including allowed values and increments', () => {
+    expect(assessCuratedEntry(entry, 2.25, 2).reasons.join(' ')).toContain('half-grid steps');
+    expect(assessCuratedEntry(entry, 3, 3).reasons.join(' ')).toContain('width: 0.5–20 in steps of 0.5; depth: 2');
+    expect(assessCuratedEntry({ ...entry, width: { values: [1, 3] } }, 2, 2).reasons.join(' ')).toContain('width: 1, 3');
+  });
+  it('only reports rejection when neither orientation works', () => {
+    const fixed: CuratedEntry = { id: 'tray', name: 'Tray', kind: 'fixed', sourceId: 'bins:tray', width: 2, depth: 2 };
+    expect(assessCuratedEntry(fixed, 2, 2, {}, m => m.rotation === 90)).toEqual({ match: { rotation: 90 }, reasons: [] });
+    expect(assessCuratedEntry(fixed, 2, 2, {}, () => false, 'Half-grid position unsupported')).toEqual({ match: null, reasons: ['Half-grid position unsupported'] });
+    expect(assessCuratedEntry({ ...entry, defaults: { height: -1 }, groups: [] }, 3, 2).reasons.length).toBeGreaterThan(0);
+  });
+  it('allows a half-grid preset to recover from an unsupported base', () => {
+    const mixed: CuratedEntry = { ...entry, defaults: { sub_pitch: 1 }, groups: [{ id: 'base', name: 'Base', choices: [
+      { id: 'whole', name: 'Whole-grid', values: { sub_pitch: 1 } }, { id: 'half', name: 'Half-grid', values: { sub_pitch: 2 } },
+    ] }] };
+    expect(assessCuratedEntry(mixed, 1.5, 2)).toMatchObject({ match: { choices: { base: 'half' } }, reasons: [] });
+    expect(assessCuratedEntry(mixed, 1.5, 2, { base: 'whole' })).toMatchObject({ match: null, reasons: [expect.stringContaining('Half-grid steps are not supported')] });
   });
   it('validates source parameters, duplicate assignments and invalid dimensions', () => {
     expect(validateCuratedLibrary(library())).toEqual([]);
