@@ -22,6 +22,7 @@ import { buildPayload } from '../utils/layoutHelpers';
 import { MobileActionBar } from '../components/MobileActionBar';
 import { SimpleLibraryPanel } from '../components/simple/SimpleLibraryPanel';
 import type { DrawnFootprint } from '../components/simple/DrawFootprint';
+import { WorkspaceShare } from '../components/layouts/WorkspaceShare';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api/v1';
 
@@ -420,6 +421,7 @@ export function WorkspacePage() {
             }}>{mode === 'simple' ? 'Simple' : 'Advanced'}</button>)}
           </div>
         </nav>
+        <WorkspaceShare />
         <div className="preview-toolbar preview-toolbar--desktop-only">
           <WorkspaceToolbar onExportPdf={handleExportPdf} exportPdfError={exportPdfError} />
           <ImageViewToggle mode={imageViewMode} onToggle={toggleImageViewMode} />

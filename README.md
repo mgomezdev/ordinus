@@ -235,15 +235,23 @@ Open `http://localhost:5173`.
 
 ### Guest preview milestone
 
-Sign in as admin, open **Saved Configs**, and choose **Share preview** on a saved
+From the workspace, choose **Share preview**. Ordinus saves the current drawer
+before opening the sharing panel and again before creating a link, including
+changes made while the panel is open. A new workspace asks for a configuration
+name first. If saving fails, no new link is issued. Sharing is available on
+desktop and mobile without leaving the workspace.
+
+You can also open **Saved Configs** and choose **Share preview** on a saved
 configuration. Select an expiry (1 hour, 24 hours, or 7 days), create the link,
 and copy it before leaving the sharing panel. Open it in a private browser window
 to test the client experience without an admin session.
 
-The guest sees only that saved drawer, its bins, and its attached reference
-photos. The preview is read-only: save workspace changes first, and reload the
-preview to see later saved changes. Editing and live collaboration are the next
-phase. Anyone holding the invitation can open it until expiry or revocation.
+The guest sees only that saved drawer, its bin footprints, and its attached
+reference photos. The preview is read-only; reload it to see later saved changes.
+Follow-up work includes actual bin model previews with top and 3D view options,
+then guest editing and live collaboration. Model previews must remain scoped to
+the shared drawer and preserve custom-bin settings and rotation. Anyone holding
+the invitation can open it until expiry or revocation.
 
 Choose **Close access** in the configuration's sharing panel to revoke an
 invitation and every guest session created from it. Open previews check access

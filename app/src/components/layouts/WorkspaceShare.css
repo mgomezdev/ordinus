@@ -1,0 +1,8 @@
+.workspace-sharing { flex-shrink: 0; border-bottom: 1px solid var(--border-primary); background: var(--bg-secondary); }
+.workspace-share-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; padding: .5rem 1rem; }
+.workspace-share-actions > span { font-size: .8rem; color: var(--text-secondary); }
+.workspace-share-panel { max-height: 45dvh; overflow-y: auto; }
+.workspace-share-name { display: flex; flex-wrap: wrap; gap: .75rem; align-items: end; padding: 0 1rem 1rem; }
+.workspace-share-name label { display: grid; gap: .4rem; font-size: .875rem; }
+.workspace-share-name input { max-width: 100%; box-sizing: border-box; padding: .6rem; border: 1px solid var(--border-primary); border-radius: var(--radius-sm); background: var(--bg-primary); color: var(--text-primary); }
+.workspace-share-error { margin: .5rem 1rem; color: var(--invalid-secondary); font-size: .875rem; }

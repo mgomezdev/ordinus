@@ -4,7 +4,13 @@ import type { GuestLink } from '@gridfinity/shared';
 import { apiFetch } from '../../api/apiClient';
 import './GuestLinkPanel.css';
 
-export function GuestLinkPanel({ layoutId, name }: { layoutId: number; name: string }) {
+interface GuestLinkPanelProps {
+  layoutId: number;
+  name: string;
+  beforeCreate?: () => Promise<void>;
+}
+
+export function GuestLinkPanel({ layoutId, name, beforeCreate }: GuestLinkPanelProps) {
   const [hours, setHours] = useState(24);
   const [newLink, setNewLink] = useState<{ id: string; url: string } | null>(null);
   const [copyStatus, setCopyStatus] = useState('');
@@ -13,7 +19,10 @@ export function GuestLinkPanel({ layoutId, name }: { layoutId: number; name: str
   const path = `/layouts/${layoutId}/guest-links`;
   const links = useQuery({ queryKey, queryFn: () => apiFetch<{ data: GuestLink[] }>(path), refetchInterval: 30_000 });
   const create = useMutation({
-    mutationFn: () => apiFetch<GuestLink & { secret: string }>(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expiresInHours: hours }) }),
+    mutationFn: async () => {
+      await beforeCreate?.();
+      return apiFetch<GuestLink & { secret: string }>(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expiresInHours: hours }) });
+    },
     onSuccess: link => {
       const { secret, ...metadata } = link;
       queryClient.setQueryData<{ data: GuestLink[] }>(queryKey, old => ({ data: [metadata, ...(old?.data ?? [])] }));
@@ -35,7 +44,7 @@ export function GuestLinkPanel({ layoutId, name }: { layoutId: number; name: str
   }
   return <section className="guest-link-panel" aria-label={`Preview access for ${name}`}>
     <h3>Share a read-only preview</h3>
-    <p>Clients can view this saved drawer and its attached photos. Save workspace changes before sharing.</p>
+    <p>{beforeCreate ? 'Your current drawer and attached photos are saved before a link is created.' : 'Clients can view this saved drawer and its attached photos. Save workspace changes before sharing.'}</p>
     <p>Anyone with the link can view this configuration until access closes. This preview does not allow editing.</p>
     <label>Link expires after<select value={hours} onChange={event => setHours(Number(event.target.value))} disabled={create.isPending}>
       <option value={1}>1 hour</option><option value={24}>24 hours</option><option value={168}>7 days</option>

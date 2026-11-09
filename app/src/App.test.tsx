@@ -11,6 +11,10 @@ import { ConfirmDialog } from './components/ConfirmDialog';
 import type { LibraryItem } from './types/gridfinity';
 import type { RefImagePlacement } from './hooks/useRefImagePlacements';
 
+vi.mock('./contexts/CustomerContext', () => ({
+  useCustomers: () => ({ selectedCustomer: null }),
+}));
+
 // --- Captured callback props from mocked components ---
 let capturedGridPreviewProps: Record<string, unknown> = {};
 let capturedItemLibraryProps: Record<string, unknown> = {};

@@ -1,9 +1,61 @@
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
+import { SavedConfigsPage } from '../pages/SavedConfigsPage';
 
 // Invitations and guest cookies stay out of failure traces/artifacts.
 test.use({ trace: 'off', video: 'off', screenshot: 'off', actionTimeout: 10_000 });
+
+test('workspace sharing saves pending edits before opening and before creating a guest link', async ({ page, request, browser, baseURL }) => {
+  const name = `Workspace share ${randomUUID().slice(0, 8)}`;
+  const created = await request.post('/api/v1/layouts', { data: { name, gridX: 4, gridY: 4, widthMm: 168, depthMm: 168, placedItems: [] } });
+  expect(created.status()).toBe(201);
+  const id = (await created.json()).data.id as number;
+  await page.addInitScript(() => localStorage.setItem('gridfinity-walkthrough-seen', 'true'));
+  const guest = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] }, extraHTTPHeaders: {} });
+  try {
+    const configs = new SavedConfigsPage(page);
+    await configs.goto(); await configs.editButton(name).click();
+    await expect(page.getByRole('navigation', { name: 'breadcrumb' })).toContainText(name);
+    await page.getByRole('spinbutton', { name: 'Width mm', exact: true }).fill('210');
+    const share = page.getByRole('region', { name: 'Share workspace' });
+    await share.getByRole('button', { name: 'Share preview', exact: true }).click();
+    await expect(share.getByRole('button', { name: 'Create preview link' })).toBeVisible();
+    expect((await (await request.get(`/api/v1/layouts/${id}`)).json()).data.widthMm).toBe(210);
+    await page.getByRole('spinbutton', { name: 'Width mm', exact: true }).fill('252');
+    await share.getByRole('button', { name: 'Create preview link' }).click();
+    const invitation = await share.getByLabel('Preview link', { exact: true }).inputValue();
+    const guestPage = await guest.newPage();
+    await guestPage.goto(invitation); await guestPage.getByRole('button', { name: 'Open preview' }).click();
+    await expect(guestPage.getByText(/252 × 168 mm/)).toBeVisible();
+    expect((await (await request.get(`/api/v1/layouts/${id}`)).json()).data.widthMm).toBe(252);
+    await page.route(`**/api/v1/layouts/${id}`, route => route.request().method() === 'PUT'
+      ? route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { message: 'Save rejected' } }) }) : route.continue());
+    const linksBefore = (await (await request.get(`/api/v1/layouts/${id}/guest-links`)).json()).data.length;
+    await share.getByRole('button', { name: 'Create preview link' }).click();
+    await expect(share.getByRole('alert').first()).toContainText('Could not save');
+    expect((await (await request.get(`/api/v1/layouts/${id}/guest-links`)).json()).data).toHaveLength(linksBefore);
+  } finally { await guest.close(); await request.delete(`/api/v1/layouts/${id}`); }
+});
+
+test('phone workspace can name, save and share a new configuration without leaving the workspace', async ({ page, request }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem('gridfinity-walkthrough-seen', 'true'));
+  await page.goto('/');
+  const share = page.getByRole('region', { name: 'Share workspace' });
+  const name = `Phone share ${randomUUID().slice(0, 8)}`;
+  await share.getByRole('button', { name: 'Share preview', exact: true }).click();
+  await share.getByLabel('Configuration name').fill(name);
+  const saved = page.waitForResponse(response => response.url().endsWith('/api/v1/layouts') && response.request().method() === 'POST');
+  await share.getByRole('button', { name: 'Save and continue' }).click();
+  const id = (await (await saved).json()).data.id as number;
+  try {
+    await share.getByRole('button', { name: 'Create preview link' }).click();
+    await expect(share.getByLabel('Preview link', { exact: true })).toHaveValue(/\/guest\/.+#/);
+    expect(page.url()).toMatch(/\/$/);
+    expect((await (await request.get(`/api/v1/layouts/${id}`)).json()).data.name).toBe(name);
+  } finally { await request.delete(`/api/v1/layouts/${id}`); }
+});
 
 test('owner shares one drawer; a clean guest can inspect it and photos, then loses access when closed', async ({ page, request, browser, baseURL }) => {
   test.setTimeout(60_000);
