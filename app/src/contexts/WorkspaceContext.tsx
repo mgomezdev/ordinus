@@ -7,7 +7,8 @@ import type {
   ComputedSpacer, BOMExtras,
 } from '../types/gridfinity';
 import type { SelectModifiers } from '../hooks/useGridItems';
-import type { BOMItem, CustomBinSpec } from '@gridfinity/shared';
+import type { BOMItem, CustomBinSpec, CuratedEntry } from '@gridfinity/shared';
+import { matchCuratedEntry } from '@gridfinity/shared';
 import type { RefImagePlacement, UseRefImagePlacementsReturn } from '../hooks/useRefImagePlacements';
 import type { LayoutMetaState } from '../reducers/layoutMetaReducer';
 import type { DialogState, DialogAction } from '../reducers/dialogReducer';
@@ -116,6 +117,7 @@ interface WorkspaceContextValue {
   categories: Category[];
   getItemById: (prefixedId: string) => LibraryItem | undefined;
   addCustomBin: (spec: CustomBinSpec) => Promise<boolean>;
+  placeCuratedBin: (entry: CuratedEntry, width: number, depth: number, choices: Record<string, string>, x: number, y: number) => Promise<boolean>;
   getLibraryMeta: (libraryId: string) => Promise<LibraryMeta>;
 
   // Layout actions
@@ -238,8 +240,10 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const {
     placedItems, selectedItemIds, rotateItem, deleteItem, clearAll, loadItems,
     selectItem, selectAll, deselectAll, handleDrop, duplicateItem,
-    copyItems, pasteItems, deleteSelected, rotateSelected, updateItemCustomization, addCustomItem,
+    copyItems, pasteItems, deleteSelected, rotateSelected, updateItemCustomization, addCustomItem, placeLibraryItemAt,
   } = useGridItems(gridResult.gridX, gridResult.gridY, getLibraryItemById);
+  const placeAtRef = useRef(placeLibraryItemAt);
+  useEffect(() => { placeAtRef.current = placeLibraryItemAt; }, [placeLibraryItemAt]);
 
   const { resolveItem: getItemById, createCustomItem, customItems } = useCustomBins(getLibraryItemById, placedItems);
   const bomLibraryItems = useMemo(() => [...libraryItems, ...customItems], [libraryItems, customItems]);
@@ -355,6 +359,23 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     return true;
   }, [createCustomItem, addCustomItem, trackHash, recordInstanceHash]);
 
+  const placeCuratedBin = useCallback(async (entry: CuratedEntry, width: number, depth: number, choices: Record<string, string>, x: number, y: number): Promise<boolean> => {
+    const match = matchCuratedEntry(entry, width, depth, choices);
+    if (!match) return false;
+    if (entry.kind === 'fixed') {
+      const item = getLibraryItemById(entry.sourceId);
+      if (!item || item.isActive === false || item.widthUnits !== entry.width || item.heightUnits !== entry.depth) return false;
+      return placeLibraryItemAt(item, x, y, match.rotation) !== null;
+    }
+    if (!match.spec) return false;
+    const { item, status } = await createCustomItem(match.spec);
+    const id = placeAtRef.current(item, x, y, match.rotation);
+    if (!id || !item.paramHash) return false;
+    trackHash(item.paramHash, status);
+    recordInstanceHash(id, item.paramHash);
+    return true;
+  }, [getLibraryItemById, placeLibraryItemAt, createCustomItem, trackHash, recordInstanceHash]);
+
   // Rebind image select handler
   const handleRebindSelect = useCallback((refImageId: number, imageUrl: string, name: string) => {
     if (dialogs.rebindTargetId) {
@@ -436,6 +457,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     categories,
     getItemById,
     addCustomBin,
+    placeCuratedBin,
     getLibraryMeta,
 
     // Layout actions

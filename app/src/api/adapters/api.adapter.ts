@@ -37,6 +37,7 @@ export class ApiAdapter implements DataSourceAdapter {
       heightUnits: item.heightUnits as number,
       color: item.color as string,
       categories: item.categories as string[],
+      isActive: item.isActive as boolean | undefined,
       stlFile: (item.stlFile as string | null | undefined) ?? undefined,
       imageUrl: item.imagePath as string | undefined,
       perspectiveImageUrl: item.perspectiveImagePath as string | undefined,

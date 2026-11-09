@@ -7,6 +7,8 @@ import { usePointerDropTarget } from '../hooks/usePointerDrag';
 import type { SnapPreviewData } from '../hooks/usePointerDrag';
 import { SnapPreviewOverlay } from './SnapPreviewOverlay';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { DrawFootprint } from './simple/DrawFootprint';
+import type { DrawnFootprint } from './simple/DrawFootprint';
 
 const EMPTY_SPACERS: ComputedSpacer[] = [];
 const EMPTY_REF_IMAGES: ReferenceImage[] = [];
@@ -49,6 +51,11 @@ interface GridPreviewProps {
   getLibraryMeta?: (libraryId: string) => Promise<LibraryMeta>;
   snapPreview?: { col: number; row: number; w: number; d: number; valid: boolean } | null;
   onSnapChange?: (preview: SnapPreviewData | null) => void;
+  drawFootprint?: {
+    drawing: boolean; selection: DrawnFootprint | null; valid: boolean;
+    onChange: (value: DrawnFootprint | null) => void; onFinish: () => void; onCancel: () => void;
+    isPanning: () => boolean;
+  };
 }
 
 export function GridPreview({
@@ -84,6 +91,7 @@ export function GridPreview({
   getLibraryMeta,
   snapPreview = null,
   onSnapChange,
+  drawFootprint,
 }: GridPreviewProps) {
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -176,6 +184,7 @@ export function GridPreview({
           onKeyDown={handleGridKeyDown}
         >
           {cells}
+          {drawFootprint && <DrawFootprint gridX={gridX} gridY={gridY} {...drawFootprint} />}
           {snapPreview && (
             <SnapPreviewOverlay
               col={snapPreview.col}
@@ -202,7 +211,7 @@ export function GridPreview({
                 onDelete={onDeleteItem}
                 onRotateCw={onRotateItemCw}
                 onRotateCcw={onRotateItemCcw}
-                onCustomizationChange={onItemCustomizationChange}
+                onCustomizationChange={drawFootprint ? undefined : onItemCustomizationChange}
                 onCustomizationReset={onItemCustomizationReset}
                 onDuplicate={onDuplicateItem}
                 imageViewMode={imageViewMode}

@@ -18,6 +18,7 @@ import favoritesRoutes from './routes/favorites.routes.js';
 import thumbnailsRoutes from './routes/thumbnails.routes.js';
 import customersRoutes from './routes/customers.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
+import curatedLibrariesRoutes from './routes/curatedLibraries.routes.js';
 
 export function createApp(): express.Express {
   const app = express();
@@ -54,6 +55,7 @@ export function createApp(): express.Express {
   // Routes
   app.use('/api/v1', healthRoutes);
   app.use('/api/v1/libraries', librariesRoutes);
+  app.use('/api/v1/curated-libraries', curatedLibrariesRoutes);
   app.use('/api/v1/categories', categoriesRoutes);
   app.use('/api/v1/layouts', layoutsRoutes);
   app.use('/api/v1/bom', bomRoutes);
