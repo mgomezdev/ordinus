@@ -52,8 +52,8 @@ export function createApp(): express.Express {
     }),
   );
 
-  // Only health and authentication are public. This boundary includes images,
-  // downloads, settings, and future API routes, not just the workspace UI.
+  // Entry/recovery routes and the separately scoped guest router precede the
+  // owner boundary. Every ordinary API and asset route requires owner access.
   app.use('/api/v1', healthRoutes);
   app.use('/api/v1', checkMutationOrigin);
   app.use('/api/v1/auth', authRoutes);
