@@ -73,11 +73,11 @@ test('explains half-grid restrictions on bins and named presets', async ({ page,
   await expect(simple.panel.getByRole('button', { name: 'Place bin' })).toBeDisabled();
   await simple.panel.getByLabel('Choose a bin').selectOption('cup');
   await expect(simple.panel.getByRole('button', { name: 'Place bin' })).toBeEnabled();
-  await simple.panel.getByLabel('Base', { exact: true }).selectOption('whole');
+  await simple.panel.getByRole('combobox', { name: 'Base', exact: true }).selectOption('whole');
   await expect(simple.panel.getByText(/Half-grid steps are not supported/)).toBeVisible();
   await expect(simple.panel.getByRole('button', { name: 'Place bin' })).toBeDisabled();
   await page.screenshot({ path: testInfo.outputPath('unsupported-half-grid.png'), fullPage: true });
-  await simple.panel.getByLabel('Base', { exact: true }).selectOption('half');
+  await simple.panel.getByRole('combobox', { name: 'Base', exact: true }).selectOption('half');
   await expect(simple.panel.getByRole('button', { name: 'Place bin' })).toBeEnabled();
 });
 
