@@ -106,10 +106,11 @@ test('draws a footprint with one finger on a tablet and opens the matching picke
   try {
     const page = await context.newPage();
     const simple = new SimpleLayoutPage(page);
-    await simple.open();
-    await page.getByRole('button', { name: 'Toggle library panel' }).click();
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Simple', exact: true }).tap();
+    await page.getByRole('button', { name: 'Toggle library panel' }).tap();
     await simple.panel.getByLabel('Bin library').selectOption(library.id);
-    await simple.panel.getByRole('button', { name: 'Draw bin', exact: true }).click();
+    await simple.panel.getByRole('button', { name: 'Draw bin', exact: true }).tap();
     await page.locator('.draw-footprint-surface').scrollIntoViewIfNeeded();
     const box = await page.locator('.draw-footprint-surface').boundingBox();
     if (!box) throw new Error('Drawing surface unavailable');
@@ -117,12 +118,16 @@ test('draws a footprint with one finger on a tablet and opens the matching picke
     const start = { x: box.x + 1, y: box.y + 1 };
     const end = { x: box.x + box.width / 2 - 1, y: box.y + box.height * 3 / 4 - 1 };
     await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
-    await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [end] });
+    for (let step = 1; step <= 8; step++) {
+      await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: start.x + (end.x - start.x) * step / 8, y: start.y + (end.y - start.y) * step / 8 }] });
+    }
     await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await expect(simple.panel.getByRole('heading', { name: '2 × 3 footprint' })).toBeVisible();
-    await page.screenshot({ path: testInfo.outputPath('simple-tablet.png'), fullPage: true });
+    await expect(simple.panel).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, 0)');
+    await expect.poll(() => simple.panel.evaluate(el => el.getAnimations().length)).toBe(0);
     await simple.panel.getByRole('button', { name: 'Place bin' }).tap();
     await expect(page.locator('.placed-item')).toHaveCount(1);
+    await page.screenshot({ path: testInfo.outputPath('simple-tablet.png'), fullPage: true });
   } finally { await context.close(); }
 });
 

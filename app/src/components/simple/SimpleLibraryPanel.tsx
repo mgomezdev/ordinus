@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { GRID_RESOLUTION, matchCuratedEntry } from '@gridfinity/shared';
 import type { CuratedEntry, CuratedLibrary } from '@gridfinity/shared';
 import { useCuratedLibraries } from '../../hooks/useCuratedLibraries';
@@ -23,6 +23,8 @@ export function SimpleLibraryPanel({ width, isMobile, isOpen, selection, valid, 
   const [choices, setChoices] = useState<Record<string, string>>({});
   const [editor, setEditor] = useState<{ library: CuratedLibrary; existing: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const placementPending = useRef(false);
+  const touchActivated = useRef(false);
   const [fields, setFields] = useState({ x: 0, y: 0, width: 1, depth: 1 });
   const library = data.libraries.find(l => l.id === libraryId) ?? data.libraries[0];
   const sourceAvailable = (e: CuratedEntry) => {
@@ -39,14 +41,15 @@ export function SimpleLibraryPanel({ width, isMobile, isOpen, selection, valid, 
   const match = entry ? matching(entry, choices) : null;
   const chosen = match?.choices ?? choices;
   const place = async () => {
-    if (!entry || !selection || !valid || !match || busy) return;
+    if (!entry || !selection || !valid || !match || busy || placementPending.current) return;
+    placementPending.current = true;
     onBusy(true); setError(null);
     try {
       const placed = await placeCuratedBin(entry, selection.width / GRID_RESOLUTION, selection.depth / GRID_RESOLUTION, chosen, selection.x, selection.y);
       if (placed) { onPlaced(); setChoices({}); }
       else setError('This bin can no longer be placed here. Check the rectangle and choose again.');
     } catch (err) { setError(err instanceof Error ? err.message : 'Placement failed. Try again.'); }
-    finally { onBusy(false); }
+    finally { placementPending.current = false; onBusy(false); }
   };
   return <section className={`library-panel simple-library${isOpen ? ' library-panel--open' : ''}`} style={isMobile ? undefined : { width, minWidth: width }} aria-label="Simple bin library">
     <div className="library-panel-header"><div className="library-panel-header-text"><span className="library-panel-title">Simple layouts</span><span className="library-panel-subtitle">Draw a space. Choose a bin.</span></div></div>
@@ -93,7 +96,19 @@ export function SimpleLibraryPanel({ width, isMobile, isOpen, selection, valid, 
               </select></label>)}
               {match?.rotation === 90 && <p className="simple-help">This bin will be rotated to fit.</p>}
               {!match && <p role="alert" className="simple-error">These options do not fit. Choose the bin again to reset its options.</p>}
-              <button type="button" disabled={busy || !valid || !match} onClick={() => void place()}>{busy ? 'Placing…' : 'Place bin'}</button>
+              <button type="button" disabled={busy || !valid || !match} onPointerDown={() => { touchActivated.current = false; }} onClick={e => {
+                if (!touchActivated.current || e.detail === 0) void place();
+                touchActivated.current = false;
+              }} onPointerUp={e => {
+                // Touch browsers can omit the compatibility click after a canvas gesture.
+                // Activate only a primary touch released inside the button; keep native keyboard/mouse clicks.
+                if (e.pointerType !== 'touch' || !e.isPrimary) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                  touchActivated.current = true;
+                  void place();
+                }
+              }}>{busy ? 'Placing…' : 'Place bin'}</button>
             </> : <p role="status">No bins in this library fit this rectangle. Draw a different size or choose another library.</p>}
           </>}
         </>}

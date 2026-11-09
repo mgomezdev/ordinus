@@ -44,6 +44,17 @@ describe('simple library picker', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel', exact: true }));
     expect(p.onCancel).toHaveBeenCalled();
   });
+  it('accepts a touch release and deduplicates its following compatibility click', async () => {
+    const p = props(); render(<SimpleLibraryPanel {...p} />);
+    const button = screen.getByRole('button', { name: 'Place bin' });
+    vi.spyOn(button, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, right: 100, bottom: 40, width: 100, height: 40, x: 0, y: 0, toJSON: () => ({}) });
+    fireEvent.pointerUp(button, { pointerType: 'touch', isPrimary: true, clientX: 120, clientY: 20 });
+    expect(mocks.place).not.toHaveBeenCalled();
+    fireEvent.pointerUp(button, { pointerType: 'touch', isPrimary: true, clientX: 50, clientY: 20 });
+    await waitFor(() => expect(p.onPlaced).toHaveBeenCalledOnce());
+    fireEvent.click(button, { detail: 1 });
+    expect(mocks.place).toHaveBeenCalledOnce();
+  });
   it('explains no matches and exposes loading failures', () => {
     mocks.libraries = [{ ...library, entries: [library.entries[0]] }];
     mocks.error = new Error('Offline');
