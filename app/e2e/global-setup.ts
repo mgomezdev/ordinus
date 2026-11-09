@@ -8,10 +8,15 @@ export default async function globalSetup(config: FullConfig): Promise<void> {
   try {
     const context = await browser.newContext({ baseURL: project.use.baseURL, extraHTTPHeaders: { 'X-Ordinus-Request': '1' } });
     const page = await context.newPage();
+    const pageErrors: string[] = [];
+    page.on('pageerror', error => pageErrors.push(error.message));
     await page.goto('/');
     await page.getByLabel('Password', { exact: true }).fill(process.env.ORDINUS_E2E_ADMIN_PASSWORD!);
+    const loginResponse = page.waitForResponse(response => response.url().endsWith('/api/v1/auth/login') && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
+    const signedIn = await loginResponse;
+    if (!signedIn.ok()) throw new Error(`E2E admin sign-in failed (${signedIn.status()}); verify isolated provisioning and cookie configuration`);
+    await expect(page.getByRole('button', { name: 'Sign out', exact: true }), pageErrors.join('; ')).toBeVisible({ timeout: 15000 });
     await context.storageState({ path: project.use.storageState as string });
     const api = context.request;
     const existing = await (await api.get('/api/v1/customers')).json() as { data: { name: string }[] };

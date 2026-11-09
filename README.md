@@ -233,6 +233,25 @@ npm run dev
 
 Open `http://localhost:5173`.
 
+### Guest preview milestone
+
+Sign in as admin, open **Saved Configs**, and choose **Share preview** on a saved
+configuration. Select an expiry (1 hour, 24 hours, or 7 days), create the link,
+and copy it before leaving the sharing panel. Open it in a private browser window
+to test the client experience without an admin session.
+
+The guest sees only that saved drawer, its bins, and its attached reference
+photos. The preview is read-only: save workspace changes first, and reload the
+preview to see later saved changes. Editing and live collaboration are the next
+phase. Anyone holding the invitation can open it until expiry or revocation.
+
+Choose **Close access** in the configuration's sharing panel to revoke an
+invitation and every guest session created from it. Open previews check access
+every two seconds and hide the drawer if access closes or cannot be verified.
+**Leave preview** clears only that browser's guest session; it does not revoke
+the invitation. Guest links grant no access to other configurations, customer
+records, the model catalog, or admin actions.
+
 ### Common commands
 
 ```bash
