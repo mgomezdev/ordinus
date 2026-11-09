@@ -58,8 +58,9 @@ test('draws in reverse under zoom and places a rotated fixed bin', async ({ page
 test('explains half-grid restrictions on bins and named presets', async ({ page, simple, request, library }, testInfo) => {
   const cup = library.entries[2];
   if (cup.kind !== 'parametric') throw new Error('Expected parametric fixture');
-  const wholeOnly = { ...cup, id: 'whole', name: 'Whole-grid bin', defaults: { sub_pitch: 1 }, groups: [] };
-  const presets = { ...cup, groups: [{ id: 'base', name: 'Base', choices: [
+  const axes = { width: { min: 1, max: 20, step: 0.5 }, depth: { min: 1, max: 20, step: 0.5 } };
+  const wholeOnly = { ...cup, ...axes, id: 'whole', name: 'Whole-grid bin', defaults: { sub_pitch: 1 }, groups: [] };
+  const presets = { ...cup, ...axes, groups: [{ id: 'base', name: 'Base', choices: [
     { id: 'half', name: 'Half-grid', values: { sub_pitch: 2 } },
     { id: 'whole', name: 'Whole-grid', values: { sub_pitch: 1 } },
   ] }] };
