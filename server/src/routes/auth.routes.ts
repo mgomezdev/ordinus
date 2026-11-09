@@ -12,7 +12,7 @@ const issueLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 3, keyGenerator:
 const verifyLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false });
 const cookieOptions = { httpOnly: true, secure: secureCookie, sameSite: 'strict' as const, path: '/' };
 const loginSchema = z.object({ username: z.string().max(100), password: z.string().min(1).max(256) });
-const resetSchema = z.object({ requestId: z.string().min(1).max(100), code: z.string().min(1).max(100), password: z.string().min(12).max(256) });
+const resetSchema = z.object({ requestId: z.string().min(1).max(100), code: z.string().min(1).max(100), password: z.string().min(8).max(256) });
 router.use((_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
 router.get('/session', requireAdmin, (_req, res) => { res.json({ username: 'admin' }); });
 router.post('/login', loginLimit, async (req: Request, res: Response, next: NextFunction) => {
@@ -42,7 +42,7 @@ router.post('/reset/request', issueLimit, async (_req, res, next) => {
 router.post('/reset/complete', verifyLimit, async (req, res, next) => {
   try {
     const parsed = resetSchema.safeParse(req.body);
-    if (!parsed.success) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Enter the reset code and a password of 12 to 256 characters');
+    if (!parsed.success) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Enter the reset code and a password of 8 to 256 characters');
     await authService.resetPassword(parsed.data.requestId, parsed.data.code, parsed.data.password);
     res.clearCookie(ADMIN_COOKIE, cookieOptions);
     res.sendStatus(204);

@@ -36,6 +36,17 @@ beforeEach(async () => {
 });
 
 describe('single administrator authentication', () => {
+  it('accepts eight-character passwords for private setup and reset, and rejects seven', async () => {
+    await client.execute('DELETE FROM admin_account');
+    await expect(provisionAdmin('seven12')).rejects.toThrow('8 to 256');
+    await provisionAdmin('eight123');
+    expect((await login('eight123')).status).toBe(200);
+    const reset = await authService.issueReset();
+    const endpoint = '/api/v1/auth/reset/complete';
+    expect((await request(app).post(endpoint).set('Origin', origin).send({ requestId: reset.requestId, code: reset.code, password: 'seven12' })).status).toBe(400);
+    expect((await request(app).post(endpoint).set('Origin', origin).send({ requestId: reset.requestId, code: reset.code, password: 'reset123' })).status).toBe(204);
+    expect((await login('reset123')).status).toBe(200);
+  });
   it('protects all API families and private assets while keeping health public', async () => {
     for (const path of ['layouts', 'customers', 'settings', 'libraries', 'curated-libraries', 'favorites', 'images/private.jpg', 'thumbnails/private.png', 'generation/events', 'ref-images', 'user-stls', 'bom']) {
       expect((await request(app).get(`/api/v1/${path}`)).status, path).toBe(401);

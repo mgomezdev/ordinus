@@ -9,7 +9,12 @@ export function AdminAuth({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const session = useQuery({
     queryKey: ['admin-session'], queryFn: () => apiFetch<{ username: string }>('/auth/session'),
-    retry: false, refetchInterval: 30_000, refetchOnWindowFocus: true,
+    // Poll only an established session. Retrying an anonymous session temporarily
+    // enters the loading state and unmounts an in-progress password reset form.
+    retry: false,
+    refetchInterval: query => query.state.data ? 30_000 : false,
+    refetchOnWindowFocus: query => Boolean(query.state.data),
+    refetchOnReconnect: query => Boolean(query.state.data),
   });
   useEffect(() => {
     const expired = () => {
@@ -73,8 +78,8 @@ function AdminSignIn({ onSignedIn }: { onSignedIn: () => void }) {
       <form onSubmit={event => void submit(event)}>
         {mode === 'login' && <label>Username<input name="username" value="admin" autoComplete="username" readOnly /></label>}
         {mode === 'reset' && <label>Reset code<input value={code} onChange={event => setCode(event.target.value)} autoComplete="one-time-code" required maxLength={100} /></label>}
-        {mode !== 'request' && <label>{mode === 'login' ? 'Password' : 'New password'}<input type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} minLength={mode === 'reset' ? 12 : undefined} maxLength={256} required /></label>}
-        {mode === 'reset' && <><p>Use 12 to 256 characters.</p><label>Confirm password<input type="password" value={confirm} onChange={event => setConfirm(event.target.value)} autoComplete="new-password" minLength={12} maxLength={256} required /></label></>}
+        {mode !== 'request' && <label>{mode === 'login' ? 'Password' : 'New password'}<input type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} minLength={mode === 'reset' ? 8 : undefined} maxLength={256} required /></label>}
+        {mode === 'reset' && <><p>Use 8 to 256 characters.</p><label>Confirm password<input type="password" value={confirm} onChange={event => setConfirm(event.target.value)} autoComplete="new-password" minLength={8} maxLength={256} required /></label></>}
         {error && <p role="alert">{error}</p>}
         <button type="submit" className="admin-auth-primary" disabled={pending}>{pending ? 'Please wait…' : mode === 'login' ? 'Sign in' : mode === 'request' ? 'Request reset code' : 'Reset password'}</button>
         <button type="button" disabled={pending} onClick={() => { setMode(mode === 'login' ? 'request' : 'login'); setPassword(''); setConfirm(''); setCode(''); setError(''); setMessage(''); }}>{mode === 'login' ? 'Reset admin password' : 'Back to sign in'}</button>

@@ -151,7 +151,7 @@ Ordinus requires one owner login with username **admin**. There is no default
 password and no public registration. Existing layouts, libraries, and customer
 records remain intact; customer profiles are not login accounts.
 
-Before first login, provision a password of 12 to 256 characters through one of
+Before first login, provision a password of 8 to 256 characters through one of
 these private administration paths:
 
 - Set `ADMIN_SETUP_PASSWORD_FILE` to a privately mounted file containing the

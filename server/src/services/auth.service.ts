@@ -13,7 +13,7 @@ const SCRYPT_OPTIONS = { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
 const activeStreams = new Map<string, Set<() => void>>();
 export function hashToken(value: string): string { return createHash('sha256').update(value).digest('hex'); }
 export function validatePassword(password: string): void {
-  if (password.length < 12 || password.length > 256) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Password must contain 12 to 256 characters');
+  if (password.length < 8 || password.length > 256) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Password must contain 8 to 256 characters');
 }
 async function hashPassword(password: string): Promise<string> {
   validatePassword(password);
