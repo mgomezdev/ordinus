@@ -1,74 +1,33 @@
-import { rm, mkdir } from 'fs/promises';
+import { chromium, expect } from '@playwright/test';
+import type { FullConfig } from '@playwright/test';
 import { E2E_CUSTOMERS, SAMPLE_LAYOUT } from './seed.js';
 
-const TEST_IMAGE_DIR = '/tmp/gridfinity-e2e-images';
-const SERVER_URL = process.env.ORDINUS_URL ?? 'http://localhost:3001';
-
-export default async function globalSetup(): Promise<void> {
-  await rm(TEST_IMAGE_DIR, { recursive: true, force: true });
-  await mkdir(TEST_IMAGE_DIR, { recursive: true });
-  await seedTestData();
-}
-
-async function post(path: string, body: unknown): Promise<Response> {
-  return fetch(`${SERVER_URL}/api/v1${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-}
-
-async function seedTestData(): Promise<void> {
-  // Seed known customers so E2E tests have stable entities to reference.
-  const existingResp = await fetch(`${SERVER_URL}/api/v1/customers`);
-  if (!existingResp.ok) return; // server not ready — skip seed gracefully
-  const existing: { data: { name: string }[] } = await existingResp.json();
-  const existingNames = new Set(existing.data.map((c) => c.name));
-
-  for (const customer of E2E_CUSTOMERS) {
-    if (!existingNames.has(customer.name)) {
-      await post('/customers', customer);
+export default async function globalSetup(config: FullConfig): Promise<void> {
+  const project = config.projects[0];
+  const browser = await chromium.launch();
+  try {
+    const context = await browser.newContext({ baseURL: project.use.baseURL, extraHTTPHeaders: { 'X-Ordinus-Request': '1' } });
+    const page = await context.newPage();
+    await page.goto('/');
+    await page.getByLabel('Password', { exact: true }).fill(process.env.ORDINUS_E2E_ADMIN_PASSWORD!);
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible();
+    await context.storageState({ path: project.use.storageState as string });
+    const api = context.request;
+    const existing = await (await api.get('/api/v1/customers')).json() as { data: { name: string }[] };
+    for (const customer of E2E_CUSTOMERS) {
+      if (!existing.data.some(c => c.name === customer.name)) expect((await api.post('/api/v1/customers', { data: customer })).ok()).toBe(true);
     }
-  }
-
-  // Seed one sample layout using the first available library item.
-  // The server auto-seeds library data on boot, so this is always available.
-  const libsResp = await fetch(`${SERVER_URL}/api/v1/libraries`);
-  if (!libsResp.ok) return;
-  const libs: { data: { id: string }[] } = await libsResp.json();
-  if (!libs.data.length) return;
-
-  const libraryId = libs.data[0].id;
-  const itemsResp = await fetch(`${SERVER_URL}/api/v1/libraries/${libraryId}/items`);
-  if (!itemsResp.ok) return;
-  const items: { data: { id: string; widthUnits: number; heightUnits: number }[] } =
-    await itemsResp.json();
-  if (!items.data.length) return;
-
-  const item = items.data[0];
-
-  // Only create the layout if it doesn't exist yet (idempotent across test runs
-  // where the server persists between suites without a restart).
-  const layoutsResp = await fetch(`${SERVER_URL}/api/v1/layouts`);
-  if (!layoutsResp.ok) return;
-  const layouts: { data: { name: string }[] } = await layoutsResp.json();
-  const layoutNames = new Set(layouts.data.map((l) => l.name));
-
-  if (!layoutNames.has(SAMPLE_LAYOUT.name)) {
-    await post('/layouts', {
-      ...SAMPLE_LAYOUT,
-      placedItems: [
-        {
-          libraryId,
-          itemId: item.id,
-          x: 0,
-          y: 0,
-          width: item.widthUnits,
-          height: item.heightUnits,
-          rotation: 0,
-          quantity: 1,
-        },
-      ],
-    });
-  }
+    const layouts = await (await api.get('/api/v1/layouts')).json() as { data: { name: string }[] };
+    if (!layouts.data.some(l => l.name === SAMPLE_LAYOUT.name)) {
+      const libs = await (await api.get('/api/v1/libraries')).json() as { data: { id: string }[] };
+      const libraryId = libs.data[0]?.id;
+      if (!libraryId) throw new Error('Test server has no seeded libraries');
+      const items = await (await api.get(`/api/v1/libraries/${libraryId}/items`)).json() as { data: { id: string; widthUnits: number; heightUnits: number }[] };
+      const item = items.data[0];
+      if (!item) throw new Error('Test library has no items');
+      const response = await api.post('/api/v1/layouts', { data: { ...SAMPLE_LAYOUT, placedItems: [{ itemId: `${libraryId}:${item.id}`, x: 0, y: 0, width: item.widthUnits, height: item.heightUnits, rotation: 0 }] } });
+      expect(response.ok()).toBe(true);
+    }
+  } finally { await browser.close(); }
 }

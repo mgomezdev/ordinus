@@ -7,6 +7,7 @@ import { CustomerProvider } from './contexts/CustomerContext'
 import './index.css'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { AdminAuth } from './components/AdminAuth'
 
 const queryClient = createQueryClient()
 
@@ -14,11 +15,13 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <CustomerProvider>
-          <DataSourceProvider>
-            <App />
-          </DataSourceProvider>
-        </CustomerProvider>
+        <AdminAuth>
+          <CustomerProvider>
+            <DataSourceProvider>
+              <App />
+            </DataSourceProvider>
+          </CustomerProvider>
+        </AdminAuth>
       </QueryClientProvider>
     </ErrorBoundary>
   </StrictMode>,

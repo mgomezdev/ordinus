@@ -19,6 +19,8 @@ import thumbnailsRoutes from './routes/thumbnails.routes.js';
 import customersRoutes from './routes/customers.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
 import curatedLibrariesRoutes from './routes/curatedLibraries.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import { checkMutationOrigin, requireAdmin } from './middleware/adminAuth.js';
 
 export function createApp(): express.Express {
   const app = express();
@@ -48,12 +50,18 @@ export function createApp(): express.Express {
     }),
   );
 
-  // Image routes (before rate limiter — read-only static assets, no auth)
+  // Only health and authentication are public. This boundary includes images,
+  // downloads, settings, and future API routes, not just the workspace UI.
+  app.use('/api/v1', healthRoutes);
+  app.use('/api/v1', checkMutationOrigin);
+  app.use('/api/v1/auth', authRoutes);
+  app.use('/api/v1', requireAdmin);
+
+  // Private assets are never shared-cacheable.
   app.use('/api/v1/images', imagesRoutes);
   app.use('/api/v1/thumbnails', thumbnailsRoutes);
 
   // Routes
-  app.use('/api/v1', healthRoutes);
   app.use('/api/v1/libraries', librariesRoutes);
   app.use('/api/v1/curated-libraries', curatedLibrariesRoutes);
   app.use('/api/v1/categories', categoriesRoutes);

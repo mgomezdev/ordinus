@@ -23,7 +23,7 @@ import { MobileActionBar } from '../components/MobileActionBar';
 import { SimpleLibraryPanel } from '../components/simple/SimpleLibraryPanel';
 import type { DrawnFootprint } from '../components/simple/DrawFootprint';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3001/api/v1';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api/v1';
 
 function imageUrlFor(path: string | null | undefined): string | null {
   return path ? `${API_BASE_URL}/images/${path}` : null;

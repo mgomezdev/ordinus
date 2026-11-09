@@ -9,7 +9,7 @@
 #      The app starts with an empty library if none are provided.
 #   4. docker compose up -d
 #   5. Open http://localhost:8080  (first boot seeds the database — may take a few seconds)
-#      Default login: admin@gridfinity.local / admin
+#      Provision the admin password privately first (see README). No default password.
 #
 # To update to a newer release:
 #   docker compose pull && docker compose up -d

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import request from 'supertest';
+import request, { authenticateTestAdmin } from './adminRequest.js';
 import pino from 'pino';
 
 // Mock the connection module to use in-memory DB
@@ -11,7 +11,7 @@ vi.mock('../src/db/connection.js', async () => {
   const client = createClient({ url: ':memory:' });
   const db = drizzle(client, { schema });
 
-  return { db, client };
+  return { db, client, authClient: client };
 });
 
 // Mock the logger with a real pino instance (silent) so pino-http works
@@ -101,6 +101,7 @@ describe('Library endpoints', () => {
     await runMigrations(testClient);
     await seedTestData();
     app = createApp();
+    await authenticateTestAdmin(app);
   });
 
   afterAll(() => {

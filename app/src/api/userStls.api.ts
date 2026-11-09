@@ -1,10 +1,11 @@
+import { authenticatedFetch } from './apiClient';
 import type { ApiUserStl } from '@gridfinity/shared';
 
 const API_BASE = '/api/v1/user-stls';
 
 async function userStlFetch(path: string, init?: RequestInit): Promise<Response> {
   const isMultipart = init?.body instanceof FormData;
-  const res = await fetch(path, {
+  const res = await authenticatedFetch(path, {
     ...init,
     credentials: 'include',
     headers: {

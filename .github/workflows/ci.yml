@@ -146,6 +146,9 @@ jobs:
       - run: npm run test:e2e
         env:
           CI: "true"
+          # Optional dedicated test secret; absent on fork PRs, Playwright
+          # generates a random password for its disposable local database.
+          ORDINUS_E2E_ADMIN_PASSWORD: ${{ secrets.ORDINUS_E2E_ADMIN_PASSWORD }}
       - uses: actions/upload-artifact@v7
         if: failure()
         with:

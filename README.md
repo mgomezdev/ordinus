@@ -145,6 +145,73 @@ Click **Export PDF** to download a print-ready summary with:
 
 ## Development Setup
 
+### Owner login and recovery
+
+Ordinus requires one owner login with username **admin**. There is no default
+password and no public registration. Existing layouts, libraries, and customer
+records remain intact; customer profiles are not login accounts.
+
+Before first login, provision a password of 12 to 256 characters through one of
+these private administration paths:
+
+- Set `ADMIN_SETUP_PASSWORD_FILE` to a privately mounted file containing the
+  password before starting the server. Startup reads it only when an admin does
+  not exist. Remove the bootstrap file after provisioning. Restarts never replace
+  an existing password with the bootstrap value.
+- Pipe the password on standard input to `npm run admin:setup --workspace=server`
+  in a local checkout, or `node server/dist/admin-setup.js` in the container.
+  Use the same `DB_PATH` as the running deployment. Stop the server while using
+  the standalone setup command. Do not pass the password as a command argument.
+  The command refuses to replace an existing account.
+
+Set `CORS_ORIGIN` and `PUBLIC_URL` to the exact browser origin. Prefer the normal
+same-origin `/api/v1` proxy. Production cookies require HTTPS by default. For an
+explicitly local HTTP installation, set `AUTH_COOKIE_SECURE=false`; use secure
+cookies when publishing through HTTPS. Owner sessions expire after 12 hours.
+
+For a forgotten password, select **Reset admin password**, request a code, and
+find the `admin_password_reset_code` event in server/container logs. Match its
+request reference to the page. Enter that code and the new password. Codes expire
+after 10 minutes, allow at most five attempts, and are invalidated after one
+successful use. Requesting another code does not cancel an earlier unexpired
+code. Issuance is limited to three requests per 15 minutes for the single admin.
+Successful reset invalidates all owner sessions, including open event streams,
+and requires signing in again. It preserves saved data.
+
+Access to deployment logs is the password-recovery authority. The dedicated reset
+event intentionally includes the usable code and is emitted even at restrictive
+configured log levels. Passwords, session cookies, and reset codes are never
+included in HTTP responses. Keep logs private to deployment administrators.
+
+All ordinary APIs, private assets, downloads, settings, and generation streams
+require the owner session. Browser mutations validate the request Origin.
+Non-browser clients must log in, retain the session cookie, and include
+`X-Ordinus-Request: 1` on mutations. Health endpoints remain public.
+
+### Authenticated end-to-end tests
+
+`npm run test:e2e` runs a separate disposable stack on ports **5187** (UI) and
+**3017** (API), using an in-memory database. It never reuses a running development
+server. Playwright provisions an admin through `ADMIN_SETUP_PASSWORD_FILE`, signs
+in through the actual UI, and reuses authenticated storage state for feature tests.
+
+Set `ORDINUS_E2E_ADMIN_PASSWORD` to provide a private test credential, including
+through the CI secret of the same name. When omitted for local tests or fork PRs,
+the harness generates a fresh random password. Credentials/storage state live
+under ignored `app/e2e/.auth/` and are removed on teardown; do not upload that
+directory as an artifact. Anonymous tests use clean browser contexts. Reset tests
+launch a separate temporary, file-backed API on **3018** to test revocation and
+restart persistence without signing out other tests. Auth/reset tests disable
+trace, video, and screenshot artifacts containing recovery input.
+
+For Docker E2E, use a dedicated disposable test deployment, provision its admin
+privately first, and supply the matching `ORDINUS_E2E_ADMIN_PASSWORD`.
+External integration harnesses must provision a test admin and log in with a
+cookie before configuring settings or submitting layouts. Anonymous integration
+calls are no longer supported. Concordia maintains its own integration; its
+future adaptation is tracked separately in
+[BIZ-374](https://linear.app/deviant-mushroom/issue/BIZ-374/concordia-update-ordinus-integration-tests-for-admin-authentication).
+
 **Prerequisites:** Node.js 20+, npm 10+
 
 ```bash

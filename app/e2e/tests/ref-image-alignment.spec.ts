@@ -10,11 +10,9 @@ import { pointerDragDrop, dragToGridCell } from '../utils/drag-drop';
  * server so the warp endpoint and layout persistence are exercised end to end.
  */
 
-const API_BASE = process.env.TARGET === 'docker'
-  ? 'http://localhost:32888/api/v1'
-  : 'http://localhost:3001/api/v1';
+const API_BASE = '/api/v1';
 
-// nginx caches image 200s for 24h in docker; a unique query forces a cache miss.
+// Keep repeated image checks distinct; authenticated image responses are no-store.
 const imageUrl = (path: string) => `${API_BASE}/images/${path}?nocache=${Date.now()}`;
 
 type NormPoint = { x: number; y: number };

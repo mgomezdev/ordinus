@@ -13,6 +13,7 @@ import { calculateOrderTotal } from './utils/exportOrderSummaryPdf';
 import type { ServiceStatus } from './api/settings.api.js';
 import './App.css';
 import './AppShell.css';
+import { useAdminSession } from './contexts/AdminSession';
 
 function ServiceBubble({ name, status }: { name: string; status: ServiceStatus }) {
   const dot = status === 'up' ? '#22c55e' : status === 'down' ? '#ef4444' : 'var(--text-tertiary, #6b7280)';
@@ -26,6 +27,8 @@ function ServiceBubble({ name, status }: { name: string; status: ServiceStatus }
 
 // Inner shell reads from context (must be inside WorkspaceProvider)
 function AppShellInner() {
+  const admin = useAdminSession();
+  const [signOutError, setSignOutError] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { health } = useSettings();
   const {
@@ -98,6 +101,8 @@ function AppShellInner() {
             </div>
           )}
           <CustomerSelector />
+          {admin && <button type="button" onClick={() => void admin.signOut().catch(() => setSignOutError('Could not sign out. Try again.'))}>Sign out</button>}
+          {signOutError && <span role="alert">{signOutError}</span>}
           <button
             className="keyboard-help-button"
             onClick={() => dialogDispatch({ type: 'OPEN', dialog: 'keyboard' })}

@@ -17,7 +17,7 @@ Ordinus is a web application for customizing Gridfinity modular storage system c
 - **Data Fetching**: TanStack Query v5
 - **Backend**: Express + TypeScript (Node 24)
 - **Database**: SQLite via `@libsql/client` + drizzle-orm
-- **Auth**: Customer profiles (no password auth — JWT/Argon2 removed)
+- **Auth**: One privately provisioned admin account, scrypt password hashing, revocable database sessions, and one-time password-reset codes delivered through server logs. Customer profiles are business records, not identities.
 - **Image Processing**: `sharp` (server), `html2canvas` (client)
 - **PDF Generation**: jspdf + jspdf-autotable
 - **Unit Testing**: Vitest + React Testing Library
@@ -128,6 +128,7 @@ server/src/
 ```
 
 - API prefix: `/api/v1/`
+- Only health and `/auth` entry/recovery endpoints are public. Owner authorization protects every ordinary API and private asset route. Mutation requests require a permitted Origin, or `X-Ordinus-Request: 1` for non-browser clients without an Origin. Authentication rate limits remain active in test mode; never add a test login bypass.
 - Endpoints: `libraries`, `items`, `categories`, `images`, `layouts`, `favorites`, `generation`, `customers`, `refImages`, `userStls`, `thumbnails`, `settings`, `health`, `bom`
 - Logger: pino + pino-http. Tests mock logger with `pino({ level: 'silent' })` (NOT a plain object — pino-http requires a real pino instance)
 - Drizzle `COUNT(*)` subqueries can fail with libsql; use a separate GROUP BY query + Map instead
@@ -233,6 +234,7 @@ Before merging into `develop` or `main`:
 ## Key Files
 
 ### Frontend
+- `app/src/components/AdminAuth.tsx` — login/reset flow and session gate outside private providers
 - `app/src/components/GridPreview.tsx` — Main grid rendering and drop target
 - `app/src/components/GridViewport.tsx` — Viewport with zoom/pan
 - `app/src/hooks/useGridItems.ts` — Placed item state management
@@ -252,6 +254,8 @@ Before merging into `develop` or `main`:
 - After updating it: sync `PARAM_REGISTRY` (`generator/generate_bin.py`) and `GENERATOR_PARAM_SCHEMA` to the new parameter names/defaults, then run `generator/regression/compare_geometry.py` (see its docstring) against the previous scad
 
 ### Backend
+- `server/src/services/auth.service.ts` — password/session/reset lifecycle; auth uses a separate connection for persistent databases so layout transactions cannot roll back authentication changes
+- `server/src/admin-setup.ts` — private initial provisioning from stdin; startup also supports `ADMIN_SETUP_PASSWORD_FILE` when no admin exists
 - `server/src/index.ts` — Express app entry point
 - `server/src/db/schema.ts` — drizzle-orm database schema
 - `server/src/db/connection.ts` — drizzle client (use this, not the removed client.ts shim)

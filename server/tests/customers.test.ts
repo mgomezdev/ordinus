@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest';
-import request from 'supertest';
+import request, { authenticateTestAdmin } from './adminRequest.js';
 import pino from 'pino';
 
 vi.mock('../src/db/connection.js', async () => {
@@ -8,7 +8,7 @@ vi.mock('../src/db/connection.js', async () => {
   const schema = await import('../src/db/schema.js');
   const client = createClient({ url: ':memory:' });
   const db = drizzle(client, { schema });
-  return { db, client };
+  return { db, client, authClient: client };
 });
 
 vi.mock('../src/logger.js', () => ({
@@ -41,6 +41,7 @@ beforeAll(async () => {
   );
   refImageId = Number(ref.rows[0].id);
   app = createApp();
+    await authenticateTestAdmin(app);
 });
 
 describe('customers API', () => {

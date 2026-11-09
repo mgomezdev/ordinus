@@ -9,6 +9,7 @@ import * as m007 from './migrations/007_favorites_custom_spec.js';
 import * as m008 from './migrations/008_custom_spec_generator_params.js';
 import * as m009 from './migrations/009_drop_shared_projects.js';
 import * as m010 from './migrations/010_curated_libraries.js';
+import * as m011 from './migrations/011_admin_auth.js';
 
 interface Migration {
   version: number;
@@ -17,7 +18,7 @@ interface Migration {
   down: (client: Client) => Promise<void>;
 }
 
-const MIGRATIONS: Migration[] = [m001, m002, m003, m004, m005, m006, m007, m008, m009, m010].sort((a, b) => a.version - b.version);
+const MIGRATIONS: Migration[] = [m001, m002, m003, m004, m005, m006, m007, m008, m009, m010, m011].sort((a, b) => a.version - b.version);
 
 async function ensureTable(client: Client): Promise<void> {
   await client.execute(`

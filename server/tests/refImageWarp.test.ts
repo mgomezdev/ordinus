@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { rmSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import request from 'supertest';
+import request, { authenticateTestAdmin } from './adminRequest.js';
 import pino from 'pino';
 import sharp from 'sharp';
 
@@ -36,7 +36,7 @@ vi.mock('../src/db/connection.js', async () => {
   const schema = await import('../src/db/schema.js');
   const client = createClient({ url: ':memory:' });
   const db = drizzle(client, { schema });
-  return { db, client };
+  return { db, client, authClient: client };
 });
 
 vi.mock('../src/logger.js', () => ({
@@ -84,6 +84,7 @@ describe('POST /api/v1/ref-images/:id/warp', () => {
     });
     refImageId = Number(inserted.rows[0].id);
     app = createApp();
+    await authenticateTestAdmin(app);
   });
 
   it.each([
@@ -145,8 +146,9 @@ describe('POST /api/v1/ref-images/:id/warp', () => {
 describe('layouts persist alignment data', () => {
   let app: ReturnType<typeof createApp>;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     app = createApp();
+    await authenticateTestAdmin(app);
   });
 
   it('saves and reloads corners and the warped image alongside the original', async () => {
