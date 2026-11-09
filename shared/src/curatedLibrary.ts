@@ -60,24 +60,53 @@ function combinations(entry: ParametricCuratedEntry, selected: Record<string, st
 }
 
 export function matchCuratedEntry(entry: CuratedEntry, width: number, depth: number, selected: Record<string, string> = {}, accepts: (match: CuratedMatch) => boolean = () => true): CuratedMatch | null {
-  if (!validSize(width) || !validSize(depth)) return null;
+  return assessCuratedEntry(entry, width, depth, selected, accepts).match;
+}
+
+function describeAxis(axis: CuratedAxis): string {
+  if ('fixed' in axis) return String(axis.fixed);
+  if ('values' in axis) return axis.values.join(', ');
+  return `${axis.min}–${axis.max} in steps of ${axis.step}`;
+}
+
+/** Explain the same constraints used for placement, including both possible orientations. */
+export function assessCuratedEntry(entry: CuratedEntry, width: number, depth: number, selected: Record<string, string> = {}, accepts: (match: CuratedMatch) => boolean = () => true,
+  rejectionReason = 'This bin cannot be placed at this position.'): { match: CuratedMatch | null; reasons: string[] } {
+  const unsupported = (reasons: string[]) => ({ match: null, reasons });
+  if (!validSize(width) || !validSize(depth)) return unsupported(['Width and depth must be 0.5–20 grid units in half-grid steps.']);
+  const reasons = new Set<string>();
+  let axesFit = false;
   for (const rotation of [0, 90] as const) {
     const w = rotation === 0 ? width : depth;
     const d = rotation === 0 ? depth : width;
     if (entry.kind === 'fixed') {
-      if (entry.width === w && entry.depth === d && accepts({ rotation })) return { rotation };
+      if (entry.width === w && entry.depth === d) {
+        axesFit = true;
+        if (accepts({ rotation })) return { match: { rotation }, reasons: [] };
+        reasons.add(rejectionReason);
+      }
       continue;
     }
     if (entry.generator !== 'basic-cup' || !axisAllows(entry.width, w) || !axisAllows(entry.depth, d)) continue;
+    axesFit = true;
     for (const combination of combinations(entry, selected)) {
       const { values, choices } = combination;
       if ((own(values, 'width') && values.width !== w) || (own(values, 'depth') && values.depth !== d)) continue;
       const spec = makeSpec(values, w, d);
       const match = { rotation, spec, choices };
-      if (validateCustomBinSpec(spec).ok && accepts(match)) return match;
+      const validation = validateCustomBinSpec(spec);
+      if (!validation.ok) {
+        validation.errors.forEach(error => reasons.add(error.startsWith('half-unit')
+          ? 'Half-grid steps are not supported by these options. Choose a half-grid preset or use whole-unit dimensions and positions.'
+          : error));
+      } else if (accepts(match)) return { match, reasons: [] };
+      else reasons.add(rejectionReason);
     }
   }
-  return null;
+  if (!axesFit) return unsupported([entry.kind === 'fixed'
+    ? `Width × depth not supported: this bin requires ${entry.width} × ${entry.depth} grid units (rotation allowed).`
+    : `Width × depth not supported: width: ${describeAxis(entry.width)}; depth: ${describeAxis(entry.depth)} grid units (rotation allowed).`]);
+  return unsupported(reasons.size ? [...reasons] : [`These presets do not support the ${width} × ${depth} footprint. Choose different options or draw a different size.`]);
 }
 
 /** Runtime validation is shared by the authoring UI and API; never trust saved JSON as a type assertion. */

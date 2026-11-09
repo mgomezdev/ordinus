@@ -64,7 +64,7 @@ Choose **Simple** in the workspace for a focused drawer-planning workflow. Creat
 
 Use **Add named option** to expose friendly choices such as Short, Medium, and Tall. Each choice can map multiple inputs, including height and generator settings. The initial height examples are editable. Height uses 7 mm units; footprint width/depth use 42 mm grid units. Collections reference existing models without copying their files and persist on the server.
 
-Select the library, click **Draw bin**, and drag a rectangle in either direction. Alternatively, expand **Enter a rectangle with the keyboard** to enter its origin and dimensions in grid units. Choose a compatible bin and named options, then **Place bin**. Fixed bins match in either orientation; incompatible bins are filtered out. Escape or Cancel discards the rectangle. Existing placed bins are retained when switching between Simple and Advanced, and resolved parametric settings remain part of saved layouts even if the library later changes.
+Select the library, click **Draw bin**, and drag a rectangle in either direction. Alternatively, expand **Enter a rectangle with the keyboard** to enter its origin and dimensions in grid units. Choose a compatible bin and named options, then **Place bin**. Fixed bins match in either orientation. Incompatible bins and presets remain visible as **Unsupported**; select one to see why (size limits, preset restrictions, half-grid support, or an unavailable source). Unsupported selections cannot be placed. Escape or Cancel discards the rectangle. Existing placed bins are retained when switching between Simple and Advanced, and resolved parametric settings remain part of saved layouts even if the library later changes.
 
 ### 1. Set your grid size
 

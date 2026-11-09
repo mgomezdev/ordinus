@@ -36,7 +36,12 @@ test('draws in reverse under zoom and places a rotated fixed bin', async ({ page
   await page.getByRole('button', { name: 'Zoom in' }).click();
   await simple.draw(0, 0, 2, 3, true);
   await expect(simple.panel.getByRole('heading', { name: '2 × 3 footprint' })).toBeVisible();
-  await expect(simple.panel.getByLabel('Choose a bin').getByRole('option', { name: 'Wrong size' })).toHaveCount(0);
+  await expect(simple.panel.getByLabel('Choose a bin').getByRole('option', { name: 'Wrong size (Unsupported)' })).toHaveCount(1);
+  await simple.panel.getByLabel('Choose a bin').selectOption('wrong');
+  await expect(simple.panel.getByText(/Width × depth not supported/)).toBeVisible();
+  await expect(simple.panel.getByRole('button', { name: 'Place bin' })).toBeDisabled();
+  await page.screenshot({ path: testInfo.outputPath('unsupported-size.png'), fullPage: true });
+  await simple.panel.getByLabel('Choose a bin').selectOption('fixed');
   await expect(simple.panel.getByText('This bin will be rotated to fit.')).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('simple-picker.png'), fullPage: true });
   await simple.panel.getByRole('button', { name: 'Place bin' }).click();
@@ -48,6 +53,32 @@ test('draws in reverse under zoom and places a rotated fixed bin', async ({ page
   await expect(placed).toHaveCount(1);
   await page.getByRole('button', { name: 'Simple', exact: true }).click();
   await expect(placed).toHaveCount(1);
+});
+
+test('explains half-grid restrictions on bins and named presets', async ({ page, simple, request, library }, testInfo) => {
+  const cup = library.entries[2];
+  if (cup.kind !== 'parametric') throw new Error('Expected parametric fixture');
+  const axes = { width: { min: 1, max: 20, step: 0.5 }, depth: { min: 1, max: 20, step: 0.5 } };
+  const wholeOnly = { ...cup, ...axes, id: 'whole', name: 'Whole-grid bin', defaults: { sub_pitch: 1 }, groups: [] };
+  const presets = { ...cup, ...axes, groups: [{ id: 'base', name: 'Base', choices: [
+    { id: 'half', name: 'Half-grid', values: { sub_pitch: 2 } },
+    { id: 'whole', name: 'Whole-grid', values: { sub_pitch: 1 } },
+  ] }] };
+  expect((await request.put(`/api/v1/curated-libraries/${library.id}`, { data: { ...library, entries: [wholeOnly, presets] } })).ok()).toBe(true);
+  await page.reload();
+  await simple.panel.getByLabel('Bin library').selectOption(library.id);
+  await simple.keyboardRectangle(0.5, 0, 1.5, 2);
+  await simple.panel.getByLabel('Choose a bin').selectOption('whole');
+  await expect(simple.panel.getByText(/Half-grid steps are not supported/)).toBeVisible();
+  await expect(simple.panel.getByRole('button', { name: 'Place bin' })).toBeDisabled();
+  await simple.panel.getByLabel('Choose a bin').selectOption('cup');
+  await expect(simple.panel.getByRole('button', { name: 'Place bin' })).toBeEnabled();
+  await simple.panel.getByRole('combobox', { name: 'Base', exact: true }).selectOption('whole');
+  await expect(simple.panel.getByText(/Half-grid steps are not supported/)).toBeVisible();
+  await expect(simple.panel.getByRole('button', { name: 'Place bin' })).toBeDisabled();
+  await page.screenshot({ path: testInfo.outputPath('unsupported-half-grid.png'), fullPage: true });
+  await simple.panel.getByRole('combobox', { name: 'Base', exact: true }).selectOption('half');
+  await expect(simple.panel.getByRole('button', { name: 'Place bin' })).toBeEnabled();
 });
 
 test('rejects overlap and bounds, supports cancel, and explains no matches', async ({ page, simple, request, library }) => {

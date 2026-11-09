@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { GRID_RESOLUTION, matchCuratedEntry } from '@gridfinity/shared';
+import { GRID_RESOLUTION, assessCuratedEntry } from '@gridfinity/shared';
 import type { CuratedEntry, CuratedLibrary } from '@gridfinity/shared';
 import { useCuratedLibraries } from '../../hooks/useCuratedLibraries';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -32,13 +32,18 @@ export function SimpleLibraryPanel({ width, isMobile, isOpen, selection, valid, 
     const source = getItemById(e.sourceId);
     return source && source.isActive !== false && source.widthUnits === e.width && source.heightUnits === e.depth;
   };
-  const matching = (e: CuratedEntry, selected: Record<string, string> = {}) => selection ? matchCuratedEntry(e, selection.width / GRID_RESOLUTION, selection.depth / GRID_RESOLUTION, selected, resolved => !violatesHalfGrid({
+  const compatibility = (e: CuratedEntry, selected: Record<string, string> = {}) => {
+    if (!sourceAvailable(e)) return { match: null, reasons: ['The source bin is unavailable or its dimensions have changed. Edit this library to replace it.'] };
+    return selection ? assessCuratedEntry(e, selection.width / GRID_RESOLUTION, selection.depth / GRID_RESOLUTION, selected, resolved => !violatesHalfGrid({
     x: selection.x, y: selection.y, width: selection.width, height: selection.depth,
     customSpec: resolved.spec, parameters: e.kind === 'fixed' ? getItemById(e.sourceId)?.parameters : undefined,
-  })) : null;
-  const compatible = library?.entries.filter(e => sourceAvailable(e) && matching(e)) ?? [];
-  const entry = compatible.find(e => e.id === entryId) ?? compatible[0];
-  const match = entry ? matching(entry, choices) : null;
+    }), 'Half-grid steps are not supported by these options. Choose a half-grid preset or use whole-unit dimensions and positions.') : { match: null, reasons: [] };
+  };
+  const entries = library?.entries.map(entry => ({ entry, ...compatibility(entry) })) ?? [];
+  const compatible = entries.filter(e => e.match);
+  const entry = entries.find(e => e.entry.id === entryId)?.entry ?? compatible[0]?.entry ?? entries[0]?.entry;
+  const assessment = entry ? compatibility(entry, choices) : { match: null, reasons: [] };
+  const match = assessment.match;
   const chosen = match?.choices ?? choices;
   const place = async () => {
     if (!entry || !selection || !valid || !match || busy || placementPending.current) return;
@@ -89,14 +94,15 @@ export function SimpleLibraryPanel({ width, isMobile, isOpen, selection, valid, 
           {selection && <>
             <h3>{selection.width / GRID_RESOLUTION} × {selection.depth / GRID_RESOLUTION} footprint</h3>
             {!valid && <p role="alert" className="simple-error">Choose an empty rectangle inside the grid.</p>}
-            {compatible.length ? <>
-              <label>Choose a bin<select disabled={busy} value={entry?.id ?? ''} onChange={e => { setEntryId(e.target.value); setChoices({}); setError(null); }}>{compatible.map(e => <option value={e.id} key={e.id}>{e.name}</option>)}</select></label>
+            {!compatible.length && <p role="status">No bins in this library fit this rectangle. Select a bin to see why, draw a different size or choose another library.</p>}
+            {entry && <>
+              <label>Choose a bin<select disabled={busy} value={entry.id} onChange={e => { setEntryId(e.target.value); setChoices({}); setError(null); }}>{entries.map(({ entry: e, match }) => <option value={e.id} key={e.id}>{e.name}{!match ? ' (Unsupported)' : ''}</option>)}</select></label>
               {entry?.kind === 'parametric' && entry.groups.map(group => <label key={group.id}>{group.name}<select disabled={busy} value={chosen[group.id] ?? ''} onChange={e => setChoices({ ...chosen, [group.id]: e.target.value })}>
-                {group.choices.map(choice => <option key={choice.id} value={choice.id} disabled={!matching(entry, { ...chosen, [group.id]: choice.id })}>{choice.name}</option>)}
+                {group.choices.map(choice => <option key={choice.id} value={choice.id}>{choice.name}{!compatibility(entry, { ...chosen, [group.id]: choice.id }).match ? ' (Unsupported)' : ''}</option>)}
               </select></label>)}
               {match?.rotation === 90 && <p className="simple-help">This bin will be rotated to fit.</p>}
-              {!match && <p role="alert" className="simple-error">These options do not fit. Choose the bin again to reset its options.</p>}
-              <button type="button" disabled={busy || !valid || !match} onPointerDown={() => { touchActivated.current = false; }} onClick={e => {
+              {!match && <div id="simple-unsupported-reasons" role="status"><strong>Unsupported</strong><ul>{assessment.reasons.map(reason => <li key={reason}>{reason}</li>)}</ul></div>}
+              <button type="button" disabled={busy || !valid || !match} aria-describedby={!match ? 'simple-unsupported-reasons' : undefined} onPointerDown={() => { touchActivated.current = false; }} onClick={e => {
                 if (!touchActivated.current || e.detail === 0) void place();
                 touchActivated.current = false;
               }} onPointerUp={e => {
@@ -109,7 +115,7 @@ export function SimpleLibraryPanel({ width, isMobile, isOpen, selection, valid, 
                   void place();
                 }
               }}>{busy ? 'Placing…' : 'Place bin'}</button>
-            </> : <p role="status">No bins in this library fit this rectangle. Draw a different size or choose another library.</p>}
+            </>}
           </>}
         </>}
         {error && <p role="alert" className="simple-error">{error}</p>}
