@@ -21,6 +21,8 @@ import settingsRoutes from './routes/settings.routes.js';
 import curatedLibrariesRoutes from './routes/curatedLibraries.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import { checkMutationOrigin, requireAdmin } from './middleware/adminAuth.js';
+import guestPreviewRoutes from './routes/guestPreview.routes.js';
+import guestLinksRoutes from './routes/guestLinks.routes.js';
 
 export function createApp(): express.Express {
   const app = express();
@@ -55,6 +57,7 @@ export function createApp(): express.Express {
   app.use('/api/v1', healthRoutes);
   app.use('/api/v1', checkMutationOrigin);
   app.use('/api/v1/auth', authRoutes);
+  app.use('/api/v1/guest', guestPreviewRoutes);
   app.use('/api/v1', requireAdmin);
 
   // Private assets are never shared-cacheable.
@@ -62,6 +65,7 @@ export function createApp(): express.Express {
   app.use('/api/v1/thumbnails', thumbnailsRoutes);
 
   // Routes
+  app.use('/api/v1/layouts/:layoutId/guest-links', guestLinksRoutes);
   app.use('/api/v1/libraries', librariesRoutes);
   app.use('/api/v1/curated-libraries', curatedLibrariesRoutes);
   app.use('/api/v1/categories', categoriesRoutes);
