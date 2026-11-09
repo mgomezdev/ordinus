@@ -94,7 +94,7 @@ test('named presets reach generation and survive saving, library edits, reload a
     await expect(page.locator('.placed-item-label')).toHaveText('Custom 1.5×2×6');
     await page.getByRole('link', { name: 'BOM', exact: true }).click();
     await expect(page.locator('.order-bom-table')).toContainText('Custom 1.5×2×6');
-    await page.getByRole('link', { name: 'Workspace', exact: true }).click();
+    await page.locator('.nav-tab', { hasText: 'Workspace' }).click();
     const download = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Export PDF', exact: true }).click();
     expect((await download).suggestedFilename()).toMatch(/\.pdf$/);
@@ -102,7 +102,7 @@ test('named presets reach generation and survive saving, library edits, reload a
 });
 
 test('draws a footprint with one finger on a tablet and opens the matching picker', async ({ browser, baseURL, library }, testInfo) => {
-  const context = await browser.newContext({ baseURL, hasTouch: true, viewport: { width: 900, height: 900 } });
+  const context = await browser.newContext({ baseURL, hasTouch: true, isMobile: true, viewport: { width: 900, height: 900 } });
   try {
     const page = await context.newPage();
     const simple = new SimpleLayoutPage(page);
@@ -110,6 +110,7 @@ test('draws a footprint with one finger on a tablet and opens the matching picke
     await page.getByRole('button', { name: 'Toggle library panel' }).click();
     await simple.panel.getByLabel('Bin library').selectOption(library.id);
     await simple.panel.getByRole('button', { name: 'Draw bin', exact: true }).click();
+    await page.locator('.draw-footprint-surface').scrollIntoViewIfNeeded();
     const box = await page.locator('.draw-footprint-surface').boundingBox();
     if (!box) throw new Error('Drawing surface unavailable');
     const session = await context.newCDPSession(page);
