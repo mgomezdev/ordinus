@@ -5,3 +5,4 @@ export * from './generatorParamSchema.js';
 export * from './customBin.js';
 export * from './gridResolution.js';
 export * from './wallCutout.js';
+export * from './curatedLibrary.js';

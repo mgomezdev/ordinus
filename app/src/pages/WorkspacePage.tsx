@@ -20,6 +20,8 @@ import { useNavigate } from 'react-router-dom';
 import { useUpdateLayoutMutation } from '../hooks/useLayouts';
 import { buildPayload } from '../utils/layoutHelpers';
 import { MobileActionBar } from '../components/MobileActionBar';
+import { SimpleLibraryPanel } from '../components/simple/SimpleLibraryPanel';
+import type { DrawnFootprint } from '../components/simple/DrawFootprint';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3001/api/v1';
 
@@ -62,6 +64,15 @@ export function WorkspacePage() {
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [libraryWidth, setLibraryWidth] = useState(LIBRARY_DEFAULT_WIDTH);
   const libraryDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const [simpleMode, setSimpleMode] = useState(() => localStorage.getItem('ordinus-workspace-mode') === 'simple');
+  const [drawing, setDrawing] = useState(false);
+  const [footprint, setFootprint] = useState<DrawnFootprint | null>(null);
+  const [placingBin, setPlacingBin] = useState(false);
+  const cancelDrawing = () => { if (!placingBin) { setDrawing(false); setFootprint(null); } };
+  const footprintValid = footprint !== null && footprint.width > 0 && footprint.depth > 0
+    && [footprint.x, footprint.y, footprint.width, footprint.depth].every(Number.isInteger)
+    && !isOutOfBounds(footprint.x, footprint.y, footprint.width, footprint.depth, gridResult.gridX * GRID_RESOLUTION, gridResult.gridY * GRID_RESOLUTION)
+    && !hasCollision(placedItems, footprint.x, footprint.y, footprint.width, footprint.depth);
 
   const [imageViewMode, setImageViewMode] = useState<ImageViewMode>(
     () => (localStorage.getItem('gridfinity-image-view-mode') as ImageViewMode) || 'ortho'
@@ -288,7 +299,7 @@ export function WorkspacePage() {
     if ((event.key === 'v' || event.key === 'V') && !event.ctrlKey && !event.metaKey) {
       event.preventDefault(); toggleImageViewMode(); return;
     }
-    if (event.key === 'Escape') { deselectAll(); setSelectedImageId(null); return; }
+    if (event.key === 'Escape') { cancelDrawing(); deselectAll(); setSelectedImageId(null); return; }
     if ((event.key === 'a' || event.key === 'A') && (event.ctrlKey || event.metaKey)) {
       event.preventDefault(); selectAll(); return;
     }
@@ -379,7 +390,7 @@ export function WorkspacePage() {
 
       <SidebarPanel
         dimensionsContent={dimensionsContent}
-        spacerContent={spacerContent}
+        spacerContent={simpleMode ? null : spacerContent}
         onClearCanvas={handleClearAll}
         onReset={handleReset}
         isReadOnly={false}
@@ -401,12 +412,20 @@ export function WorkspacePage() {
               <span className="unsaved-label">unsaved changes</span>
             </>
           )}
+          <div className="workspace-mode" role="group" aria-label="Placement mode">
+            {(['simple', 'advanced'] as const).map(mode => <button key={mode} type="button" disabled={placingBin} aria-pressed={simpleMode === (mode === 'simple')} onClick={() => {
+              setSimpleMode(mode === 'simple'); cancelDrawing();
+              localStorage.setItem('ordinus-workspace-mode', mode);
+              if (mode === 'simple') requestAnimationFrame(handleFitToScreen);
+            }}>{mode === 'simple' ? 'Simple' : 'Advanced'}</button>)}
+          </div>
         </nav>
         <div className="preview-toolbar preview-toolbar--desktop-only">
           <WorkspaceToolbar onExportPdf={handleExportPdf} exportPdfError={exportPdfError} />
           <ImageViewToggle mode={imageViewMode} onToggle={toggleImageViewMode} />
         </div>
         <GridViewport
+          drawing={drawing}
           viewportRef={viewportRef}
           transform={transform}
           handleWheel={handleWheel}
@@ -425,6 +444,11 @@ export function WorkspacePage() {
           }}
         >
           <GridPreview
+            drawFootprint={simpleMode ? {
+              drawing, selection: footprint, valid: footprintValid,
+              onChange: setFootprint, onFinish: () => { setDrawing(false); if (isMobile) toggleLibrary(); }, onCancel: cancelDrawing,
+              isPanning: () => isSpaceHeldRef.current,
+            } : undefined}
             gridX={gridResult.gridX}
             gridY={gridResult.gridY}
             placedItems={placedItems}
@@ -504,7 +528,12 @@ export function WorkspacePage() {
         aria-label="Resize library panel"
       />
 
-      <LibraryPanel width={libraryWidth} isMobile={isMobile} isOpen={isMobile && libraryOpen} />
+      {simpleMode ? <SimpleLibraryPanel width={Math.max(libraryWidth, 300)} isMobile={isMobile} isOpen={isMobile && libraryOpen}
+        selection={footprint} valid={footprintValid} drawing={drawing} busy={placingBin} onBusy={setPlacingBin}
+        onCancel={cancelDrawing} onDraw={() => { setFootprint(null); setDrawing(true); deselectAll(); closeLibrary(); }}
+        onSelection={value => { setFootprint(value); setDrawing(false); }}
+        onPlaced={() => { setFootprint(null); setDrawing(false); }}
+      /> : <LibraryPanel width={libraryWidth} isMobile={isMobile} isOpen={isMobile && libraryOpen} />}
 
       <div className="mobile-panel-strip mobile-panel-strip--right">
         <button
