@@ -18,6 +18,12 @@
 .guest-page button, .guest-message button { font: inherit; cursor: pointer; border: 1px solid var(--border-primary); border-radius: .4rem; background: var(--bg-secondary); color: var(--text-primary); padding: .65rem 1rem; min-height: 2.75rem; }
 .guest-page .guest-bin { position: absolute; z-index: 2; padding: 0; min-height: 0; background: var(--accent-alpha-10); border: 2px solid var(--accent-primary); font-size: clamp(.7rem, 2vw, 1rem); font-weight: 700; }
 .guest-page .guest-bin-selected { background: var(--accent-primary); color: var(--bg-secondary); }
+.guest-page .guest-bin { overflow: hidden; }
+.guest-view-options { display: flex; gap: .25rem; }
+.guest-view-options button[aria-pressed="true"] { background: var(--accent-alpha-10); border-color: var(--accent-primary); color: var(--accent-secondary); }
+.guest-bin-model { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.guest-model-number { position: absolute; z-index: 1; top: .2rem; left: .2rem; min-width: 1.3rem; padding: .1rem; border-radius: .2rem; background: var(--bg-secondary); color: var(--text-primary); line-height: 1.2; }
+.guest-model-fallback { display: grid; place-items: center; height: 100%; padding: 1.8rem .3rem .3rem; box-sizing: border-box; font-size: .7rem; font-weight: 400; line-height: 1.3; overflow: hidden; }
 .guest-page button:hover, .guest-message button:hover { filter: brightness(.96); }
 .guest-page button:disabled, .guest-message button:disabled { opacity: .6; cursor: wait; }
 .guest-page :focus-visible, .guest-message :focus-visible, .guest-link-panel :focus-visible { outline: 2px solid var(--border-focus); outline-offset: 3px; }

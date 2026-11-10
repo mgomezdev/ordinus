@@ -6,6 +6,39 @@ import { SavedConfigsPage } from '../pages/SavedConfigsPage';
 // Invitations and guest cookies stay out of failure traces/artifacts.
 test.use({ trace: 'off', video: 'off', screenshot: 'off', actionTimeout: 10_000 });
 
+test('guest displays a rotated model image with top/3D options and loses image access on revocation', async ({ request, browser, baseURL }) => {
+  const libraryId = `guest-model-${randomUUID()}`;
+  expect((await request.post('/api/v1/libraries', { data: { id: libraryId, name: 'Guest model fixture' } })).status()).toBe(201);
+  expect((await request.post(`/api/v1/libraries/${libraryId}/items`, { data: { id: 'tray', name: 'Test model', widthUnits: 2, heightUnits: 1 } })).status()).toBe(201);
+  const buffer = await sharp({ create: { width: 120, height: 60, channels: 3, background: '#597c91' } }).png().toBuffer();
+  expect((await request.post(`/api/v1/libraries/${libraryId}/items/tray/image`, { multipart: { image: { name: 'tray.png', mimeType: 'image/png', buffer } } })).status()).toBe(200);
+  const created = await request.post('/api/v1/layouts', { data: { name: 'Rendered model drawer', gridX: 3, gridY: 3, widthMm: 126, depthMm: 126,
+    placedItems: [{ itemId: `${libraryId}:tray`, x: 0, y: 0, width: 2, height: 4, rotation: 90 }] } });
+  expect(created.status()).toBe(201);
+  const layoutId = (await created.json()).data.id as number;
+  const link = await (await request.post(`/api/v1/layouts/${layoutId}/guest-links`, { data: { expiresInHours: 1 } })).json() as { id: string; secret: string };
+  const guest = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] }, extraHTTPHeaders: {}, viewport: { width: 390, height: 844 } });
+  try {
+    const page = await guest.newPage();
+    await page.goto(`/guest/${link.id}#${link.secret}`); await page.getByRole('button', { name: 'Open preview' }).click();
+    const image = page.getByRole('img', { name: 'Test model, top view' });
+    await expect.poll(() => image.evaluate(img => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    const imageURL = await image.getAttribute('src');
+    await expect(image).toHaveAttribute('style', /rotate\(90deg\)/);
+    await page.getByRole('button', { name: '3D', exact: true }).click();
+    await expect(page.getByText('3D preview unavailable')).toBeVisible();
+    await page.getByRole('button', { name: 'Top', exact: true }).click();
+    await expect(image).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    expect((await page.request.get(`/api/v1/libraries/${libraryId}/items`)).status()).toBe(401);
+    expect((await request.delete(`/api/v1/layouts/${layoutId}/guest-links/${link.id}`)).status()).toBe(204);
+    expect((await page.request.get(imageURL!)).status()).toBe(410);
+    await expect(page.getByRole('heading', { name: 'Preview unavailable' })).toBeVisible({ timeout: 7000 });
+  } finally {
+    await guest.close(); await request.delete(`/api/v1/layouts/${layoutId}`); await request.delete(`/api/v1/libraries/${libraryId}`);
+  }
+});
+
 test('workspace sharing saves pending edits before opening and before creating a guest link', async ({ page, request, browser, baseURL }) => {
   const name = `Workspace share ${randomUUID().slice(0, 8)}`;
   const created = await request.post('/api/v1/layouts', { data: { name, gridX: 4, gridY: 4, widthMm: 168, depthMm: 168, placedItems: [] } });

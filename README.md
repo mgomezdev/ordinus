@@ -246,12 +246,17 @@ configuration. Select an expiry (1 hour, 24 hours, or 7 days), create the link,
 and copy it before leaving the sharing panel. Open it in a private browser window
 to test the client experience without an admin session.
 
-The guest sees only that saved drawer, its bin footprints, and its attached
-reference photos. The preview is read-only; reload it to see later saved changes.
-Follow-up work includes actual bin model previews with top and 3D view options,
-then guest editing and live collaboration. Model previews must remain scoped to
-the shared drawer and preserve custom-bin settings and rotation. Anyone holding
-the invitation can open it until expiry or revocation.
+The guest sees only that saved drawer, its bin models, and its attached reference
+photos. **Top** and **3D** switch between the same rendered model views used in
+the workspace, including saved rotation and custom-bin settings. Sharing prepares
+any missing generated previews; the guest view checks readiness and displays them
+when available. Missing or failed images retain the footprint and a clear status.
+Guests can read only previews for bins placed in this drawer; they cannot start
+generation jobs or retrieve model/STL files.
+
+The preview is read-only; reload it to see later saved configuration changes.
+Guest editing and live collaboration are the next phase. Anyone holding the
+invitation can open it until expiry or revocation.
 
 Choose **Close access** in the configuration's sharing panel to revoke an
 invitation and every guest session created from it. Open previews check access

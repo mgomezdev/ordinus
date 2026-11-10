@@ -6,6 +6,7 @@ import type { GuestLink, GuestPreview } from '@gridfinity/shared';
 import { authClient as client } from '../db/connection.js';
 import { hashToken } from './auth.service.js';
 import { config } from '../config.js';
+import { prepareGuestModels } from './guestModels.service.js';
 
 export const GUEST_COOKIE = 'ordinus_guest';
 export class GuestAccessClosed extends Error {}
@@ -18,6 +19,7 @@ async function requireLayout(layoutId: number): Promise<void> {
 }
 export async function createGuestLink(layoutId: number, hours: number): Promise<GuestLink & { secret: string }> {
   await requireLayout(layoutId);
+  await prepareGuestModels(layoutId);
   const id = randomBytes(12).toString('hex');
   const secret = randomBytes(32).toString('base64url');
   const now = Date.now();

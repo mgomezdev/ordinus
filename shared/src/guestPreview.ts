@@ -20,3 +20,12 @@ export interface GuestLink {
   revokedAt: string | null;
 }
 export interface GuestPreviewResponse { layout: GuestPreview; expiresAt: string }
+
+/** Image URLs authorize one placed bin; no global model IDs or paths escape. */
+export interface GuestBinModel {
+  id: number;
+  topUrl: string | null;
+  perspectiveUrl: string | null;
+  topRotation: number;
+  status: 'ready' | 'pending' | 'unavailable';
+}

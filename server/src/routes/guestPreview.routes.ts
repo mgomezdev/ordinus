@@ -6,6 +6,7 @@ import { AppError, ErrorCodes } from '@gridfinity/shared';
 import { secureCookie } from '../middleware/adminAuth.js';
 import { parseIntParam } from '../utils/params.js';
 import * as guest from '../services/guestPreview.service.js';
+import { guestModels, guestModelPath } from '../services/guestModels.service.js';
 
 const router = Router();
 const joinLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false });
@@ -35,6 +36,20 @@ router.use('/:id', async (req, res, next) => {
   catch (err) { next(err); }
 });
 router.get('/:id/status', (_req, res) => { res.json({ active: true }); });
+router.get('/:id/models', async (_req, res, next) => {
+  try { res.json({ bins: await guestModels(res.locals.guest as guest.GuestAccess) }); }
+  catch (err) { next(err); }
+});
+router.get('/:id/bins/:binId/:view', async (req, res, next) => {
+  try {
+    const view = String(req.params.view);
+    if (view !== 'top' && view !== 'perspective') throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid bin view');
+    const file = await guestModelPath(res.locals.guest as guest.GuestAccess, parseIntParam(req, 'binId', 'bin ID'), view);
+    res.sendFile(file, { cacheControl: false }, err => {
+      if (err && !res.headersSent) next(new AppError(ErrorCodes.NOT_FOUND, 'Bin preview is unavailable'));
+    });
+  } catch (err) { next(err); }
+});
 router.get('/:id/view', async (_req, res, next) => {
   try {
     const access = res.locals.guest as guest.GuestAccess;

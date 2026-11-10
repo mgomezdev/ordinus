@@ -15,6 +15,28 @@ function mount() {
 beforeEach(() => { window.history.replaceState(null, '', `/guest/${id}`); });
 afterEach(() => { vi.unstubAllGlobals(); window.history.replaceState(null, '', '/'); });
 describe('guest preview entry', () => {
+  it('switches scoped top and 3D renders, preserves rotation and selection, and handles a missing render', async () => {
+    const topUrl = `/api/v1/guest/${id}/bins/1/top`;
+    const perspectiveUrl = `/api/v1/guest/${id}/bins/1/perspective`;
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(JSON.stringify(url.endsWith('/models')
+      ? { bins: [{ id: 1, topUrl, perspectiveUrl, topRotation: 90, status: 'ready' }] }
+      : url.endsWith('/status') ? { active: true } : response))));
+    mount();
+    const image = await screen.findByRole('img', { name: 'Utensil tray, top view' });
+    expect(image.getAttribute('src')).toBe(topUrl);
+    expect(image.getAttribute('style')).toContain('rotate(90deg)');
+    fireEvent.click(screen.getByRole('button', { name: /Select bin 1:/ }));
+    fireEvent.click(screen.getByRole('button', { name: '3D', exact: true }));
+    const perspective = await screen.findByRole('img', { name: 'Utensil tray, 3D view' });
+    expect(perspective.getAttribute('src')).toBe(perspectiveUrl);
+    expect(perspective.getAttribute('style') ?? '').not.toContain('rotate');
+    expect(screen.getByRole('button', { name: /Select bin 1:/ }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.error(perspective);
+    expect(screen.queryByRole('img', { name: 'Utensil tray, 3D view' })).toBeNull();
+    expect(screen.getByText('3D preview unavailable')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Top', exact: true }));
+    expect(screen.getByRole('img', { name: 'Utensil tray, top view' })).toBeTruthy();
+  });
   it('requires an explicit invitation join, removes the secret from history, and shows a read-only drawer', async () => {
     window.history.replaceState(null, '', `/guest/${id}#invitation-secret`);
     const fetchMock = vi.fn(async (url: string) => url.endsWith('/join') ? new Response(null, { status: 204 }) : new Response(JSON.stringify(url.endsWith('/status') ? { active: true } : response), { status: 200 }));
