@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GuestPreviewPage } from './GuestPreviewPage';
 
@@ -15,6 +15,28 @@ function mount() {
 beforeEach(() => { window.history.replaceState(null, '', `/guest/${id}`); });
 afterEach(() => { vi.unstubAllGlobals(); window.history.replaceState(null, '', '/'); });
 describe('guest preview entry', () => {
+  it('loads prepared models automatically without refetching the saved layout', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    let modelChecks = 0;
+    let layoutChecks = 0;
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (url.endsWith('/view')) layoutChecks++;
+      if (url.endsWith('/models')) {
+        modelChecks++;
+        return new Response(JSON.stringify({ bins: [{ id: 1, topUrl: modelChecks > 1 ? `/api/v1/guest/${id}/bins/1/top` : null,
+          perspectiveUrl: null, topRotation: 0, status: modelChecks > 1 ? 'ready' : 'pending' }] }));
+      }
+      return new Response(JSON.stringify(url.endsWith('/status') ? { active: true } : response));
+    }));
+    const view = mount();
+    try {
+      await waitFor(() => expect(modelChecks).toBe(1));
+      expect(screen.getByText('Preparing bin previews. They will appear here when ready.')).toBeTruthy();
+      await act(async () => { await vi.advanceTimersByTimeAsync(2100); });
+      expect(screen.getByRole('img', { name: 'Utensil tray, top view' })).toBeTruthy();
+      expect(layoutChecks).toBe(1);
+    } finally { view.unmount(); vi.useRealTimers(); }
+  });
   it('switches scoped top and 3D renders, preserves rotation and selection, and handles a missing render', async () => {
     const topUrl = `/api/v1/guest/${id}/bins/1/top`;
     const perspectiveUrl = `/api/v1/guest/${id}/bins/1/perspective`;
