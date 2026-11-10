@@ -1,7 +1,8 @@
 import { randomUUID, randomBytes } from 'node:crypto';
 import { z } from 'zod';
 import type { Row } from '@libsql/client';
-import { AppError, ErrorCodes, validateCustomBinSpec } from '@gridfinity/shared';
+import { AppError, ErrorCodes, validateCustomBinSpec, specUsesHalfPitch, halfPitchEnabled } from '@gridfinity/shared';
+import type { CustomBinSpec } from '@gridfinity/shared';
 import type { LiveSnapshot, LiveCommand, LiveChange, GuestLink } from '@gridfinity/shared';
 import * as connections from '../db/connection.js';
 import { authService, hashToken } from './auth.service.js';
@@ -17,17 +18,28 @@ interface Catalog { libraryId: string; items: CatalogEntry[] }
 const uuid = z.string().uuid();
 const coordinate = z.number().int().min(0).max(40);
 const spacer = z.enum(['none', 'one-sided', 'symmetrical']);
-const commandSchema = z.object({ commandId: uuid, baseRevision: z.number().int().nonnegative(), change: z.discriminatedUnion('type', [
-  z.object({ type: z.literal('add'), catalogKey: uuid, x: coordinate, y: coordinate }).strict(),
+const placementSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('move'), stableId: uuid, x: coordinate, y: coordinate }).strict(),
   z.object({ type: z.literal('rotate'), stableId: uuid, direction: z.enum(['cw', 'ccw']) }).strict(),
   z.object({ type: z.literal('remove'), stableId: uuid }).strict(),
+  z.object({ type: z.literal('duplicate'), stableId: uuid, x: coordinate, y: coordinate }).strict(),
+]);
+const commandSchema = z.object({ commandId: uuid, baseRevision: z.number().int().nonnegative(), change: z.discriminatedUnion('type', [
+  z.object({ type: z.literal('add'), catalogKey: uuid, x: coordinate, y: coordinate }).strict(),
+  ...placementSchema.options,
+  z.object({ type: z.literal('batch'), changes: z.array(placementSchema).min(1).max(200) }).strict(),
   z.object({ type: z.literal('customize'), stableId: uuid, height: z.number().min(0.5).max(20).multipleOf(0.5), lipStyle: z.enum(['normal', 'reduced', 'minimum', 'none']), wallPatternEnabled: z.boolean() }).strict(),
   z.object({ type: z.literal('drawer'), widthMm: z.number().min(42).lt(882), depthMm: z.number().min(42).lt(882), spacerHorizontal: spacer, spacerVertical: spacer }).strict(),
 ]) }).strict();
 const invalid = (message: string) => new AppError(ErrorCodes.VALIDATION_ERROR, message);
 function parseCatalog(value: unknown): Catalog {
   try { return JSON.parse(String(value)) as Catalog; } catch { return { libraryId: '', items: [] }; }
+}
+function snapStep(sourceSnapshot: unknown, customSpec?: unknown): number {
+  if (customSpec) return specUsesHalfPitch(JSON.parse(String(customSpec)) as CustomBinSpec) ? 1 : 2;
+  const source = JSON.parse(String(sourceSnapshot ?? '{}')) as { parameters?: string | Record<string, unknown> };
+  const parameters = typeof source.parameters === 'string' ? JSON.parse(source.parameters) as Record<string, unknown> : source.parameters;
+  return parameters?.sub_pitch === undefined || halfPitchEnabled(parameters.sub_pitch) ? 1 : 2;
 }
 async function layoutRow(id: number): Promise<Row> {
   const row = (await client.execute({ sql: 'SELECT * FROM layouts WHERE id = ?', args: [id] })).rows[0];
@@ -108,15 +120,19 @@ export function liveSnapshot(layoutId: number, actor: LiveActor, assetId: string
         const customization = parseCustomization(row.customization as string | null);
         const source = row.source_snapshot ? JSON.parse(String(row.source_snapshot)) as { base_model_path?: string } : {};
         return { id: Number(row.id), stableId: String(row.stable_id), customizable: !!(spec || source.base_model_path), height: spec?.height ?? customization?.height ?? 4,
-          heightStep: spec ? 0.5 : 1,
+          heightStep: spec ? 0.5 : 1, snapStep: snapStep(row.source_snapshot, row.custom_spec),
           lipStyle: String(spec?.overrides.lip_style ?? customization?.lipStyle ?? 'normal'), wallPatternEnabled: Boolean(spec?.overrides.wallpattern_enabled ?? customization?.wallPatternEnabled) };
       }),
-      catalog: authorization.catalog.items.map(({ key, name, width, depth }) => ({ key, name, width, depth })),
+      catalog: authorization.catalog.items.map(({ key, name, width, depth, sourceSnapshot }) => ({ key, name, width, depth, snapStep: snapStep(sourceSnapshot) })),
       participants: [...(presence.get(layoutId)?.entries() ?? [])].map(([id, person]) => ({ id: hashToken(id).slice(0, 16), name: person.name, role: person.role })),
     };
   });
 }
 async function applyChange(layoutId: number, layout: Row, bins: Row[], change: LiveChange, catalog: Catalog): Promise<void> {
+  if (change.type === 'batch') {
+    for (const operation of change.changes) await applyChange(layoutId, layout, await binRows(layoutId), operation, catalog);
+    return;
+  }
   const target = 'stableId' in change ? bins.find(bin => bin.stable_id === change.stableId) : undefined;
   if ('stableId' in change && !target) throw new AppError(ErrorCodes.CONFLICT, 'This bin changed or was removed. Review the current drawer.');
   if (change.type === 'add') {
@@ -124,6 +140,10 @@ async function applyChange(layoutId: number, layout: Row, bins: Row[], change: L
     if (!entry) throw new AppError(ErrorCodes.FORBIDDEN, 'Choose a bin from the approved library');
     await client.execute({ sql: `INSERT INTO placed_items(layout_id, library_id, item_id, stable_id, source_snapshot, x, y, width, height, rotation, sort_order)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`, args: [layoutId, entry.libraryId, entry.itemId, randomUUID(), entry.sourceSnapshot, change.x, change.y, entry.width * 2, entry.depth * 2, Math.max(-1, ...bins.map(bin => Number(bin.sort_order))) + 1] });
+  } else if (change.type === 'duplicate') {
+    await client.execute({ sql: `INSERT INTO placed_items(layout_id, library_id, item_id, stable_id, source_snapshot, x, y, width, height, rotation, sort_order, customization, custom_spec)
+      SELECT layout_id, library_id, item_id, ?, source_snapshot, ?, ?, width, height, rotation, ?, customization, custom_spec FROM placed_items WHERE id=?`,
+      args: [randomUUID(), change.x, change.y, Math.max(-1, ...bins.map(bin => Number(bin.sort_order))) + 1, target!.id] });
   } else if (change.type === 'move') await client.execute({ sql: 'UPDATE placed_items SET x=?, y=? WHERE id=?', args: [change.x, change.y, target!.id] });
   else if (change.type === 'remove') await client.execute({ sql: 'DELETE FROM placed_items WHERE id=?', args: [target!.id] });
   else if (change.type === 'rotate') await client.execute({ sql: 'UPDATE placed_items SET width=height, height=width, rotation=? WHERE id=?', args: [(Number(target!.rotation) + (change.direction === 'cw' ? 90 : 270)) % 360, target!.id] });

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { GuestBinModel, LiveSnapshot, LiveChange, LiveBin } from '@gridfinity/shared';
 import { apiFetch } from '../../api/apiClient';
 import { useLiveLayout } from '../../hooks/useLiveLayout';
-import { GuestDrawer } from './GuestDrawer';
+import { LivePlacementCanvas } from './LivePlacementCanvas';
 import '../../pages/GuestPreviewPage.css';
 import './LiveEditor.css';
 
@@ -12,13 +12,21 @@ type Send = (change: LiveChange, revision: number) => Promise<number | undefined
 interface LiveEditorProps { base: string; modelBase?: string; owner?: boolean; onExit: () => void }
 export function LiveEditor({ base, modelBase = base, owner = false, onExit }: LiveEditorProps) {
   const live = useLiveLayout(base);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(() => new Set());
   const [closing, setClosing] = useState(false);
   const [accessMessage, setAccessMessage] = useState('');
   const snapshot = live.snapshot.data;
   const models = useQuery({ queryKey: ['live-models', base], queryFn: () => apiFetch<{ bins: GuestBinModel[] }>(`${modelBase}/models`), enabled: !!snapshot && live.connection !== 'closed', retry: false,
     refetchInterval: query => query.state.data?.bins.some(bin => bin.status === 'pending') ? 2000 : false });
-  const selectedBin = snapshot?.bins.find(bin => bin.stableId === selected);
+  const visibleSelection = new Set(snapshot?.bins.filter(bin => selected.has(bin.id)).map(bin => bin.id));
+  const selectedBin = visibleSelection.size === 1 ? snapshot?.bins.find(bin => visibleSelection.has(bin.id)) : undefined;
+  const select = (id: number | null, modifiers?: { shift?: boolean; ctrl?: boolean }) => setSelected(previous => {
+    if (id === null) return new Set();
+    if (!modifiers?.ctrl && !modifiers?.shift) return new Set([id]);
+    const next = new Set(previous);
+    if (modifiers.ctrl && next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
   if (live.connection === 'closed' || (live.snapshot.isError && !snapshot)) return <main className="guest-message"><section><p className="guest-brand">ORDINUS</p><h1>Session unavailable</h1><p>{live.snapshot.error?.message ?? 'Access has closed or expired. Ask your organizer for a new invitation.'}</p><button type="button" onClick={onExit}>{owner ? 'Back to workspace' : 'Leave session'}</button></section></main>;
   if (!snapshot) return <main className="guest-message"><p role="status">Connecting to your shared drawer…</p></main>;
   async function closeAccess() {
@@ -37,12 +45,11 @@ export function LiveEditor({ base, modelBase = base, owner = false, onExit }: Li
     <main className="guest-content">
       <div className="guest-heading"><h1>{snapshot.layout.name}</h1><p>{snapshot.layout.widthMm} × {snapshot.layout.depthMm} mm</p></div>
       <div className="live-status" role="status"><strong>{live.connection === 'live' ? live.sending ? 'Saving…' : live.ambiguous ? 'Check last change' : 'Live · Saved' : 'Reconnecting… Editing is paused.'}</strong><span>Revision {snapshot.revision}</span><span>Connected: {snapshot.participants.map(person => person.name).join(', ') || 'connecting…'}</span></div>
-      <p className="guest-note">Changes save automatically for everyone in this session. Select a bin to edit it, or drag it to a new position. Positions use 42 mm grid units in half-unit steps.</p>
+      <p className="guest-note">Changes save automatically for everyone in this session. Drag and arrange bins just as in the workspace. Flagged placements stay visible for everyone to resolve.</p>
       {live.problem && <p className="live-problem" role="alert">{live.problem}</p>}
       {live.ambiguous && <button type="button" disabled={live.connection !== 'live' || live.sending} onClick={() => void live.retry()}>Retry last change</button>}
-      <GuestDrawer layout={snapshot.layout} models={models.data?.bins ?? []} selectedId={selectedBin?.id ?? null} revision={snapshot.revision} disabled={!live.canEdit}
-        onSelect={id => setSelected(snapshot.bins.find(bin => bin.id === id)?.stableId ?? null)} sidebar={sidebar}
-        onMove={(id, x, y, revision) => { const bin = snapshot.bins.find(bin => bin.id === id); if (bin) void live.send({ type: 'move', stableId: bin.stableId, x, y }, revision); }} />
+      <LivePlacementCanvas snapshot={snapshot} models={models.data?.bins ?? []} selected={visibleSelection} disabled={!live.canEdit}
+        onSelect={select} onSelectAll={() => setSelected(new Set(snapshot.layout.bins.map(bin => bin.id)))} sidebar={sidebar} send={live.send} />
       {models.isError && <p role="status">Bin images are temporarily unavailable. The drawer footprints remain visible.</p>}
       {owner && <div className="live-access"><button type="button" disabled={closing} onClick={() => void closeAccess()}>{closing ? 'Closing…' : 'Close live guest access'}</button><p>Closes every live invitation for this drawer and disconnects its guests. Saved changes are kept.</p>{accessMessage && <p role="status">{accessMessage}</p>}</div>}
     </main>

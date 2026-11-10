@@ -1,31 +1,15 @@
-import { useRef, useState } from "react";
-import type { ReactNode, PointerEvent } from 'react';
+import { useState } from "react";
+import type { ReactNode } from 'react';
 import type { GuestPreview, GuestBinModel } from "@gridfinity/shared";
 
 interface GuestDrawerProps {
   layout: GuestPreview; models: GuestBinModel[]; selectedId?: number | null;
   onSelect?: (id: number) => void; sidebar?: ReactNode;
-  onMove?: (id: number, x: number, y: number, revision: number) => void;
-  revision?: number; disabled?: boolean;
 }
-export function GuestDrawer({ layout, models, selectedId, onSelect, sidebar, onMove, revision = 0, disabled }: GuestDrawerProps) {
+export function GuestDrawer({ layout, models, selectedId, onSelect, sidebar }: GuestDrawerProps) {
   const [localSelected, setLocalSelected] = useState<number | null>(null);
   const selected = selectedId === undefined ? localSelected : selectedId;
   const select = (id: number) => { setLocalSelected(id); onSelect?.(id); };
-  const drag = useRef<{ pointerId: number; id: number; x: number; y: number; startX: number; startY: number; revision: number } | null>(null);
-  const startDrag = (event: PointerEvent<HTMLButtonElement>, bin: GuestPreview['bins'][number]) => {
-    if (!onMove || disabled || event.button !== 0) return;
-    drag.current = { pointerId: event.pointerId, id: bin.id, x: bin.x, y: bin.y, startX: event.clientX, startY: event.clientY, revision };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-  const finishDrag = (event: PointerEvent<HTMLButtonElement>) => {
-    const current = drag.current; drag.current = null; event.currentTarget.style.transform = '';
-    if (!current || current.pointerId !== event.pointerId || disabled || !onMove) return;
-    const dx = event.clientX - current.startX, dy = event.clientY - current.startY;
-    if (Math.hypot(dx, dy) < 6) return;
-    const rect = event.currentTarget.parentElement!.getBoundingClientRect();
-    onMove(current.id, current.x + Math.round(dx / rect.width * layout.gridX * layout.gridResolution), current.y + Math.round(dy / rect.height * layout.gridY * layout.gridResolution), current.revision);
-  };
   const [showImages, setShowImages] = useState(true);
   const [view, setView] = useState<'top' | 'perspective'>('top');
   const [brokenImages, setBrokenImages] = useState<Set<number>>(() => new Set());
@@ -47,10 +31,7 @@ export function GuestDrawer({ layout, models, selectedId, onSelect, sidebar, onM
           {showImages && layout.referenceImages.filter(image => !brokenImages.has(image.id)).map(image => <div key={image.id} className="guest-reference-image" style={{ left: `${image.x}%`, top: `${image.y}%`, width: `${image.width}%`, height: `${image.height}%` }}>
             <img src={image.url} alt={image.name} style={{ opacity: image.opacity, transform: image.isAligned ? undefined : `scale(${image.scale}) rotate(${image.rotation}deg)` }} onError={() => setBrokenImages(previous => new Set(previous).add(image.id))} />
           </div>)}
-          {layout.bins.map((bin, index) => <button type="button" key={bin.id} className={`guest-bin${selected === bin.id ? ' guest-bin-selected' : ''}${onMove ? ' guest-bin-movable' : ''}`} aria-label={`Select bin ${index + 1}: ${bin.name}`} aria-pressed={selected === bin.id} title={`${bin.name}: ${bin.width / layout.gridResolution} × ${bin.depth / layout.gridResolution} units`} style={{ left: `${bin.x / cols * 100}%`, top: `${bin.y / rows * 100}%`, width: `${bin.width / cols * 100}%`, height: `${bin.depth / rows * 100}%` }} onClick={() => select(bin.id)}
-            onPointerDown={event => startDrag(event, bin)} onPointerUp={finishDrag}
-            onPointerCancel={event => { drag.current = null; event.currentTarget.style.transform = ''; }}
-            onPointerMove={event => { const current = drag.current; if (current?.pointerId === event.pointerId) event.currentTarget.style.transform = `translate(${event.clientX - current.startX}px, ${event.clientY - current.startY}px)`; }}>
+          {layout.bins.map((bin, index) => <button type="button" key={bin.id} className={`guest-bin${selected === bin.id ? ' guest-bin-selected' : ''}`} aria-label={`Select bin ${index + 1}: ${bin.name}`} aria-pressed={selected === bin.id} title={`${bin.name}: ${bin.width / layout.gridResolution} × ${bin.depth / layout.gridResolution} units`} style={{ left: `${bin.x / cols * 100}%`, top: `${bin.y / rows * 100}%`, width: `${bin.width / cols * 100}%`, height: `${bin.depth / rows * 100}%` }} onClick={() => select(bin.id)}>
             <GuestBinImage bin={bin} model={models.find(model => model.id === bin.id)} view={view} />
             <span className="guest-model-number">{index + 1}</span>
           </button>)}
@@ -68,7 +49,7 @@ export function GuestDrawer({ layout, models, selectedId, onSelect, sidebar, onM
   </div>;
 }
 
-function GuestBinImage({ bin, model, view }: { bin: GuestPreview['bins'][number]; model: GuestBinModel | undefined; view: 'top' | 'perspective' }) {
+export function GuestBinImage({ bin, model, view }: { bin: GuestPreview['bins'][number]; model: GuestBinModel | undefined; view: 'top' | 'perspective' }) {
   const url = view === 'top' ? model?.topUrl : model?.perspectiveUrl;
   return url ? <GuestModelImage key={url} url={url} bin={bin} rotation={view === 'top' ? model?.topRotation ?? 0 : 0} view={view} />
     : <span className="guest-model-fallback">{model?.status === 'pending' ? 'Preparing preview' : `${view === 'top' ? 'Top' : '3D'} preview unavailable`}</span>;

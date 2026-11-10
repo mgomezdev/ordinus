@@ -15,9 +15,13 @@ mutations without an Origin need `X-Ordinus-Request: 1`.
   heartbeats. Reconnect fetches a fresh snapshot. Heartbeat-triggered reads
   acknowledge presence; abandoned connections age out after 45 seconds.
 - `POST .../commands`: strict `{commandId, baseRevision, change}` envelope. Changes
-  are `add`, `move`, `rotate`, `remove`, `customize`, or `drawer`. Coordinates use
+  are `add`, `move`, `rotate`, `remove`, `duplicate`, `batch`, `customize`, or `drawer`. Coordinates use
   integer half-cells; drawer dimensions use millimeters. Guests cannot submit
   global model identifiers, customer/name changes, uploads or production actions.
+  A batch contains 1–200 move/rotate/remove/duplicate operations; nested batches
+  are rejected. The entire selection commits at one revision or rolls back.
+  Duplicate copies only a bin already in this drawer, including frozen source
+  and customization, and assigns a fresh stable ID.
 - `DELETE /layouts/:layoutId/live/access`: owner-only closure of all editable
   invitations for that drawer. Individual invitation revocation still uses
   `/layouts/:layoutId/guest-links/:linkId`.
@@ -44,6 +48,14 @@ IMMEDIATE`, foreign keys, a busy timeout and WAL. Ordinary owner saves participa
 in the writer queue; their revision precondition remains required once a layout
 has been shared for editing. Missing/stale revisions return 409. Geometry and
 permission failures roll back the whole change. Notifications follow commit.
+Overlaps and overflow are editing validity states, matching the regular workspace,
+and do not reject a structurally valid command. Both views flag affected bins.
+Coordinates/dimensions remain bounded integer half-cells and the 200-bin limit
+still applies. Snap-step metadata exposes only half/whole pitch support, retaining
+private source parameters on the server. The client shares workspace pointer,
+snapping, collision, context-menu and viewport primitives; drag metadata is
+captured at pointer-down so a remote edit before the drag threshold yields a
+revision conflict instead of overwriting it.
 
 Command UUIDs are bound to the actor and canonical envelope. Retrying a committed
 command returns its receipt; reusing an ID for a different actor or payload

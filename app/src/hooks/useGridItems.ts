@@ -96,7 +96,7 @@ function generateInstanceId(): string {
   return `item-${++instanceCounter}-${Date.now()}`;
 }
 
-function findValidPosition(
+export function findValidPosition(
   items: PlacedItem[],
   width: number,
   height: number,

@@ -37,6 +37,33 @@ async function fixture(edit = true) {
   return { data, layoutId, linkId: issued.body.id as string, cookie, base, host, snapshot, command };
 }
 describe('live collaboration', () => {
+  it('duplicates frozen bins and commits selection actions atomically with one restart-safe receipt', async () => {
+    const f = await fixture(); let s = (await f.snapshot()).body;
+    const originalId = s.bins[0].stableId;
+    await client.execute({ sql: 'UPDATE placed_items SET custom_spec=? WHERE stable_id=?', args: [JSON.stringify({ width: 1, depth: 1, height: 0.5, overrides: { sub_pitch: 1, wall_thickness: 1.4 } }), originalId] });
+    expect((await f.snapshot()).body.bins[0].snapStep).toBe(2);
+    const duplicate = { commandId: randomUUID(), baseRevision: s.revision, change: { type: 'duplicate', stableId: originalId, x: 2, y: 0 } };
+    expect((await f.command(duplicate)).status).toBe(200);
+    s = (await f.snapshot()).body;
+    expect(s.bins).toHaveLength(2); expect(s.bins[1].stableId).not.toBe(originalId);
+    const stored = (await client.execute({ sql: 'SELECT source_snapshot, custom_spec FROM placed_items WHERE layout_id=? ORDER BY sort_order', args: [f.layoutId] })).rows;
+    expect(stored[1]).toEqual(stored[0]);
+    const group = { commandId: randomUUID(), baseRevision: s.revision, change: { type: 'batch', changes: s.bins.map((bin: { stableId: string }) => ({ type: 'rotate', stableId: bin.stableId, direction: 'cw' })) } };
+    expect((await owner(app).post(`${f.host}/commands`).send(group)).status).toBe(200);
+    const rotated = (await f.snapshot()).body;
+    expect(rotated.revision).toBe(s.revision + 1);
+    expect(rotated.layout.bins.map((bin: { rotation: number }) => bin.rotation)).toEqual([90, 90]);
+    const retry = await owner(app).post(`${f.host}/commands`).send(group);
+    expect(retry.status).toBe(200); expect(retry.body.duplicate).toBe(true);
+    const bad = { commandId: randomUUID(), baseRevision: rotated.revision, change: { type: 'batch', changes: [{ type: 'remove', stableId: originalId }, { type: 'remove', stableId: randomUUID() }] } };
+    expect((await f.command(bad)).status).toBe(409);
+    expect((await f.snapshot()).body).toMatchObject({ revision: rotated.revision, bins: rotated.bins });
+    expect((await f.command({ commandId: randomUUID(), baseRevision: rotated.revision, change: { type: 'batch', changes: [{ type: 'duplicate', stableId: randomUUID(), x: 0, y: 0 }] } })).status).toBe(409);
+    expect((await f.command({ commandId: randomUUID(), baseRevision: rotated.revision, change: { type: 'batch', changes: [{ type: 'batch', changes: [] }] } })).status).toBe(400);
+    expect((await f.command({ commandId: randomUUID(), baseRevision: rotated.revision, change: { type: 'batch', changes: [] } })).status).toBe(400);
+    expect((await f.command({ commandId: randomUUID(), baseRevision: rotated.revision, change: { type: 'batch', changes: rotated.bins.map((bin: { stableId: string }) => ({ type: 'remove', stableId: bin.stableId })) } })).status).toBe(200);
+    expect((await f.snapshot()).body.bins).toHaveLength(0);
+  });
   it('ages out presence that no longer acknowledges the stream', () => {
     const now = Date.now(); const clock = vi.spyOn(Date, 'now').mockReturnValue(now);
     const leave = enterLive(-1, 'temporary', 'Alex', 'guest');
@@ -67,15 +94,23 @@ describe('live collaboration', () => {
     expect((await f.command({ ...winner, change: { ...winner.change, y: 4 } })).status).toBe(409);
     expect((await client.execute({ sql: 'SELECT * FROM live_commands WHERE layout_id = ?', args: [f.layoutId] })).rows).toHaveLength(1);
   });
-  it('limits additions to the frozen approved catalog and validates overlap, bounds, and drawer shrink', async () => {
+  it('keeps overlapping and overflowing placements editable while enforcing scoped catalog and bounded data', async () => {
     const f = await fixture(); let s = (await f.snapshot()).body;
     const send = (change: unknown) => f.command({ commandId: randomUUID(), baseRevision: s.revision, change });
     expect((await send({ type: 'add', catalogKey: randomUUID(), x: 2, y: 0 })).status).toBe(403);
-    expect((await send({ type: 'add', catalogKey: s.catalog[0].key, x: 0, y: 0 })).status).toBe(400);
-    expect((await send({ type: 'move', stableId: s.bins[0].stableId, x: 7, y: 0 })).status).toBe(400);
+    expect((await send({ type: 'add', catalogKey: s.catalog[0].key, x: 0, y: 0 })).status).toBe(200);
+    s = (await f.snapshot()).body;
+    expect(s.layout.bins.map((bin: { x: number }) => bin.x)).toEqual([0, 0]);
+    expect((await send({ type: 'move', stableId: s.bins[0].stableId, x: 7, y: 0 })).status).toBe(200);
+    s = (await f.snapshot()).body;
+    expect((await send({ type: 'move', stableId: s.bins[0].stableId, x: -1, y: 0 })).status).toBe(400);
+    expect((await send({ type: 'move', stableId: s.bins[0].stableId, x: 41, y: 0 })).status).toBe(400);
     expect((await send({ type: 'add', catalogKey: s.catalog[0].key, x: 6, y: 0 })).status).toBe(200);
     s = (await f.snapshot()).body;
-    expect((await send({ type: 'drawer', widthMm: 84, depthMm: 168, spacerHorizontal: 'none', spacerVertical: 'none' })).status).toBe(400);
+    expect((await send({ type: 'drawer', widthMm: 84, depthMm: 168, spacerHorizontal: 'none', spacerVertical: 'none' })).status).toBe(200);
+    s = (await f.snapshot()).body;
+    expect(s.layout.bins).toHaveLength(3);
+    expect(s.layout.gridX).toBe(2);
     expect((await send({ type: 'rename', name: 'Hacked' })).status).toBe(400);
     expect((await send({ type: 'customize', stableId: s.bins[0].stableId, height: 4, lipStyle: 'none', wallPatternEnabled: false })).status).toBe(400);
     expect((await request(app).put(`/api/v1/layouts/${f.layoutId}`).set('Cookie', f.cookie).set('X-Ordinus-Request', '1').send(f.data)).status).toBe(401);
@@ -84,9 +119,11 @@ describe('live collaboration', () => {
     const f = await fixture(); const s = (await f.snapshot()).body;
     expect((await owner(app).put(`/api/v1/layouts/${f.layoutId}`).send(f.data)).status).toBe(409);
     const latest = (await owner(app).get(`${f.host}/snapshot`)).body;
-    expect((await owner(app).put(`/api/v1/layouts/${f.layoutId}`).send({ ...f.data, baseRevision: latest.revision, placedItems: [...f.data.placedItems, ...f.data.placedItems] })).status).toBe(400);
+    expect((await owner(app).put(`/api/v1/layouts/${f.layoutId}`).send({ ...f.data, baseRevision: latest.revision, placedItems: [...f.data.placedItems, ...f.data.placedItems] })).status).toBe(200);
+    const afterOverlap = (await f.snapshot()).body;
     expect((await owner(app).put(`/api/v1/layouts/${f.layoutId}`).send({ ...f.data, baseRevision: 0 })).status).toBe(409);
-    expect((await owner(app).put(`/api/v1/layouts/${f.layoutId}`).send({ ...f.data, baseRevision: s.revision })).status).toBe(200);
+    expect((await owner(app).put(`/api/v1/layouts/${f.layoutId}`).send({ ...f.data, baseRevision: s.revision })).status).toBe(409);
+    expect((await owner(app).put(`/api/v1/layouts/${f.layoutId}`).send({ ...f.data, baseRevision: afterOverlap.revision })).status).toBe(200);
     await owner(app).delete(`/api/v1/layouts/${f.layoutId}/guest-links/${f.linkId}`);
     expect((await f.snapshot()).status).toBe(410);
     expect((await owner(app).put(`/api/v1/layouts/${f.layoutId}`).send(f.data)).status).toBe(409);

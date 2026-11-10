@@ -270,11 +270,21 @@ uploads, photo editing and other admin actions stay with the organizer.
 
 Simultaneous changes are checked against a layout revision. If someone changes
 the drawer while a form is open, review the updated grid and select **Use latest
-revision for these values** before retrying. Invalid overlaps, out-of-bounds bins
-and drawer shrinks that would strand bins are rejected. Lost connections pause
+revision for these values** before retrying. As in the regular workspace,
+overlapping and out-of-bounds bins remain editable and are flagged for everyone
+to resolve; shrinking the drawer preserves its bins and flags those that no
+longer fit. Lost connections pause
 editing and reconnect automatically. If a change's acknowledgement is lost,
 **Retry last change** checks the same command so it cannot apply twice. Returning
 to Workspace or BOM loads the latest shared drawer first.
+
+Both participants use the workspace's drag-and-drop, snapping previews,
+overlap detection, zoom/pan and pinch controls. Drag approved library footprints
+into the drawer; on a phone open **Bin library** first. Shift/Ctrl-click selects
+multiple bins for atomic group moves, rotation and deletion. Right-click opens
+the workspace bin menu. **R** / **Shift+R** rotate, **Delete** removes,
+**Ctrl/Cmd+D** duplicates, and **Ctrl/Cmd+C/V** copies/pastes within this drawer.
+The library and attached images remain scoped to the invitation.
 
 Choose **Close access** in the configuration's sharing panel to revoke an
 invitation and every guest session created from it. Open previews check access

@@ -1,8 +1,68 @@
 import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { SavedConfigsPage } from '../pages/SavedConfigsPage';
 import type { LiveSnapshot } from '@gridfinity/shared';
 test.use({ trace: 'off', video: 'off', screenshot: 'off', actionTimeout: 10_000 });
+
+test('client and organizer use workspace drag, overlap flags, library placement and atomic selection actions', async ({ page: owner, request, browser, baseURL }) => {
+  test.setTimeout(90_000);
+  await owner.setViewportSize({ width: 1440, height: 1100 });
+  const created = await request.post('/api/v1/layouts', { data: { name: `Placement ${randomUUID().slice(0, 8)}`, gridX: 4, gridY: 4, gridResolution: 2, widthMm: 168, depthMm: 168,
+    placedItems: [0, 4].map(x => ({ itemId: 'bins_standard:bin-1x1', x, y: 0, width: 2, height: 2, rotation: 0 })) } });
+  const id = (await created.json()).data.id as number;
+  const link = await (await request.post(`/api/v1/layouts/${id}/guest-links`, { data: { expiresInHours: 1, allowEdit: true, libraryId: 'bins_standard' } })).json() as { id: string; secret: string };
+  const client = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] }, viewport: { width: 1440, height: 1100 } });
+  const current = async () => (await (await request.get(`/api/v1/layouts/${id}/live/snapshot`)).json()) as LiveSnapshot;
+  async function drag(page: Page, number: number, x: number, y: number, overlap = false) {
+    const bin = page.getByRole('button', { name: new RegExp(`^Select bin ${number}:`) }); await bin.scrollIntoViewIfNeeded();
+    await expect(bin).toHaveAttribute('aria-disabled', 'false');
+    const box = (await bin.boundingBox())!, grid = (await page.getByRole('group', { name: 'Drawer layout' }).boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down();
+    await page.mouse.move(grid.x + (x + 0.2) / 8 * grid.width, grid.y + (y + 0.2) / 8 * grid.height, { steps: 6 });
+    if (overlap) await expect(page.locator('.snap-preview--invalid')).toHaveCount(1);
+    await page.mouse.up();
+  }
+  try {
+    const guest = await client.newPage();
+    await owner.goto(`/collaborate/${id}`); await expect(owner.locator('.live-status')).toContainText('Live · Saved');
+    await guest.goto(`/guest/${link.id}#${link.secret}`); await guest.getByRole('button', { name: 'Open preview' }).click();
+    await expect(guest.locator('.live-status')).toContainText('Live · Saved');
+    await drag(guest, 1, 4, 0, true);
+    await expect(owner.locator('.live-bin-invalid')).toHaveCount(2); await expect(guest.locator('.live-bin-invalid')).toHaveCount(2);
+    expect((await current()).layout.bins.map(bin => bin.x)).toEqual([4, 4]);
+    // Bin 2 is the topmost bin where the two footprints overlap.
+    await drag(owner, 2, 0, 2);
+    await expect(guest.locator('.live-bin-invalid')).toHaveCount(0); await expect(owner.locator('.live-bin-invalid')).toHaveCount(0);
+    // A selected group moves as one revision, retaining relative positions.
+    await guest.getByRole('button', { name: /^Bin 1:/ }).click();
+    await guest.getByRole('button', { name: /^Bin 2:/ }).click({ modifiers: ['Control'] });
+    await expect(guest.getByText('2 selected', { exact: true })).toBeVisible();
+    const before = (await current()).revision;
+    await drag(guest, 2, 0, 3);
+    await expect.poll(async () => (await current()).revision).toBe(before + 1);
+    expect((await current()).layout.bins.map(bin => bin.y)).toEqual([1, 3]);
+    await expect.poll(() => owner.getByRole('button', { name: /^Select bin 1:/ }).evaluate(el => (el as HTMLElement).style.top)).toBe('12.5%');
+    // Duplicate retains frozen bin settings; right-click uses the workspace menu.
+    await guest.getByRole('button', { name: /^Select bin 1:/ }).click({ button: 'right' });
+    await guest.getByRole('menuitem', { name: 'Duplicate', exact: true }).click();
+    await expect(owner.getByRole('button', { name: /^Select bin/ })).toHaveCount(3);
+    await expect(guest.locator('.live-status')).toContainText('Live · Saved');
+    // Phone library opens over the canvas and closes when the drag starts.
+    await guest.setViewportSize({ width: 390, height: 844 });
+    await guest.getByRole('group', { name: 'Drawer layout' }).scrollIntoViewIfNeeded();
+    await guest.getByRole('button', { name: 'Bin library', exact: true }).click();
+    // Select a known 1x1 footprint from the approved library.
+    const small = (await current()).catalog.find(bin => bin.width === 1 && bin.depth === 1)!;
+    const card = guest.getByRole('button', { name: `Drag ${small.name} into drawer`, exact: true }); await card.scrollIntoViewIfNeeded();
+    const box = (await card.boundingBox())!, grid = (await guest.getByRole('group', { name: 'Drawer layout' }).boundingBox())!;
+    await guest.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await guest.mouse.down();
+    await guest.mouse.move(grid.x + grid.width * 0.8, grid.y + grid.height * 0.8, { steps: 8 });
+    await expect(guest.getByRole('button', { name: 'Close library' })).not.toBeVisible(); await guest.mouse.up();
+    await expect(owner.getByRole('button', { name: /^Select bin/ })).toHaveCount(4);
+    expect((await guest.request.get('/api/v1/libraries')).status()).toBe(401);
+  } finally { await client.close(); await request.delete(`/api/v1/layouts/${id}`); }
+});
 
 test('a phone client reconnects to current state and safely retries a lost acknowledgement', async ({ page: owner, request, browser, baseURL }) => {
   test.setTimeout(60_000);
@@ -101,7 +161,7 @@ test('organizer and client configure the same drawer live, with conflicts and re
     const box = (await bin2.boundingBox())!;
     const grid = (await owner.getByRole('group', { name: 'Drawer layout' }).boundingBox())!;
     await owner.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await owner.mouse.down();
-    await owner.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + grid.height / 4, { steps: 6 }); await owner.mouse.up();
+    await owner.mouse.move(box.x + grid.width / 32, grid.y + grid.height / 4 + grid.height / 32, { steps: 6 }); await owner.mouse.up();
     await expect.poll(() => guest.getByRole('button', { name: /^Select bin 2:/ }).evaluate(el => (el as HTMLElement).style.top)).toBe('25%');
 
     await guest.getByText('Add a bin', { exact: true }).click();

@@ -97,3 +97,14 @@ it('retains a stale client draft and requires explicit revision review before ap
   expect(screen.queryByRole('group', { name: 'Drawer layout' })).toBeNull();
   view.unmount(); client.clear();
 });
+it('removes remotely deleted bins from the local selection', async () => {
+  const { view, client } = await mount();
+  fireEvent.click(screen.getByRole('button', { name: /^Bin 1:/ }));
+  expect(screen.getByText('1 selected')).toBeTruthy();
+  state = { ...state, revision: 2, bins: [], layout: { ...state.layout, bins: [] } };
+  act(() => Events.current.listeners.get('changed')?.());
+  await screen.findByText('0 selected');
+  expect(screen.queryByRole('region', { name: 'Selected bin' })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Delete selected' })).toBeDisabled();
+  view.unmount(); client.clear();
+});

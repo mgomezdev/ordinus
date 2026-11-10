@@ -2,10 +2,11 @@ import { AppError, ErrorCodes } from '@gridfinity/shared';
 export function checkLiveGeometry(gridX: number, gridY: number, bins: Array<{ x: number; y: number; width: number; height: number }>): void {
   const invalid = (message: string) => new AppError(ErrorCodes.VALIDATION_ERROR, message);
   if (bins.length > 200) throw invalid('A drawer can contain at most 200 bins');
-  for (let i = 0; i < bins.length; i++) {
-    const a = bins[i];
-    if (![a.x, a.y, a.width, a.height].every(Number.isInteger) || a.x < 0 || a.y < 0 || a.width < 1 || a.height < 1 || a.x + a.width > gridX * 2 || a.y + a.height > gridY * 2) throw invalid('A bin would be outside the drawer. Move or remove it first.');
-    for (const b of bins.slice(i + 1)) if (a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y) throw invalid('Bins cannot overlap. Choose a free position.');
+  if (![gridX, gridY].every(value => Number.isInteger(value) && value >= 1 && value <= 20)) throw invalid('Invalid drawer grid');
+  // Placement validity is visible editing feedback, just as in the workspace.
+  // Keep overlapping / overflowing drafts editable, while bounding stored data.
+  for (const a of bins) {
+    if (![a.x, a.y, a.width, a.height].every(Number.isInteger) || a.x < 0 || a.y < 0 || a.x > 40 || a.y > 40 || a.width < 1 || a.height < 1 || a.width > 40 || a.height > 40) throw invalid('Bin coordinates and dimensions must be valid half-cell values');
   }
 }
 // One writer at a time on the shared SQLite connection. The database transaction
