@@ -44,4 +44,6 @@
 .guest-message p { line-height: 1.6; }
 .guest-message .guest-primary { background: var(--accent-primary); color: var(--bg-secondary); border-color: var(--accent-primary); margin-top: 1rem; }
 .guest-message [role="alert"], .guest-content [role="alert"] { color: var(--danger, #b42318); }
+.guest-join-name { display: grid; gap: .5rem; margin: 1rem 0; }
+.guest-join-name input { font: inherit; padding: .75rem; border: 1px solid var(--border-primary); border-radius: .4rem; background: var(--bg-secondary); color: var(--text-primary); }
 @media (max-width: 800px) { .guest-header { padding: 1rem; } .guest-content { padding: 1.5rem 1rem; } .guest-layout { grid-template-columns: 1fr; gap: 2rem; } .guest-heading h1 { font-size: 1.5rem; } }

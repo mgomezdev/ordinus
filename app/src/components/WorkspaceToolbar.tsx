@@ -19,7 +19,7 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
   } = useWorkspace();
 
   const updateLayoutMutation = useUpdateLayoutMutation();
-  const [toast, setToast] = useState<{ visible: boolean; isError: boolean }>({
+  const [toast, setToast] = useState<{ visible: boolean; isError: boolean; message?: string }>({
     visible: false,
     isError: false,
   });
@@ -44,8 +44,8 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
       toastTimerRef.current = setTimeout(
         () => setToast(t => ({ ...t, visible: false })), 1500,
       );
-    } catch {
-      setToast({ visible: true, isError: true });
+    } catch (err) {
+      setToast({ visible: true, isError: true, message: err instanceof Error ? err.message : undefined });
     }
   }, [layoutMeta, gridResult, drawerWidth, drawerDepth, spacerConfig, placedItems,
     refImagePlacements, updateLayoutMutation, handleSaveComplete]);
@@ -91,7 +91,7 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
         <div className={`save-toast ${toast.isError ? 'save-toast-error' : 'save-toast-success'}`}>
           {toast.isError ? (
             <>
-              <span>Save failed. Try again.</span>
+              <span role="alert">Save failed. {toast.message ?? 'Try again.'}</span>
               <button
                 type="button"
                 className="save-toast-dismiss"

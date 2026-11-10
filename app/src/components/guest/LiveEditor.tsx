@@ -1,0 +1,95 @@
+import { useState } from 'react';
+import type { ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import type { GuestBinModel, LiveSnapshot, LiveChange, LiveBin } from '@gridfinity/shared';
+import { apiFetch } from '../../api/apiClient';
+import { useLiveLayout } from '../../hooks/useLiveLayout';
+import { GuestDrawer } from './GuestDrawer';
+import '../../pages/GuestPreviewPage.css';
+import './LiveEditor.css';
+
+type Send = (change: LiveChange, revision: number) => Promise<number | undefined>;
+interface LiveEditorProps { base: string; modelBase?: string; owner?: boolean; onExit: () => void }
+export function LiveEditor({ base, modelBase = base, owner = false, onExit }: LiveEditorProps) {
+  const live = useLiveLayout(base);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [closing, setClosing] = useState(false);
+  const [accessMessage, setAccessMessage] = useState('');
+  const snapshot = live.snapshot.data;
+  const models = useQuery({ queryKey: ['live-models', base], queryFn: () => apiFetch<{ bins: GuestBinModel[] }>(`${modelBase}/models`), enabled: !!snapshot && live.connection !== 'closed', retry: false,
+    refetchInterval: query => query.state.data?.bins.some(bin => bin.status === 'pending') ? 2000 : false });
+  const selectedBin = snapshot?.bins.find(bin => bin.stableId === selected);
+  if (live.connection === 'closed' || (live.snapshot.isError && !snapshot)) return <main className="guest-message"><section><p className="guest-brand">ORDINUS</p><h1>Session unavailable</h1><p>{live.snapshot.error?.message ?? 'Access has closed or expired. Ask your organizer for a new invitation.'}</p><button type="button" onClick={onExit}>{owner ? 'Back to workspace' : 'Leave session'}</button></section></main>;
+  if (!snapshot) return <main className="guest-message"><p role="status">Connecting to your shared drawer…</p></main>;
+  async function closeAccess() {
+    setClosing(true);
+    try { await apiFetch(`${base}/access`, { method: 'DELETE' }); setAccessMessage('Live guest access closed. Your changes are saved.'); }
+    catch { setAccessMessage('Could not close access. Try again.'); }
+    finally { setClosing(false); }
+  }
+  const sidebar = <div className="live-controls">
+    {selectedBin && <BinEditor key={selectedBin.stableId} snapshot={snapshot} bin={selectedBin} send={live.send} disabled={!live.canEdit} />}
+    <LiveDetails title="Add a bin" defaultOpen={!snapshot.bins.length}><AddBin snapshot={snapshot} send={live.send} disabled={!live.canEdit} /></LiveDetails>
+    <LiveDetails title="Drawer dimensions and spacers"><DrawerEditor snapshot={snapshot} send={live.send} disabled={!live.canEdit} /></LiveDetails>
+  </div>;
+  return <div className="guest-page live-page">
+    <header className="guest-header"><span className="guest-brand">ORDINUS</span><strong>Live collaboration</strong><button type="button" onClick={onExit}>{owner ? 'Back to workspace' : 'Leave session'}</button></header>
+    <main className="guest-content">
+      <div className="guest-heading"><h1>{snapshot.layout.name}</h1><p>{snapshot.layout.widthMm} × {snapshot.layout.depthMm} mm</p></div>
+      <div className="live-status" role="status"><strong>{live.connection === 'live' ? live.sending ? 'Saving…' : live.ambiguous ? 'Check last change' : 'Live · Saved' : 'Reconnecting… Editing is paused.'}</strong><span>Revision {snapshot.revision}</span><span>Connected: {snapshot.participants.map(person => person.name).join(', ') || 'connecting…'}</span></div>
+      <p className="guest-note">Changes save automatically for everyone in this session. Select a bin to edit it, or drag it to a new position. Positions use 42 mm grid units in half-unit steps.</p>
+      {live.problem && <p className="live-problem" role="alert">{live.problem}</p>}
+      {live.ambiguous && <button type="button" disabled={live.connection !== 'live' || live.sending} onClick={() => void live.retry()}>Retry last change</button>}
+      <GuestDrawer layout={snapshot.layout} models={models.data?.bins ?? []} selectedId={selectedBin?.id ?? null} revision={snapshot.revision} disabled={!live.canEdit}
+        onSelect={id => setSelected(snapshot.bins.find(bin => bin.id === id)?.stableId ?? null)} sidebar={sidebar}
+        onMove={(id, x, y, revision) => { const bin = snapshot.bins.find(bin => bin.id === id); if (bin) void live.send({ type: 'move', stableId: bin.stableId, x, y }, revision); }} />
+      {models.isError && <p role="status">Bin images are temporarily unavailable. The drawer footprints remain visible.</p>}
+      {owner && <div className="live-access"><button type="button" disabled={closing} onClick={() => void closeAccess()}>{closing ? 'Closing…' : 'Close live guest access'}</button><p>Closes every live invitation for this drawer and disconnects its guests. Saved changes are kept.</p>{accessMessage && <p role="status">{accessMessage}</p>}</div>}
+    </main>
+  </div>;
+}
+function LiveDetails({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return <section className="live-disclosure"><button type="button" aria-expanded={open} onClick={() => setOpen(value => !value)}>{title}</button>{open && children}</section>;
+}
+function RevisionNotice({ base, current, rebase }: { base: number; current: number; rebase: () => void }) {
+  return base !== current ? <div className="live-revision" role="status"><p>The drawer changed while these values were open. Review the current layout before retrying.</p><button type="button" onClick={rebase}>Use latest revision for these values</button></div> : null;
+}
+function BinEditor({ snapshot, bin, send, disabled }: { snapshot: LiveSnapshot; bin: LiveBin; send: Send; disabled: boolean }) {
+  const placed = snapshot.layout.bins.find(item => item.id === bin.id)!;
+  const [revision, setRevision] = useState(snapshot.revision);
+  const [x, setX] = useState(String(placed.x / 2)), [y, setY] = useState(String(placed.y / 2));
+  const [height, setHeight] = useState(bin.height), [lipStyle, setLip] = useState(bin.lipStyle as 'normal' | 'reduced' | 'minimum' | 'none'), [pattern, setPattern] = useState(bin.wallPatternEnabled);
+  const apply = async (change: LiveChange) => { const next = await send(change, revision); if (next !== undefined) setRevision(next); };
+  return <section className="live-bin-editor" aria-label="Selected bin"><h2>{placed.name}</h2>
+    <fieldset disabled={disabled}><legend>Position</legend><form onSubmit={event => { event.preventDefault(); void apply({ type: 'move', stableId: bin.stableId, x: Number(x) * 2, y: Number(y) * 2 }); }}>
+      <div className="live-fields"><label>X position<input type="number" min="0" max="20" step="0.5" required value={x} onChange={event => setX(event.target.value)} /></label><label>Y position<input type="number" min="0" max="20" step="0.5" required value={y} onChange={event => setY(event.target.value)} /></label></div><button type="submit">Move bin</button>
+    </form><div className="live-buttons"><button type="button" onClick={() => void apply({ type: 'rotate', stableId: bin.stableId, direction: 'ccw' })}>Rotate left</button><button type="button" onClick={() => void apply({ type: 'rotate', stableId: bin.stableId, direction: 'cw' })}>Rotate right</button><button type="button" onClick={() => void apply({ type: 'remove', stableId: bin.stableId })}>Remove bin</button></div>
+    {bin.customizable && <form onSubmit={event => { event.preventDefault(); void apply({ type: 'customize', stableId: bin.stableId, height, lipStyle, wallPatternEnabled: pattern }); }}>
+      <label>Height units (7 mm)<input type="number" min="1" max="20" step="1" required value={height} onChange={event => setHeight(Number(event.target.value))} /></label>
+      <label>Lip style<select value={lipStyle} onChange={event => setLip(event.target.value as typeof lipStyle)}>{['normal', 'reduced', 'minimum', 'none'].map(value => <option key={value}>{value}</option>)}</select></label>
+      <label className="live-check"><input type="checkbox" checked={pattern} onChange={event => setPattern(event.target.checked)} /> Wall pattern</label><button type="submit">Apply bin options</button>
+    </form>}
+    <RevisionNotice base={revision} current={snapshot.revision} rebase={() => setRevision(snapshot.revision)} />
+    </fieldset>
+  </section>;
+}
+function AddBin({ snapshot, send, disabled }: { snapshot: LiveSnapshot; send: Send; disabled: boolean }) {
+  const [revision, setRevision] = useState(snapshot.revision), [key, setKey] = useState('');
+  const [x, setX] = useState('0'), [y, setY] = useState('0');
+  return <fieldset disabled={disabled}><form aria-label="Add bin" onSubmit={event => { event.preventDefault(); void send({ type: 'add', catalogKey: key, x: Number(x) * 2, y: Number(y) * 2 }, revision).then(next => { if (next !== undefined) setRevision(next); }); }}>
+    <label>Approved bin<select value={key} required onChange={event => setKey(event.target.value)}><option value="">Choose a bin</option>{snapshot.catalog.map(item => <option key={item.key} value={item.key}>{item.name} · {item.width} × {item.depth}</option>)}</select></label>
+    <div className="live-fields"><label>Add X position<input type="number" min="0" max="20" step="0.5" required value={x} onChange={event => setX(event.target.value)} /></label><label>Add Y position<input type="number" min="0" max="20" step="0.5" required value={y} onChange={event => setY(event.target.value)} /></label></div>
+    <button type="submit" disabled={!key}>Place bin</button><RevisionNotice base={revision} current={snapshot.revision} rebase={() => setRevision(snapshot.revision)} />
+  </form></fieldset>;
+}
+function DrawerEditor({ snapshot, send, disabled }: { snapshot: LiveSnapshot; send: Send; disabled: boolean }) {
+  const [revision, setRevision] = useState(snapshot.revision), [width, setWidth] = useState(snapshot.layout.widthMm), [depth, setDepth] = useState(snapshot.layout.depthMm);
+  const [horizontal, setHorizontal] = useState(snapshot.layout.spacerHorizontal as 'none' | 'one-sided' | 'symmetrical'), [vertical, setVertical] = useState(snapshot.layout.spacerVertical as typeof horizontal);
+  return <fieldset disabled={disabled}><form aria-label="Drawer dimensions" onSubmit={event => { event.preventDefault(); void send({ type: 'drawer', widthMm: width, depthMm: depth, spacerHorizontal: horizontal, spacerVertical: vertical }, revision).then(next => { if (next !== undefined) setRevision(next); }); }}>
+    <div className="live-fields"><label>Drawer width (mm)<input type="number" min="42" max="881" required value={width} onChange={event => setWidth(Number(event.target.value))} /></label><label>Drawer depth (mm)<input type="number" min="42" max="881" required value={depth} onChange={event => setDepth(Number(event.target.value))} /></label></div>
+    <label>Horizontal spacers<select value={horizontal} onChange={event => setHorizontal(event.target.value as typeof horizontal)}>{['none', 'one-sided', 'symmetrical'].map(value => <option key={value}>{value}</option>)}</select></label>
+    <label>Vertical spacers<select value={vertical} onChange={event => setVertical(event.target.value as typeof vertical)}>{['none', 'one-sided', 'symmetrical'].map(value => <option key={value}>{value}</option>)}</select></label>
+    <button type="submit">Apply drawer changes</button><RevisionNotice base={revision} current={snapshot.revision} rebase={() => setRevision(snapshot.revision)} />
+  </form></fieldset>;
+}

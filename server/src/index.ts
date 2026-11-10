@@ -3,7 +3,7 @@ import path from 'path';
 import { createApp } from './app.js';
 import { config } from './config.js';
 import { logger } from './logger.js';
-import { client, authClient } from './db/connection.js';
+import { client, authClient, liveClient } from './db/connection.js';
 import { runMigrations } from './db/migrate.js';
 import { reseedLibraryData } from './db/reseedLibraries.js';
 import { getPendingAndProcessingIds, getUploadById, resetToPending } from './services/userStls.service.js';
@@ -64,6 +64,7 @@ async function main(): Promise<void> {
       logger.info('HTTP server closed');
       client.close();
       if (authClient !== client) authClient.close();
+      if (liveClient !== client && liveClient !== authClient) liveClient.close();
       logger.info('Database connection closed');
       process.exit(0);
     });

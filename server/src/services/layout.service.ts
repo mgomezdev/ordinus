@@ -8,7 +8,7 @@ import { formatLayout, formatPlacedItem } from './formatters.js';
 import * as layoutThumbnailService from './layoutThumbnail.service.js';
 import { releaseWarps } from './refImageWarp.service.js';
 import { randomUUID } from 'node:crypto';
-import { layoutWrite, layoutChanged } from './layoutWrites.js';
+import { layoutWrite, layoutChanged, checkLiveGeometry } from './layoutWrites.js';
 
 type LayoutRow = typeof layouts.$inferSelect;
 type PlacedItemRow = typeof placedItems.$inferSelect;
@@ -411,6 +411,10 @@ async function updateLayoutInner(
   try {
     const existing = await findLayoutOrThrow(layoutId);
     if (existing.liveGuarded && data.baseRevision !== existing.revision) throw new AppError(ErrorCodes.CONFLICT, 'This configuration changed. Reload it or open the live editor before saving.');
+    if (existing.liveGuarded) {
+      if (data.gridX !== Math.floor(data.widthMm / 42) || data.gridY !== Math.floor(data.depthMm / 42)) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Drawer dimensions must match the grid');
+      checkLiveGeometry(data.gridX, data.gridY, data.placedItems);
+    }
     const customerId = data.customerId !== undefined ? data.customerId : existing.customerId;
     [updated] = await db
       .update(layouts)

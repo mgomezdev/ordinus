@@ -115,4 +115,22 @@ describe('live collaboration', () => {
     expect((await f.command({ ...change, commandId: randomUUID(), baseRevision: revision })).status).toBe(410);
     expect(Number((await client.execute({ sql: 'SELECT revision FROM layouts WHERE id=?', args: [f.layoutId] })).rows[0].revision)).toBe(revision);
   });
+  it('expires guest streams and terminates owner streams on sign out', async () => {
+    const f = await fixture(); const server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
+    const port = (server.address() as AddressInfo).port;
+    const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 5000);
+    try {
+      await client.execute({ sql: 'UPDATE guest_sessions SET expires_at=? WHERE link_id=?', args: [Date.now() + 500, f.linkId] });
+      const guest = await fetch(`http://127.0.0.1:${port}${f.base}/live/events`, { headers: { Cookie: f.cookie }, signal: controller.signal });
+      expect(guest.status).toBe(200); const reader = guest.body!.getReader(); let text = '';
+      for (;;) { const chunk = await reader.read(); if (chunk.done) break; text += new TextDecoder().decode(chunk.value); }
+      expect(text).toContain('event: closed');
+      const login = await request(app).post('/api/v1/auth/login').set('X-Ordinus-Request', '1').send({ username: 'admin', password: 'isolated-unit-test-admin-123!' });
+      const cookie = String(login.headers['set-cookie'][0]).split(';')[0];
+      const ownerStream = await fetch(`http://127.0.0.1:${port}${f.host}/events`, { headers: { Cookie: cookie }, signal: controller.signal });
+      const ownerReader = ownerStream.body!.getReader();
+      await request(app).post('/api/v1/auth/logout').set('X-Ordinus-Request', '1').set('Cookie', cookie);
+      for (;;) { if ((await ownerReader.read()).done) break; }
+    } finally { clearTimeout(timeout); controller.abort(); server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }
+  });
 });

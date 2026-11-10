@@ -1,5 +1,4 @@
 import type { Client } from '@libsql/client';
-import { randomUUID } from 'node:crypto';
 export const version = 13;
 export const name = 'live_collaboration';
 export async function up(client: Client): Promise<void> {
@@ -16,10 +15,9 @@ export async function up(client: Client): Promise<void> {
       PRIMARY KEY(layout_id, command_id))`,
     `CREATE TABLE live_backups (layout_id INTEGER PRIMARY KEY REFERENCES layouts(id) ON DELETE CASCADE,
       snapshot TEXT NOT NULL, created_at INTEGER NOT NULL)`,
+    `UPDATE placed_items SET stable_id = lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))), 2) || '-8' || substr(lower(hex(randomblob(2))), 2) || '-' || lower(hex(randomblob(6)))`,
+    'CREATE UNIQUE INDEX idx_placed_stable ON placed_items(stable_id)',
   ], 'write');
-  const rows = await client.execute('SELECT id FROM placed_items');
-  for (const row of rows.rows) await client.execute({ sql: 'UPDATE placed_items SET stable_id = ? WHERE id = ?', args: [randomUUID(), row.id] });
-  await client.execute('CREATE UNIQUE INDEX idx_placed_stable ON placed_items(stable_id)');
 }
 export async function down(client: Client): Promise<void> {
   await client.batch(['DROP TABLE live_commands', 'DROP TABLE live_backups', 'DROP INDEX idx_placed_stable',

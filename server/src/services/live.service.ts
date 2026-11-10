@@ -3,12 +3,13 @@ import { z } from 'zod';
 import type { Row } from '@libsql/client';
 import { AppError, ErrorCodes, validateCustomBinSpec } from '@gridfinity/shared';
 import type { LiveSnapshot, LiveCommand, LiveChange, GuestLink } from '@gridfinity/shared';
-import { client } from '../db/connection.js';
+import * as connections from '../db/connection.js';
 import { authService, hashToken } from './auth.service.js';
 import { GuestAccessClosed, getGuestPreview } from './guestPreview.service.js';
 import { modelRows, modelSourceSnapshot, prepareGuestModels } from './guestModels.service.js';
-import { layoutWrite, layoutChanged } from './layoutWrites.js';
+import { layoutWrite, layoutChanged, checkLiveGeometry } from './layoutWrites.js';
 import { parseCustomization } from './formatters.js';
+const client = Object.hasOwn(connections, 'liveClient') ? connections.liveClient : connections.client;
 
 export type LiveActor = { role: 'owner'; token: string } | { role: 'guest'; token: string; linkId: string };
 interface CatalogEntry { key: string; name: string; width: number; depth: number; libraryId: string; itemId: string; sourceSnapshot: string }
@@ -37,12 +38,7 @@ async function binRows(id: number): Promise<Row[]> {
   return (await client.execute({ sql: 'SELECT * FROM placed_items WHERE layout_id = ? ORDER BY sort_order', args: [id] })).rows;
 }
 function validateGeometry(layout: Row, bins: Row[]): void {
-  if (bins.length > 200) throw invalid('A drawer can contain at most 200 bins');
-  for (let i = 0; i < bins.length; i++) {
-    const a = bins[i]; const x = Number(a.x), y = Number(a.y), w = Number(a.width), h = Number(a.height);
-    if (![x, y, w, h].every(Number.isInteger) || x < 0 || y < 0 || w < 1 || h < 1 || x + w > Number(layout.grid_x) * 2 || y + h > Number(layout.grid_y) * 2) throw invalid('A bin would be outside the drawer. Move or remove it first.');
-    for (const b of bins.slice(i + 1)) if (x < Number(b.x) + Number(b.width) && x + w > Number(b.x) && y < Number(b.y) + Number(b.height) && y + h > Number(b.y)) throw invalid('Bins cannot overlap. Choose a free position.');
-  }
+  checkLiveGeometry(Number(layout.grid_x), Number(layout.grid_y), bins.map(bin => ({ x: Number(bin.x), y: Number(bin.y), width: Number(bin.width), height: Number(bin.height) })));
 }
 async function catalogForLibrary(libraryId: string): Promise<Catalog> {
   const library = (await client.execute({ sql: 'SELECT id FROM libraries WHERE id = ? AND is_active = 1', args: [libraryId] })).rows[0];
@@ -118,7 +114,7 @@ async function applyChange(layoutId: number, layout: Row, bins: Row[], change: L
     const entry = catalog.items.find(item => item.key === change.catalogKey);
     if (!entry) throw new AppError(ErrorCodes.FORBIDDEN, 'Choose a bin from the approved library');
     await client.execute({ sql: `INSERT INTO placed_items(layout_id, library_id, item_id, stable_id, source_snapshot, x, y, width, height, rotation, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`, args: [layoutId, entry.libraryId, entry.itemId, randomUUID(), entry.sourceSnapshot, change.x, change.y, entry.width * 2, entry.depth * 2, bins.length] });
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`, args: [layoutId, entry.libraryId, entry.itemId, randomUUID(), entry.sourceSnapshot, change.x, change.y, entry.width * 2, entry.depth * 2, Math.max(-1, ...bins.map(bin => Number(bin.sort_order))) + 1] });
   } else if (change.type === 'move') await client.execute({ sql: 'UPDATE placed_items SET x=?, y=? WHERE id=?', args: [change.x, change.y, target!.id] });
   else if (change.type === 'remove') await client.execute({ sql: 'DELETE FROM placed_items WHERE id=?', args: [target!.id] });
   else if (change.type === 'rotate') await client.execute({ sql: 'UPDATE placed_items SET width=height, height=width, rotation=? WHERE id=?', args: [(Number(target!.rotation) + (change.direction === 'cw' ? 90 : 270)) % 360, target!.id] });
