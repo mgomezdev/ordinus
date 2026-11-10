@@ -96,11 +96,13 @@ test('organizer and client configure the same drawer live, with conflicts and re
     await expect.poll(() => guest.getByRole('button', { name: /^Select bin 1:/ }).evaluate(el => (el as HTMLElement).style.left)).toBe('12.5%');
 
     // Owner drag is one committed command; the guest receives it without reload.
-    const bin2 = owner.getByRole('button', { name: /^Select bin 2:/ }); const box = (await bin2.boundingBox())!;
+    const bin2 = owner.getByRole('button', { name: /^Select bin 2:/ });
+    await bin2.scrollIntoViewIfNeeded();
+    const box = (await bin2.boundingBox())!;
     const grid = (await owner.getByRole('group', { name: 'Drawer layout' }).boundingBox())!;
     await owner.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await owner.mouse.down();
-    await owner.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + grid.height / 2, { steps: 6 }); await owner.mouse.up();
-    await expect.poll(() => guest.getByRole('button', { name: /^Select bin 2:/ }).evaluate(el => (el as HTMLElement).style.top)).toBe('50%');
+    await owner.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + grid.height / 4, { steps: 6 }); await owner.mouse.up();
+    await expect.poll(() => guest.getByRole('button', { name: /^Select bin 2:/ }).evaluate(el => (el as HTMLElement).style.top)).toBe('25%');
 
     await guest.getByText('Add a bin', { exact: true }).click();
     const add = guest.getByRole('form', { name: 'Add bin' });
