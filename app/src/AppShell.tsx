@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import type { MouseEvent } from 'react';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { useSettings } from './contexts/SettingsContext.js';
 import { CustomerSelector } from './components/CustomerSelector';
@@ -27,6 +28,10 @@ function ServiceBubble({ name, status }: { name: string; status: ServiceStatus }
 
 // Inner shell reads from context (must be inside WorkspaceProvider)
 function AppShellInner() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const liveId = /^\/collaborate\/(\d+)$/.exec(location.pathname)?.[1];
+  const [navigationError, setNavigationError] = useState('');
   const admin = useAdminSession();
   const [signOutError, setSignOutError] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -46,7 +51,14 @@ function AppShellInner() {
     drawerDepth,
     spacerConfig,
     handleSaveComplete,
+    loadLayout,
   } = useWorkspace();
+  const leaveLive = async (event: MouseEvent<HTMLAnchorElement>, target: string) => {
+    if (!liveId || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    try { await loadLayout(Number(liveId)); navigate(target); }
+    catch { setNavigationError('Could not load the latest shared drawer. Try again.'); }
+  };
 
   const totalPlaced = bomItems.reduce((s, i) => s + i.quantity, 0);
   const capacity = gridResult.gridX * gridResult.gridY;
@@ -72,6 +84,7 @@ function AppShellInner() {
         <div className="nav-tabs">
           <NavLink
             to="/"
+            onClick={event => void leaveLive(event, '/')}
             end
             className={({ isActive }) => `nav-tab${isActive ? ' nav-tab-active' : ''}`}
           >
@@ -85,6 +98,7 @@ function AppShellInner() {
           </NavLink>
           <NavLink
             to="/order"
+            onClick={event => void leaveLive(event, '/order')}
             className={({ isActive }) => `nav-tab${isActive ? ' nav-tab-active' : ''}`}
           >
             BOM
@@ -100,7 +114,8 @@ function AppShellInner() {
               <span className="nav-layout-name">{layoutMeta.name}</span>
             </div>
           )}
-          <CustomerSelector />
+          {!liveId && <CustomerSelector />}
+          {navigationError && <span role="alert">{navigationError}</span>}
           {admin && <button type="button" onClick={() => void admin.signOut().catch(() => setSignOutError('Could not sign out. Try again.'))}>Sign out</button>}
           {signOutError && <span role="alert">{signOutError}</span>}
           <button
@@ -129,7 +144,7 @@ function AppShellInner() {
       </main>
 
       {/* Status bar */}
-      <div className="app-status-bar">
+      {!liveId && <div className="app-status-bar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginRight: 8 }}>
           <ServiceBubble name="Themis" status={health.themis} />
           <ServiceBubble name="Laminus" status={health.laminus} />
@@ -154,7 +169,7 @@ function AppShellInner() {
           <span className="status-cost-label">Est.</span>
           <strong>{costLabel}</strong>
         </div>
-      </div>
+      </div>}
 
       {/* Global dialogs */}
       <KeyboardShortcutsHelp

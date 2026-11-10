@@ -127,6 +127,12 @@ test('organizer and client configure the same drawer live, with conflicts and re
     await guest.getByRole('button', { name: 'Remove bin', exact: true }).click();
     await expect(owner.getByRole('button', { name: /^Select bin/ })).toHaveCount(2);
     expect((await guest.request.get('/api/v1/customers')).status()).toBe(401);
+    await owner.getByRole('link', { name: 'BOM', exact: true }).click();
+    await expect(owner).toHaveURL(/\/order$/);
+    await expect(owner.locator('.app-status-bar .status-count')).toContainText('2 items');
+    await expect(owner.locator('.app-status-bar .status-count')).toContainText('5×4 grid');
+    await owner.goto(`/collaborate/${id}`);
+    await expect(owner.locator('.live-status')).toContainText('Live · Saved');
 
     const staleSave = stale.waitForResponse(response => response.url().endsWith(`/layouts/${id}`) && response.request().method() === 'PUT');
     await stale.getByRole('button', { name: 'Save Changes', exact: true }).click();

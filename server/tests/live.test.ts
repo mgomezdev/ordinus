@@ -15,6 +15,7 @@ const { client } = await import('../src/db/connection.js');
 const { createApp } = await import('../src/app.js');
 const { authenticateTestAdmin, default: owner } = await import('./adminRequest.js');
 const app = createApp();
+const { enterLive, livePresent } = await import('../src/services/live.service.js');
 beforeAll(async () => {
   await authenticateTestAdmin(app);
   await client.execute("INSERT INTO libraries (id, name) VALUES ('live-test', 'Approved bins')");
@@ -36,6 +37,13 @@ async function fixture(edit = true) {
   return { data, layoutId, linkId: issued.body.id as string, cookie, base, host, snapshot, command };
 }
 describe('live collaboration', () => {
+  it('ages out presence that no longer acknowledges the stream', () => {
+    const now = Date.now(); const clock = vi.spyOn(Date, 'now').mockReturnValue(now);
+    const leave = enterLive(-1, 'temporary', 'Alex', 'guest');
+    expect(livePresent(-1, 'temporary')).toBe(true);
+    clock.mockReturnValue(now + 46_000); expect(livePresent(-1, 'temporary')).toBe(false);
+    leave(); clock.mockRestore();
+  });
   it('shares a scoped editable snapshot and preserves bin identity across accepted owner and guest changes', async () => {
     const f = await fixture(); const initial = await f.snapshot(); expect(initial.status).toBe(200);
     expect(JSON.stringify(initial.body)).not.toMatch(/Private notes|customerId|base_model_path|file_path/);
@@ -75,12 +83,25 @@ describe('live collaboration', () => {
   it('protects every full save after collaboration starts, including after access closes', async () => {
     const f = await fixture(); const s = (await f.snapshot()).body;
     expect((await owner(app).put(`/api/v1/layouts/${f.layoutId}`).send(f.data)).status).toBe(409);
+    const latest = (await owner(app).get(`${f.host}/snapshot`)).body;
+    expect((await owner(app).put(`/api/v1/layouts/${f.layoutId}`).send({ ...f.data, baseRevision: latest.revision, placedItems: [...f.data.placedItems, ...f.data.placedItems] })).status).toBe(400);
     expect((await owner(app).put(`/api/v1/layouts/${f.layoutId}`).send({ ...f.data, baseRevision: 0 })).status).toBe(409);
     expect((await owner(app).put(`/api/v1/layouts/${f.layoutId}`).send({ ...f.data, baseRevision: s.revision })).status).toBe(200);
     await owner(app).delete(`/api/v1/layouts/${f.layoutId}/guest-links/${f.linkId}`);
     expect((await f.snapshot()).status).toBe(410);
     expect((await owner(app).put(`/api/v1/layouts/${f.layoutId}`).send(f.data)).status).toBe(409);
     expect((await client.execute({ sql: 'SELECT snapshot FROM live_backups WHERE layout_id = ?', args: [f.layoutId] })).rows).toHaveLength(1);
+  });
+  it('preserves advanced custom settings and half-height bins while accepting decimal drawer measurements', async () => {
+    const f = await fixture(); const s = (await f.snapshot()).body;
+    await client.execute({ sql: 'UPDATE placed_items SET custom_spec=? WHERE stable_id=?', args: [JSON.stringify({ width: 1, depth: 1, height: 0.5, overrides: { wall_thickness: 1.4 } }), s.bins[0].stableId] });
+    expect((await f.snapshot()).body.bins[0]).toMatchObject({ height: 0.5, heightStep: 0.5 });
+    const customized = await f.command({ commandId: randomUUID(), baseRevision: s.revision, change: { type: 'customize', stableId: s.bins[0].stableId, height: 0.5, lipStyle: 'none', wallPatternEnabled: false } });
+    expect(customized.status).toBe(200);
+    const raw = (await client.execute({ sql: 'SELECT custom_spec FROM placed_items WHERE stable_id=?', args: [s.bins[0].stableId] })).rows[0];
+    expect(JSON.parse(String(raw.custom_spec))).toMatchObject({ height: 0.5, overrides: { wall_thickness: 1.4, lip_style: 'none' } });
+    expect((await f.command({ commandId: randomUUID(), baseRevision: customized.body.revision, change: { type: 'drawer', widthMm: 169.25, depthMm: 168.5, spacerHorizontal: 'symmetrical', spacerVertical: 'none' } })).status).toBe(200);
+    expect((await f.snapshot()).body.layout.widthMm).toBe(169.25);
   });
   it('never commits a command after revocation, and never upgrades a read-only invitation', async () => {
     const f = await fixture(); const s = (await f.snapshot()).body;

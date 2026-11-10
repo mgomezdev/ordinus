@@ -22,8 +22,8 @@ const commandSchema = z.object({ commandId: uuid, baseRevision: z.number().int()
   z.object({ type: z.literal('move'), stableId: uuid, x: coordinate, y: coordinate }).strict(),
   z.object({ type: z.literal('rotate'), stableId: uuid, direction: z.enum(['cw', 'ccw']) }).strict(),
   z.object({ type: z.literal('remove'), stableId: uuid }).strict(),
-  z.object({ type: z.literal('customize'), stableId: uuid, height: z.number().int().min(1).max(20), lipStyle: z.enum(['normal', 'reduced', 'minimum', 'none']), wallPatternEnabled: z.boolean() }).strict(),
-  z.object({ type: z.literal('drawer'), widthMm: z.number().min(42).max(881), depthMm: z.number().min(42).max(881), spacerHorizontal: spacer, spacerVertical: spacer }).strict(),
+  z.object({ type: z.literal('customize'), stableId: uuid, height: z.number().min(0.5).max(20).multipleOf(0.5), lipStyle: z.enum(['normal', 'reduced', 'minimum', 'none']), wallPatternEnabled: z.boolean() }).strict(),
+  z.object({ type: z.literal('drawer'), widthMm: z.number().min(42).lt(882), depthMm: z.number().min(42).lt(882), spacerHorizontal: spacer, spacerVertical: spacer }).strict(),
 ]) }).strict();
 const invalid = (message: string) => new AppError(ErrorCodes.VALIDATION_ERROR, message);
 function parseCatalog(value: unknown): Catalog {
@@ -83,15 +83,23 @@ export async function authorizeLive(layoutId: number, actor: LiveActor): Promise
   if (!Number(row.allow_edit)) throw new AppError(ErrorCodes.FORBIDDEN, 'This invitation allows viewing only');
   return { id: `guest:${hashToken(actor.token)}`, name: String(row.display_name), catalog: parseCatalog(row.catalog) };
 }
-const presence = new Map<number, Map<string, { name: string; role: 'owner' | 'guest'; connections: number }>>();
+const presence = new Map<number, Map<string, { name: string; role: 'owner' | 'guest'; connections: number; lastSeen: number }>>();
+export function livePresent(layoutId: number, actorId: string): boolean {
+  const person = presence.get(layoutId)?.get(actorId);
+  return !!person && Date.now() - person.lastSeen < 45_000;
+}
 export function enterLive(layoutId: number, id: string, name: string, role: 'owner' | 'guest'): () => void {
-  const people = presence.get(layoutId) ?? new Map(); const person = people.get(id) ?? { name, role, connections: 0 };
+  const people = presence.get(layoutId) ?? new Map(); const person = people.get(id) ?? { name, role, connections: 0, lastSeen: Date.now() };
+  person.lastSeen = Date.now();
   person.connections++; people.set(id, person); presence.set(layoutId, people); layoutChanged(layoutId);
   return () => { person.connections--; if (!person.connections) people.delete(id); if (!people.size) presence.delete(layoutId); layoutChanged(layoutId); };
 }
 export function liveSnapshot(layoutId: number, actor: LiveActor, assetId: string): Promise<LiveSnapshot> {
   return layoutWrite(async () => {
     const authorization = await authorizeLive(layoutId, actor); const layout = await layoutRow(layoutId);
+    // Every delivered heartbeat prompts a snapshot fetch, acknowledging that the
+    // browser is still listening. Abandoned sockets age out even without a FIN.
+    const person = presence.get(layoutId)?.get(authorization.id); if (person) person.lastSeen = Date.now();
     if (!Number(layout.live_guarded)) throw new AppError(ErrorCodes.CONFLICT, 'Start a live collaboration link from Share preview first');
     const bins = await binRows(layoutId);
     return { revision: Number(layout.revision), layout: await getGuestPreview({ layoutId, linkId: assetId, expiresAt: Date.now() + 3600_000 }),
@@ -100,6 +108,7 @@ export function liveSnapshot(layoutId: number, actor: LiveActor, assetId: string
         const customization = parseCustomization(row.customization as string | null);
         const source = row.source_snapshot ? JSON.parse(String(row.source_snapshot)) as { base_model_path?: string } : {};
         return { id: Number(row.id), stableId: String(row.stable_id), customizable: !!(spec || source.base_model_path), height: spec?.height ?? customization?.height ?? 4,
+          heightStep: spec ? 0.5 : 1,
           lipStyle: String(spec?.overrides.lip_style ?? customization?.lipStyle ?? 'normal'), wallPatternEnabled: Boolean(spec?.overrides.wallpattern_enabled ?? customization?.wallPatternEnabled) };
       }),
       catalog: authorization.catalog.items.map(({ key, name, width, depth }) => ({ key, name, width, depth })),
@@ -130,6 +139,7 @@ async function applyChange(layoutId: number, layout: Row, bins: Row[], change: L
     } else {
       const source = JSON.parse(String(target!.source_snapshot ?? '{}')) as { base_model_path?: string };
       if (!source.base_model_path) throw invalid('This fixed model does not support customization');
+      if (!Number.isInteger(change.height) || change.height < 1) throw invalid('Library bin heights use whole 7 mm units');
       const previous = parseCustomization(target!.customization as string | null) ?? { wallPattern: 'grid', fingerSlide: 'none', wallCutout: { front: false, back: false, left: false, right: false } };
       await client.execute({ sql: 'UPDATE placed_items SET customization=? WHERE id=?', args: [JSON.stringify({ ...previous, height: change.height, lipStyle: change.lipStyle, wallPatternEnabled: change.wallPatternEnabled }), target!.id] });
     }

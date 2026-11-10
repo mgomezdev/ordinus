@@ -5,7 +5,7 @@ import { AppError, ErrorCodes } from '@gridfinity/shared';
 import type { GuestAccess } from '../services/guestPreview.service.js';
 import { guestImagePath } from '../services/guestPreview.service.js';
 import { guestModels, guestModelPath } from '../services/guestModels.service.js';
-import { authorizeLive, enterLive, liveCommand, liveSnapshot } from '../services/live.service.js';
+import { authorizeLive, enterLive, liveCommand, liveSnapshot, livePresent } from '../services/live.service.js';
 import type { LiveActor } from '../services/live.service.js';
 import { layoutChanged, layoutWrite, watchLayout } from '../services/layoutWrites.js';
 import { client } from '../db/connection.js';
@@ -21,7 +21,7 @@ function stream(layoutId: number, actor: LiveActor, expiresAt: number, res: Resp
     let ended = false;
     const send = (event: string) => { if (!ended) res.write(`event: ${event}\ndata: {}\n\n`); };
     const check = async () => {
-      try { await authorizeLive(layoutId, actor); send('changed'); }
+      try { await authorizeLive(layoutId, actor); if (!livePresent(layoutId, authorization.id)) { res.end(); return; } send('changed'); }
       catch { send('closed'); res.end(); }
     };
     const unwatch = watchLayout(layoutId, () => { void check(); });

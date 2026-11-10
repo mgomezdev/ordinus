@@ -67,7 +67,7 @@ export function useLiveLayout(base: string) {
       return accepted.revision;
     } catch (err) {
       if (!mounted.current) return undefined;
-      if (err instanceof ApiError) {
+      if (err instanceof ApiError && err.status < 500 && err.status !== 408) {
         setProblem(err.message); setPending(null);
         if ([401, 403, 404, 410].includes(err.status)) setConnection('closed');
         await snapshot.refetch({ cancelRefetch: false });

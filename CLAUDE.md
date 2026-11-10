@@ -128,6 +128,7 @@ server/src/
 ```
 
 - API prefix: `/api/v1/`
+- Live collaboration: see [docs/live-collaboration.md](docs/live-collaboration.md). All layout writes use `layoutWrite`; live commands reauthorize inside `BEGIN IMMEDIATE`, enforce revisions/geometry, persist deduplication and publish only after commit. Never bypass the revision guard on an already shared layout. Live transactions use `liveClient`; privileged credential operations use `authClient`.
 - Public entry points are health, `/auth` entry/recovery, and `/guest/:id/join`. Other `/guest/:id` endpoints require a scoped guest session and expose only that saved configuration and its attached images. Owner authorization protects every ordinary API and private asset route, including guest-link administration. Mutation requests require a permitted Origin, or `X-Ordinus-Request: 1` for non-browser clients without an Origin. Authentication rate limits remain active in test mode; never add a test login bypass.
 - Endpoints: `libraries`, `items`, `categories`, `images`, `layouts`, `favorites`, `generation`, `customers`, `refImages`, `userStls`, `thumbnails`, `settings`, `health`, `bom`
 - Logger: pino + pino-http. Tests mock logger with `pino({ level: 'silent' })` (NOT a plain object — pino-http requires a real pino instance)

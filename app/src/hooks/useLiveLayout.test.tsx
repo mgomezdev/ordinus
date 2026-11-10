@@ -12,7 +12,7 @@ class Events {
   close() { this.closed = true; }
 }
 afterEach(() => vi.unstubAllGlobals());
-it('refreshes authoritative revisions on events, blocks disconnected edits, and deduplicates an ambiguous retry', async () => {
+it.each(['network', 'gateway'] as const)('refreshes revisions, blocks disconnected edits, and deduplicates a %s failure', async failure => {
   vi.stubGlobal('EventSource', Events);
   let revision = 1; let loseAck = true;
   const ids: string[] = [];
@@ -20,7 +20,11 @@ it('refreshes authoritative revisions on events, blocks disconnected edits, and 
     if (options?.method === 'POST') {
       const command = JSON.parse(String(options.body)) as { commandId: string };
       ids.push(command.commandId);
-      if (loseAck) { loseAck = false; revision++; throw new TypeError('Network lost'); }
+      if (loseAck) {
+        loseAck = false; revision++;
+        if (failure === 'gateway') return new Response(JSON.stringify({ error: { message: 'Bad gateway' } }), { status: 502 });
+        throw new TypeError('Network lost');
+      }
       return new Response(JSON.stringify({ revision, duplicate: true }));
     }
     return new Response(JSON.stringify({ revision, layout: { name: 'Drawer' }, bins: [], catalog: [], participants: [] }));

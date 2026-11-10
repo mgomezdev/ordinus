@@ -1,6 +1,6 @@
 import type { GuestPreview } from './guestPreview.js';
 export interface LiveCatalogItem { key: string; name: string; width: number; depth: number }
-export interface LiveBin { id: number; stableId: string; customizable: boolean; height: number; lipStyle: string; wallPatternEnabled: boolean }
+export interface LiveBin { id: number; stableId: string; customizable: boolean; height: number; heightStep?: number; lipStyle: string; wallPatternEnabled: boolean }
 export interface LiveSnapshot {
   revision: number;
   layout: GuestPreview;

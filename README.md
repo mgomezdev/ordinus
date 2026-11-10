@@ -233,7 +233,7 @@ npm run dev
 
 Open `http://localhost:5173`.
 
-### Guest preview milestone
+### Sharing and live collaboration
 
 From the workspace, choose **Share preview**. Ordinus saves the current drawer
 before opening the sharing panel and again before creating a link, including
@@ -251,19 +251,48 @@ photos. **Top** and **3D** switch between the same rendered model views used in
 the workspace, including saved rotation and custom-bin settings. Sharing prepares
 any missing generated previews; the guest view checks readiness and displays them
 when available. Missing or failed images retain the footprint and a clear status.
-Guests can read only previews for bins placed in this drawer; they cannot start
-generation jobs or retrieve model/STL files.
+Guests receive previews only for bins placed in this drawer. Global generation
+controls, model/STL downloads, customer records and other configurations remain
+private.
 
-The preview is read-only; reload it to see later saved configuration changes.
-Guest editing and live collaboration are the next phase. Anyone holding the
-invitation can open it until expiry or revocation.
+Links default to a **read-only preview**. To work together, enable **Allow client
+editing (live)**, choose the **Approved bin library**, then select **Create
+collaboration link**. Send the client that link and choose **Open live editor**
+for your own editing view. Existing preview links keep their original read-only
+permissions.
+
+The organizer and client can both drag or move bins, place approved models,
+rotate/remove bins, change supported height/lip/pattern options, and adjust drawer
+dimensions and spacers. Accepted edits save automatically and appear for everyone
+without reloading. **Top** and **3D** viewing, selection and local form drafts
+remain personal to each browser. Clients can see attached reference photos;
+uploads, photo editing and other admin actions stay with the organizer.
+
+Simultaneous changes are checked against a layout revision. If someone changes
+the drawer while a form is open, review the updated grid and select **Use latest
+revision for these values** before retrying. Invalid overlaps, out-of-bounds bins
+and drawer shrinks that would strand bins are rejected. Lost connections pause
+editing and reconnect automatically. If a change's acknowledgement is lost,
+**Retry last change** checks the same command so it cannot apply twice. Returning
+to Workspace or BOM loads the latest shared drawer first.
 
 Choose **Close access** in the configuration's sharing panel to revoke an
 invitation and every guest session created from it. Open previews check access
 every two seconds and hide the drawer if access closes or cannot be verified.
-**Leave preview** clears only that browser's guest session; it does not revoke
-the invitation. Guest links grant no access to other configurations, customer
-records, the model catalog, or admin actions.
+Live sessions receive closure immediately and stop accepting edits. **Close live
+guest access** in the organizer's editor closes every editable invitation for
+that drawer. View-only invitations are managed individually in the sharing panel.
+Leaving clears that browser's guest session; invitations remain valid until their
+expiry or closure. Anyone holding an invitation has its configured access, and
+participant names are display labels.
+
+Live events and presence currently use one Node API process, matching the Docker
+deployment. Revisions, command deduplication, invitation credentials and closure
+are durable across restarts. Once a drawer has used collaboration, ordinary full
+saves also require its last-read revision, even after access closes. Stale tabs
+receive a conflict instead of overwriting shared work. The initial pre-live
+snapshot is retained privately in SQLite for support/recovery. See
+[the collaboration contract](docs/live-collaboration.md) for API details.
 
 ### Common commands
 
