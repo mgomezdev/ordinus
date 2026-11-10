@@ -27,11 +27,11 @@ export function WorkspaceShare() {
         ws.layoutMeta.id ? undefined : selectedCustomer?.id,
       );
       // Explicitly save an empty list too, so removing the last photo is saved.
-      const data = { ...payload, refImagePlacements: payload.refImagePlacements ?? [] };
+      const data = { ...payload, refImagePlacements: payload.refImagePlacements ?? [], ...(ws.layoutMeta.revision !== undefined ? { baseRevision: ws.layoutMeta.revision } : {}) };
       const result = ws.layoutMeta.id
         ? await update.mutateAsync({ id: ws.layoutMeta.id, data })
         : await create.mutateAsync(data);
-      ws.handleSaveComplete(result.id, result.name);
+      ws.handleSaveComplete(result.id, result.name, result.revision);
     } catch (err) {
       setError('Could not save the configuration. No new preview link was created. Try again.');
       throw err;

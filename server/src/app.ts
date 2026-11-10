@@ -23,6 +23,7 @@ import authRoutes from './routes/auth.routes.js';
 import { checkMutationOrigin, requireAdmin } from './middleware/adminAuth.js';
 import guestPreviewRoutes from './routes/guestPreview.routes.js';
 import guestLinksRoutes from './routes/guestLinks.routes.js';
+import { ownerLiveRouter } from './routes/live.routes.js';
 
 export function createApp(): express.Express {
   const app = express();
@@ -66,6 +67,7 @@ export function createApp(): express.Express {
 
   // Routes
   app.use('/api/v1/layouts/:layoutId/guest-links', guestLinksRoutes);
+  app.use('/api/v1/layouts/:layoutId/live', ownerLiveRouter());
   app.use('/api/v1/libraries', librariesRoutes);
   app.use('/api/v1/curated-libraries', curatedLibrariesRoutes);
   app.use('/api/v1/categories', categoriesRoutes);

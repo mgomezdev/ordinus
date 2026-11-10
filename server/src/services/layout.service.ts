@@ -7,6 +7,8 @@ import { layouts, placedItems, referenceImages, refImages, customers } from '../
 import { formatLayout, formatPlacedItem } from './formatters.js';
 import * as layoutThumbnailService from './layoutThumbnail.service.js';
 import { releaseWarps } from './refImageWarp.service.js';
+import { randomUUID } from 'node:crypto';
+import { layoutWrite, layoutChanged } from './layoutWrites.js';
 
 type LayoutRow = typeof layouts.$inferSelect;
 type PlacedItemRow = typeof placedItems.$inferSelect;
@@ -19,6 +21,7 @@ interface CursorData {
 }
 
 interface CreateLayoutData {
+  baseRevision?: number;
   name: string;
   description?: string;
   customerId?: number | null;
@@ -163,6 +166,7 @@ function toPlacedItemValues(layoutId: number, items: CreateLayoutData['placedIte
     const { libraryId, itemId } = unprefixItemId(item.itemId);
     return {
       layoutId,
+      stableId: randomUUID(),
       libraryId,
       itemId,
       x: item.x,
@@ -298,7 +302,7 @@ export async function getAllLayouts(
   return { data, nextCursor, hasMore };
 }
 
-export async function getLayoutById(
+async function readLayoutById(
   layoutId: number,
 ): Promise<ApiLayoutDetail> {
   const rows = await db
@@ -346,7 +350,7 @@ export async function getLayoutById(
   };
 }
 
-export async function createLayout(
+async function createLayoutInner(
   data: CreateLayoutData,
 ): Promise<ApiLayoutDetail> {
   const now = new Date().toISOString();
@@ -384,13 +388,11 @@ export async function createLayout(
   };
 }
 
-export async function updateLayout(
+async function updateLayoutInner(
   layoutId: number,
   data: CreateLayoutData,
 ): Promise<ApiLayoutDetail> {
-  const existing = await findLayoutOrThrow(layoutId);
   const now = new Date().toISOString();
-  const customerId = data.customerId !== undefined ? data.customerId : existing.customerId;
 
   await assertRefImagesExist(data.refImagePlacements);
 
@@ -405,8 +407,11 @@ export async function updateLayout(
   let insertedItems: PlacedItemRow[];
   let refImagePlacements: ApiRefImagePlacement[];
   const previousWarps = await layoutWarpPaths(layoutId);
-  await db.run(sql`BEGIN`);
+  await db.run(sql`BEGIN IMMEDIATE`);
   try {
+    const existing = await findLayoutOrThrow(layoutId);
+    if (existing.liveGuarded && data.baseRevision !== existing.revision) throw new AppError(ErrorCodes.CONFLICT, 'This configuration changed. Reload it or open the live editor before saving.');
+    const customerId = data.customerId !== undefined ? data.customerId : existing.customerId;
     [updated] = await db
       .update(layouts)
       .set({
@@ -421,6 +426,7 @@ export async function updateLayout(
         spacerHorizontal: data.spacerHorizontal ?? 'none',
         spacerVertical: data.spacerVertical ?? 'none',
         updatedAt: now,
+        revision: existing.revision + 1,
       })
       .where(eq(layouts.id, layoutId))
       .returning();
@@ -446,20 +452,21 @@ export async function updateLayout(
   return {
     ...formatLayout(
       { ...updated, thumbnailPath: thumbnailFilename ?? updated.thumbnailPath ?? null },
-      await customerNameFor(customerId),
+      await customerNameFor(updated.customerId),
     ),
     placedItems: insertedItems.map(formatPlacedItem),
     refImagePlacements,
   };
 }
 
-export async function updateLayoutMeta(
+async function updateLayoutMetaInner(
   layoutId: number,
-  data: { name?: string; description?: string; customerId?: number | null },
+  data: { name?: string; description?: string; customerId?: number | null; baseRevision?: number },
 ): Promise<ApiLayout> {
   const existing = await findLayoutOrThrow(layoutId);
+  if (existing.liveGuarded && data.baseRevision !== existing.revision) throw new AppError(ErrorCodes.CONFLICT, 'This configuration changed. Refresh the saved configurations before renaming.');
 
-  const setValues: Partial<typeof layouts.$inferInsert> = { updatedAt: new Date().toISOString() };
+  const setValues: Partial<typeof layouts.$inferInsert> = { updatedAt: new Date().toISOString(), revision: existing.revision + 1 };
   if (data.name !== undefined) setValues.name = data.name;
   if (data.description !== undefined) setValues.description = data.description;
   if (data.customerId !== undefined) setValues.customerId = data.customerId;
@@ -467,14 +474,16 @@ export async function updateLayoutMeta(
   const [updated] = await db
     .update(layouts)
     .set(setValues)
-    .where(eq(layouts.id, layoutId))
+    .where(and(eq(layouts.id, layoutId), eq(layouts.revision, existing.revision)))
     .returning();
+
+  if (!updated) throw new AppError(ErrorCodes.CONFLICT, 'This configuration changed. Refresh before saving.');
 
   const customerId = data.customerId !== undefined ? data.customerId : existing.customerId;
   return formatLayout(updated, await customerNameFor(customerId));
 }
 
-export async function deleteLayout(
+async function deleteLayoutInner(
   layoutId: number,
 ): Promise<void> {
   await findLayoutOrThrow(layoutId);
@@ -487,7 +496,7 @@ export async function deleteLayout(
   await releaseWarps(warps);
 }
 
-export async function cloneLayout(
+async function cloneLayoutInner(
   sourceLayoutId: number,
 ): Promise<ApiLayoutDetail> {
   const source = await findLayoutOrThrow(sourceLayoutId);
@@ -520,7 +529,7 @@ export async function cloneLayout(
     .where(eq(placedItems.layoutId, sourceLayoutId))
     .orderBy(placedItems.sortOrder);
   const insertedItems = await insertPlacedItems(
-    sourceItems.map(({ id, ...item }) => ({ ...item, layoutId: newLayout.id })),
+    sourceItems.map(({ id, ...item }) => ({ ...item, stableId: randomUUID(), layoutId: newLayout.id })),
   );
 
   const sourceRefPlacements = await db
@@ -540,3 +549,14 @@ export async function cloneLayout(
     refImagePlacements,
   };
 }
+
+export const getLayoutById = (id: number) => layoutWrite(() => readLayoutById(id));
+export const createLayout = (data: CreateLayoutData) => layoutWrite(() => createLayoutInner(data));
+export const cloneLayout = (id: number) => layoutWrite(() => cloneLayoutInner(id));
+export const updateLayout = (id: number, data: CreateLayoutData) => layoutWrite(async () => {
+  const result = await updateLayoutInner(id, data); layoutChanged(id); return result;
+});
+export const updateLayoutMeta = (id: number, data: { name?: string; description?: string; customerId?: number | null; baseRevision?: number }) => layoutWrite(async () => {
+  const result = await updateLayoutMetaInner(id, data); layoutChanged(id); return result;
+});
+export const deleteLayout = (id: number) => layoutWrite(async () => { await deleteLayoutInner(id); layoutChanged(id); });

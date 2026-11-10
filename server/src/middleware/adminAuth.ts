@@ -22,7 +22,7 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
     const session = await authService.session(readAdminCookie(req));
     if (!session) throw new AppError(ErrorCodes.AUTH_REQUIRED, 'Sign in as admin to continue');
     res.setHeader('Cache-Control', 'no-store');
-    if (req.path === '/generation/events') {
+    if (req.path === '/generation/events' || req.path.endsWith('/live/events')) {
       const close = () => res.end();
       const untrack = authService.trackStream(session.tokenHash, close);
       const timer = setTimeout(close, Math.max(0, session.expiresAt - Date.now()));

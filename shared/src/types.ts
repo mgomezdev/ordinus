@@ -234,6 +234,7 @@ export interface ApiCustomer {
 }
 
 export interface ApiLayout {
+  revision?: number;
   id: number;
   userId: number;
   customerId?: number | null;
@@ -340,6 +341,7 @@ export interface ApiLayoutDetail extends ApiLayout {
 }
 
 export interface CreateLayoutRequest {
+  baseRevision?: number;
   name: string;
   description?: string;
   gridX: number;

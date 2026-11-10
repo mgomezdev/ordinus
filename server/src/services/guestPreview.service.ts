@@ -7,18 +7,25 @@ import { authClient as client } from '../db/connection.js';
 import { hashToken } from './auth.service.js';
 import { config } from '../config.js';
 import { prepareGuestModels } from './guestModels.service.js';
+import { createEditableLink } from './live.service.js';
+import { layoutWrite, layoutChanged } from './layoutWrites.js';
 
 export const GUEST_COOKIE = 'ordinus_guest';
 export class GuestAccessClosed extends Error {}
-export interface GuestAccess { linkId: string; layoutId: number; expiresAt: number }
+export interface GuestAccess { linkId: string; layoutId: number; expiresAt: number; allowEdit?: boolean }
 function linkMetadata(row: Row): GuestLink {
-  return { id: String(row.id), createdAt: new Date(Number(row.created_at)).toISOString(), expiresAt: new Date(Number(row.expires_at)).toISOString(), revokedAt: row.revoked_at === null ? null : new Date(Number(row.revoked_at)).toISOString() };
+  return { id: String(row.id), createdAt: new Date(Number(row.created_at)).toISOString(), expiresAt: new Date(Number(row.expires_at)).toISOString(), revokedAt: row.revoked_at === null ? null : new Date(Number(row.revoked_at)).toISOString(), allowEdit: Boolean(row.allow_edit) };
 }
 async function requireLayout(layoutId: number): Promise<void> {
   if (!(await client.execute({ sql: 'SELECT id FROM layouts WHERE id = ?', args: [layoutId] })).rows.length) throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
 }
-export async function createGuestLink(layoutId: number, hours: number): Promise<GuestLink & { secret: string }> {
+async function createGuestLinkInner(layoutId: number, hours: number, options: { allowEdit?: boolean; libraryId?: string }): Promise<GuestLink & { secret: string }> {
   await requireLayout(layoutId);
+  if (options.allowEdit) {
+    const link = await createEditableLink(layoutId, hours, options.libraryId ?? 'bins_standard');
+    await prepareGuestModels(layoutId);
+    return { ...link, allowEdit: true };
+  }
   await prepareGuestModels(layoutId);
   const id = randomBytes(12).toString('hex');
   const secret = randomBytes(32).toString('base64url');
@@ -32,21 +39,24 @@ export async function createGuestLink(layoutId: number, hours: number): Promise<
 }
 export async function listGuestLinks(layoutId: number): Promise<GuestLink[]> {
   await requireLayout(layoutId);
-  const result = await client.execute({ sql: 'SELECT id, created_at, expires_at, revoked_at FROM guest_links WHERE layout_id = ? ORDER BY created_at DESC', args: [layoutId] });
+  const result = await client.execute({ sql: 'SELECT id, created_at, expires_at, revoked_at, allow_edit FROM guest_links WHERE layout_id = ? ORDER BY created_at DESC', args: [layoutId] });
   return result.rows.map(linkMetadata);
 }
-export async function revokeGuestLink(layoutId: number, id: string): Promise<void> {
+async function revokeGuestLinkInner(layoutId: number, id: string): Promise<void> {
   const result = await client.execute({ sql: 'UPDATE guest_links SET revoked_at = COALESCE(revoked_at, ?) WHERE id = ? AND layout_id = ?', args: [Date.now(), id, layoutId] });
   if (!result.rowsAffected) throw new AppError(ErrorCodes.NOT_FOUND, 'Preview link not found');
+  layoutChanged(layoutId);
 }
-export async function joinGuestLink(id: string, secret: string): Promise<{ token: string; expiresAt: number }> {
+export const createGuestLink = (layoutId: number, hours: number, options: { allowEdit?: boolean; libraryId?: string } = {}) => layoutWrite(() => createGuestLinkInner(layoutId, hours, options));
+export const revokeGuestLink = (layoutId: number, id: string) => layoutWrite(() => revokeGuestLinkInner(layoutId, id));
+export async function joinGuestLink(id: string, secret: string, displayName = 'Client'): Promise<{ token: string; expiresAt: number }> {
   const token = randomBytes(32).toString('base64url');
   const now = Date.now();
   const result = await client.execute({
-    sql: `INSERT INTO guest_sessions (token_hash, link_id, expires_at)
-      SELECT ?, g.id, g.expires_at FROM guest_links g JOIN layouts l ON l.id = g.layout_id
+    sql: `INSERT INTO guest_sessions (token_hash, link_id, expires_at, display_name)
+      SELECT ?, g.id, g.expires_at, ? FROM guest_links g JOIN layouts l ON l.id = g.layout_id
       WHERE g.id = ? AND g.token_hash = ? AND g.revoked_at IS NULL AND g.expires_at > ? RETURNING expires_at`,
-    args: [hashToken(token), id, hashToken(secret), now],
+    args: [hashToken(token), displayName, id, hashToken(secret), now],
   });
   if (!result.rows.length) throw new GuestAccessClosed();
   await client.execute({ sql: 'DELETE FROM guest_sessions WHERE expires_at <= ?', args: [now] });
@@ -55,16 +65,20 @@ export async function joinGuestLink(id: string, secret: string): Promise<{ token
 export async function guestAccess(id: string, token: string): Promise<GuestAccess> {
   if (!/^[a-f0-9]{24}$/.test(id) || !/^[A-Za-z0-9_-]{43}$/.test(token)) throw new GuestAccessClosed();
   const result = await client.execute({
-    sql: `SELECT g.layout_id, MIN(g.expires_at, s.expires_at) AS expires_at FROM guest_sessions s
+    sql: `SELECT g.layout_id, g.allow_edit, MIN(g.expires_at, s.expires_at) AS expires_at FROM guest_sessions s
       JOIN guest_links g ON s.link_id = g.id JOIN layouts l ON l.id = g.layout_id
       WHERE g.id = ? AND s.token_hash = ? AND g.revoked_at IS NULL AND g.expires_at > ? AND s.expires_at > ?`,
     args: [id, hashToken(token), Date.now(), Date.now()],
   });
   if (!result.rows.length) throw new GuestAccessClosed();
-  return { linkId: id, layoutId: Number(result.rows[0].layout_id), expiresAt: Number(result.rows[0].expires_at) };
+  return { linkId: id, layoutId: Number(result.rows[0].layout_id), expiresAt: Number(result.rows[0].expires_at), allowEdit: Boolean(result.rows[0].allow_edit) };
 }
 export async function leaveGuestLink(id: string, token: string): Promise<void> {
-  await client.execute({ sql: 'DELETE FROM guest_sessions WHERE link_id = ? AND token_hash = ?', args: [id, hashToken(token)] });
+  await layoutWrite(async () => {
+    const link = (await client.execute({ sql: 'SELECT layout_id FROM guest_links WHERE id=?', args: [id] })).rows[0];
+    await client.execute({ sql: 'DELETE FROM guest_sessions WHERE link_id = ? AND token_hash = ?', args: [id, hashToken(token)] });
+    if (link) layoutChanged(Number(link.layout_id));
+  });
 }
 function binHeight(raw: unknown): number | null {
   if (typeof raw !== 'string') return null;

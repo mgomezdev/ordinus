@@ -46,6 +46,7 @@ export function useLayoutLoader({
         name: config.layoutName,
         description: config.layoutDescription ?? '',
         owner,
+        ...(config.revision !== undefined ? { revision: config.revision } : {}),
       },
     });
   }, [unitSystem, setWidth, setDepth, setSpacerConfig, loadItems, loadRefImagePlacements, layoutDispatch, clearExtras]);
@@ -75,6 +76,7 @@ export function useLayoutLoader({
       }));
 
       handleLoadLayout({
+        ...(detail.revision !== undefined ? { revision: detail.revision } : {}),
         layoutId: detail.id, layoutName: detail.name,
         layoutDescription: detail.description,
         widthMm: detail.widthMm, depthMm: detail.depthMm,

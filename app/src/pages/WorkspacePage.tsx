@@ -207,9 +207,9 @@ export function WorkspacePage() {
       drawerWidth, drawerDepth, spacerConfig, placedItems, refImagePlacements,
     );
     try {
-      const result = await updateLayoutMutation.mutateAsync({ id: layoutMeta.id, data: payload });
+      const result = await updateLayoutMutation.mutateAsync({ id: layoutMeta.id, data: { ...payload, ...(layoutMeta.revision !== undefined ? { baseRevision: layoutMeta.revision } : {}) } });
       setMobileSaveError(false);
-      handleSaveComplete(result.id, result.name);
+      handleSaveComplete(result.id, result.name, result.revision);
     } catch {
       setMobileSaveError(true);
     }

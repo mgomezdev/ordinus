@@ -26,6 +26,7 @@ export function formatLayout(
   customerName?: string,
 ): ApiLayout {
   return {
+    ...(row.liveGuarded ? { revision: row.revision } : {}),
     id: row.id,
     userId: row.userId ?? 0,
     customerId: row.customerId ?? null,

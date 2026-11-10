@@ -90,7 +90,7 @@ interface WorkspaceContextValue {
 
   // Layout meta
   layoutMeta: LayoutMetaState;
-  handleSaveComplete: (layoutId: number, name: string) => void;
+  handleSaveComplete: (layoutId: number, name: string, revision?: number) => void;
 
   // Dirty state
   isDirty: boolean;
@@ -276,8 +276,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     setUnitSystem(newUnit);
   }, [unitSystem, width, depth]);
 
-  const handleSaveComplete = useCallback((id: number, name: string) => {
-    rawHandleSaveComplete(id, name);
+  const handleSaveComplete = useCallback((id: number, name: string, revision?: number) => {
+    rawHandleSaveComplete(id, name, revision);
     setIsDirty(false);
   }, [rawHandleSaveComplete]);
 

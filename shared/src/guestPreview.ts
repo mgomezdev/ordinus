@@ -14,12 +14,13 @@ export interface GuestPreview {
 }
 
 export interface GuestLink {
+  allowEdit?: boolean;
   id: string;
   createdAt: string;
   expiresAt: string;
   revokedAt: string | null;
 }
-export interface GuestPreviewResponse { layout: GuestPreview; expiresAt: string }
+export interface GuestPreviewResponse { layout: GuestPreview; expiresAt: string; collaboration?: boolean }
 
 /** Image URLs authorize one placed bin; no global model IDs or paths escape. */
 export interface GuestBinModel {

@@ -3,6 +3,7 @@ import type { RefImagePlacement } from '../hooks/useRefImagePlacements';
 import type { PlacedItem } from './gridfinity';
 
 export interface LoadedLayoutConfig {
+  revision?: number;
   layoutId: number;
   layoutName: string;
   layoutDescription: string | null;

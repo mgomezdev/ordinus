@@ -37,8 +37,8 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
         gridResult.gridX, gridResult.gridY,
         drawerWidth, drawerDepth, spacerConfig, placedItems, refImagePlacements,
       );
-      const result = await updateLayoutMutation.mutateAsync({ id: layoutMeta.id, data: payload });
-      handleSaveComplete(result.id, result.name);
+      const result = await updateLayoutMutation.mutateAsync({ id: layoutMeta.id, data: { ...payload, ...(layoutMeta.revision !== undefined ? { baseRevision: layoutMeta.revision } : {}) } });
+      handleSaveComplete(result.id, result.name, result.revision);
       setToast({ visible: true, isError: false });
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       toastTimerRef.current = setTimeout(

@@ -22,9 +22,9 @@ const defaults: BinCustomization = { wallPatternEnabled: false, wallPattern: 'gr
 function json(raw: unknown): unknown {
   try { return typeof raw === 'string' ? JSON.parse(raw) as unknown : null; } catch { return null; }
 }
-async function rows(layoutId: number): Promise<Row[]> {
+export async function modelRows(layoutId: number): Promise<Row[]> {
   const result = await client.execute({
-    sql: `SELECT p.id, p.library_id, p.rotation, p.custom_spec, p.customization,
+    sql: `SELECT p.id, p.library_id, p.rotation, p.custom_spec, p.customization, p.source_snapshot,
       li.width_units, li.height_units, li.param_hash, li.image_path, li.perspective_image_path,
       l.base_model_path, l.parameters, u.image_url, u.persp_image_urls,
       (SELECT base_model_path FROM libraries WHERE id = 'bins_standard') AS custom_base
@@ -36,6 +36,10 @@ async function rows(layoutId: number): Promise<Row[]> {
   return result.rows;
 }
 function source(row: Row): ModelSource {
+  if (row.source_snapshot) {
+    const frozen = json(row.source_snapshot);
+    if (frozen && typeof frozen === 'object' && !Array.isArray(frozen)) row = { ...row, ...frozen };
+  }
   const rotation = Number(row.rotation);
   let params: Record<string, unknown> | undefined;
   let baseModelPath: string | null = typeof row.base_model_path === 'string' ? row.base_model_path : null;
@@ -96,7 +100,7 @@ async function modelFile(model: ModelSource, view: 'top' | 'perspective'): Promi
 }
 /** Owner-only preparation: guests can read readiness/images, never enqueue jobs. */
 export async function prepareGuestModels(layoutId: number): Promise<void> {
-  for (const row of await rows(layoutId)) {
+  for (const row of await modelRows(layoutId)) {
     try {
       const generated = source(row).generation;
       if (generated?.baseModelPath) await generationPipeline.enqueue(generated.hash, generated.params, generated.baseModelPath);
@@ -104,7 +108,7 @@ export async function prepareGuestModels(layoutId: number): Promise<void> {
   }
 }
 export async function guestModels(access: GuestAccess): Promise<GuestBinModel[]> {
-  return Promise.all((await rows(access.layoutId)).map(async row => {
+  return Promise.all((await modelRows(access.layoutId)).map(async row => {
     const model = source(row);
     const [top, perspective] = await Promise.all([modelFile(model, 'top'), modelFile(model, 'perspective')]);
     const status = top && perspective ? 'ready' : model.generation ? await generationPipeline.getStatus(model.generation.hash) : 'not-found';
@@ -114,8 +118,13 @@ export async function guestModels(access: GuestAccess): Promise<GuestBinModel[]>
   }));
 }
 export async function guestModelPath(access: GuestAccess, binId: number, view: 'top' | 'perspective'): Promise<string> {
-  const row = (await rows(access.layoutId)).find(bin => Number(bin.id) === binId);
+  const row = (await modelRows(access.layoutId)).find(bin => Number(bin.id) === binId);
   const file = row ? await modelFile(source(row), view) : null;
   if (!file) throw new AppError(ErrorCodes.NOT_FOUND, 'Bin preview is unavailable');
   return file;
+}
+
+export function modelSourceSnapshot(row: Row): string {
+  const fields = ['width_units', 'height_units', 'param_hash', 'image_path', 'perspective_image_path', 'base_model_path', 'parameters', 'image_url', 'persp_image_urls', 'custom_base'];
+  return JSON.stringify(Object.fromEntries(fields.map(key => [key, row[key] ?? null])));
 }

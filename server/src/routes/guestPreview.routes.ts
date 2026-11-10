@@ -7,10 +7,11 @@ import { secureCookie } from '../middleware/adminAuth.js';
 import { parseIntParam } from '../utils/params.js';
 import * as guest from '../services/guestPreview.service.js';
 import { guestModels, guestModelPath } from '../services/guestModels.service.js';
+import { guestLiveRouter } from './live.routes.js';
 
 const router = Router();
 const joinLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false });
-const joinSchema = z.object({ secret: z.string().min(1).max(100) }).strict();
+const joinSchema = z.object({ secret: z.string().min(1).max(100), displayName: z.string().trim().min(1).max(60).optional() }).strict();
 const cookieOptions = (id: string) => ({ httpOnly: true, secure: secureCookie, sameSite: 'strict' as const, path: `/api/v1/guest/${id}` });
 function cookie(req: Request): string {
   return req.headers.cookie?.split(';').map(part => part.trim()).find(part => part.startsWith(`${guest.GUEST_COOKIE}=`))?.slice(guest.GUEST_COOKIE.length + 1) ?? '';
@@ -26,7 +27,7 @@ router.post('/:id/join', joinLimit, async (req, res, next) => {
     const linkId = id(req);
     const parsed = joinSchema.safeParse(req.body);
     if (!parsed.success) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Invalid preview invitation');
-    const session = await guest.joinGuestLink(linkId, parsed.data.secret);
+    const session = await guest.joinGuestLink(linkId, parsed.data.secret, parsed.data.displayName);
     res.cookie(guest.GUEST_COOKIE, session.token, { ...cookieOptions(linkId), maxAge: Math.max(0, session.expiresAt - Date.now()) });
     res.sendStatus(204);
   } catch (err) { next(err); }
@@ -36,6 +37,7 @@ router.use('/:id', async (req, res, next) => {
   catch (err) { next(err); }
 });
 router.get('/:id/status', (_req, res) => { res.json({ active: true }); });
+router.use('/:id/live', guestLiveRouter());
 router.get('/:id/models', async (_req, res, next) => {
   try { res.json({ bins: await guestModels(res.locals.guest as guest.GuestAccess) }); }
   catch (err) { next(err); }
@@ -53,7 +55,7 @@ router.get('/:id/bins/:binId/:view', async (req, res, next) => {
 router.get('/:id/view', async (_req, res, next) => {
   try {
     const access = res.locals.guest as guest.GuestAccess;
-    res.json({ layout: await guest.getGuestPreview(access), expiresAt: new Date(access.expiresAt).toISOString() });
+    res.json({ layout: await guest.getGuestPreview(access), expiresAt: new Date(access.expiresAt).toISOString(), collaboration: access.allowEdit ?? false });
   } catch (err) { next(err); }
 });
 router.get('/:id/assets/:placementId', async (req, res, next) => {
