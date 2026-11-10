@@ -18,7 +18,8 @@
 .live-access { margin-top: 2rem; font-size: .875rem; }
 .live-access p { color: var(--text-secondary); line-height: 1.5; max-width: 65ch; }
 .live-page .guest-bin-movable { touch-action: none; cursor: grab; }
-.live-placement .preview-viewport { min-height: 20rem; height: min(65vh, 46rem); padding: 1rem; box-sizing: border-box; background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: .5rem; }
+.live-placement .preview-viewport { position: relative; min-height: 20rem; height: min(65vh, 46rem); padding: 1rem; box-sizing: border-box; background: var(--bg-tertiary); border: 1px solid var(--border-primary); border-radius: .5rem; }
+.live-placement .floating-zoom-overlay { position: absolute; right: .5rem; bottom: .5rem; }
 .live-placement .preview-content { width: 100%; min-width: 0; }
 .live-placement .guest-drawer { overflow: visible; }
 .live-page .live-bin-invalid { border-color: var(--invalid-primary); background: var(--invalid-alpha-10); }
