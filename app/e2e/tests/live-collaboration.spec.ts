@@ -5,6 +5,101 @@ import { SavedConfigsPage } from '../pages/SavedConfigsPage';
 import type { LiveSnapshot } from '@gridfinity/shared';
 test.use({ trace: 'off', video: 'off', screenshot: 'off', actionTimeout: 10_000 });
 
+test('Workspace keeps a local draft when a client wins the save race, then resumes after review', async ({ page: owner, request, browser, baseURL }) => {
+  test.setTimeout(60_000);
+  const created = await request.post('/api/v1/layouts', { data: { name: `Workspace conflict ${randomUUID().slice(0, 8)}`, gridX: 4, gridY: 4, gridResolution: 2, widthMm: 168, depthMm: 168,
+    placedItems: [{ itemId: 'bins_standard:bin-1x1', x: 0, y: 0, width: 2, height: 2, rotation: 0 }] } });
+  const id = (await created.json()).data.id as number;
+  const link = await (await request.post(`/api/v1/layouts/${id}/guest-links`, { data: { allowEdit: true, libraryIds: ['bins_standard'] } })).json() as { id: string; secret: string };
+  const client = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] }, extraHTTPHeaders: { 'X-Ordinus-Request': '1' } });
+  let release!: () => void; const gate = new Promise<void>(resolve => { release = resolve; }); let intercepted = false;
+  try {
+    await client.request.post(`/api/v1/guest/${link.id}/join`, { data: { secret: link.secret } });
+    const endpoint = `/api/v1/guest/${link.id}/live`;
+    const initial = await (await client.request.get(`${endpoint}/snapshot`)).json() as LiveSnapshot;
+    await owner.goto(`/?layout=${id}`);
+    const status = owner.getByRole('region', { name: 'Live workspace' });
+    await expect(status).toContainText('Live · Saved');
+    await owner.route(`**/api/v1/layouts/${id}`, async route => { if (route.request().method() === 'PUT') { intercepted = true; await gate; } await route.continue(); });
+    await owner.locator('.grid-container .placed-item').click();
+    await owner.getByRole('toolbar', { name: 'Selected bin actions' }).getByRole('button', { name: 'Rotate clockwise', exact: true }).click();
+    await expect.poll(() => intercepted).toBe(true);
+    const changed = await client.request.post(`${endpoint}/commands`, { data: { commandId: randomUUID(), baseRevision: initial.revision, change: { type: 'move', stableId: initial.bins[0].stableId, x: 2, y: 2 } } });
+    expect(changed.status()).toBe(200); release();
+    await expect(status).toContainText('Review changes');
+    await expect(owner.locator('.grid-container .placed-item')).toHaveAttribute('style', /left: 0%/);
+    const unchanged = await (await client.request.get(`${endpoint}/snapshot`)).json() as LiveSnapshot;
+    expect(unchanged.layout.bins[0]).toMatchObject({ x: 2, y: 2, rotation: 0 });
+    await status.getByRole('button', { name: 'Use latest shared drawer' }).click();
+    await expect(owner.locator('.grid-container .placed-item')).toHaveAttribute('style', /left: 25%/);
+    await expect(status).toContainText('Live · Saved');
+    await owner.locator('.grid-container .placed-item').click();
+    await owner.getByRole('toolbar', { name: 'Selected bin actions' }).getByRole('button', { name: 'Rotate clockwise', exact: true }).click();
+    await expect.poll(async () => ((await (await client.request.get(`${endpoint}/snapshot`)).json()) as LiveSnapshot).layout.bins[0].rotation).toBe(90);
+    await expect(status).toContainText('Live · Saved');
+  } finally { release(); await owner.unrouteAll({ behavior: 'ignoreErrors' }); await client.close(); await request.delete(`/api/v1/layouts/${id}`); }
+});
+
+test('host stays in Workspace while the client uses bin controls and two approved libraries', async ({ page: owner, request, browser, baseURL }) => {
+  test.setTimeout(90_000);
+  await owner.setViewportSize({ width: 1440, height: 1100 });
+  const created = await request.post('/api/v1/layouts', { data: { name: `Workspace live ${randomUUID().slice(0, 8)}`, gridX: 4, gridY: 4, gridResolution: 2, widthMm: 168, depthMm: 168,
+    placedItems: [0, 4].map(x => ({ itemId: 'bins_standard:bin-1x1', x, y: 0, width: 2, height: 2, rotation: 0 })) } });
+  const id = (await created.json()).data.id as number;
+  const context = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] } });
+  const current = async () => (await (await request.get(`/api/v1/layouts/${id}/live/snapshot`)).json()) as LiveSnapshot;
+  try {
+    await owner.goto(`/?layout=${id}`);
+    await expect(owner.locator('.grid-container .placed-item')).toHaveCount(2);
+    const share = owner.getByRole('region', { name: 'Share workspace' });
+    await share.getByRole('button', { name: 'Share preview', exact: true }).click();
+    await share.getByLabel('Allow client editing (live)').check();
+    await share.getByRole('checkbox', { name: 'Standard Bins', exact: true }).check();
+    await share.getByRole('checkbox', { name: 'Labeled Bins', exact: true }).check();
+    await share.getByRole('button', { name: 'Create collaboration link' }).click();
+    const invitation = await share.getByLabel('Preview link', { exact: true }).inputValue();
+    const liveStatus = owner.getByRole('region', { name: 'Live workspace' });
+    await expect(liveStatus).toContainText('Live · Saved');
+    expect(new URL(owner.url()).pathname).toBe('/');
+    await owner.locator('.grid-container .placed-item').first().click();
+    const initial = await current(); const stableId = initial.bins[0].stableId;
+    expect(new Set(initial.catalog.map(item => item.libraryName))).toEqual(new Set(['Standard Bins', 'Labeled Bins']));
+    const guest = await context.newPage(); await guest.goto(invitation);
+    await guest.getByLabel('Your name (optional)').fill('Alex'); await guest.getByRole('button', { name: 'Open preview' }).click();
+    await expect(guest.locator('.live-status')).toContainText('Live · Saved');
+    await expect(liveStatus).toContainText('Alex');
+    await guest.getByRole('button', { name: /^Select bin 1:/ }).click();
+    const clientToolbar = guest.getByRole('toolbar', { name: 'Selected bin actions' });
+    await clientToolbar.getByRole('button', { name: 'Rotate clockwise', exact: true }).click();
+    await expect.poll(async () => (await current()).layout.bins[0].rotation).toBe(90);
+    await expect(owner.locator('.grid-container .placed-item.selected')).toHaveCount(1);
+    await clientToolbar.getByRole('button', { name: 'Customize', exact: true }).click();
+    const options = guest.getByRole('dialog', { name: 'Customize bin' });
+    await options.getByLabel('Height units (7 mm)').fill('6');
+    await options.getByRole('button', { name: 'Apply bin options' }).click();
+    await expect(owner.locator('.placed-item-badge').filter({ hasText: 'h: 6' })).toHaveCount(1);
+    await guest.getByRole('button', { name: 'Close customization' }).click();
+    await owner.getByRole('toolbar', { name: 'Selected bin actions' }).getByRole('button', { name: 'Rotate counter-clockwise', exact: true }).click();
+    await expect.poll(async () => (await current()).layout.bins[0].rotation).toBe(0);
+    await expect(guest.locator('.live-status')).toContainText('Live · Saved');
+    expect((await current()).bins[0].stableId).toBe(stableId);
+    await owner.locator('.grid-container .placed-item').nth(1).click();
+    await owner.getByRole('toolbar', { name: 'Selected bin actions' }).getByRole('button', { name: 'Remove item', exact: true }).click();
+    await expect(guest.getByRole('button', { name: /^Select bin/ })).toHaveCount(1);
+    await guest.getByLabel('Filter bin library').selectOption('Labeled Bins');
+    const labeled = (await current()).catalog.find(item => item.libraryName === 'Labeled Bins' && item.width === 1 && item.depth === 1)!;
+    await guest.getByRole('button', { name: 'Add a bin', exact: true }).click();
+    const add = guest.getByRole('form', { name: 'Add bin' });
+    await add.getByRole('combobox').selectOption(labeled.key); await add.getByLabel('Add X position').fill('1');
+    await add.getByRole('button', { name: 'Place bin' }).click();
+    await expect(owner.locator('.grid-container .placed-item')).toHaveCount(2);
+    await expect(liveStatus).toContainText('Live · Saved');
+    expect(new URL(owner.url()).pathname).toBe('/');
+    await share.getByRole('button', { name: 'Close access', exact: true }).click();
+    await expect(guest.getByRole('heading', { name: 'Session unavailable' })).toBeVisible();
+  } finally { await context.close(); await request.delete(`/api/v1/layouts/${id}`); }
+});
+
 test('client and organizer use workspace drag, overlap flags, library placement and atomic selection actions', async ({ page: owner, request, browser, baseURL }) => {
   test.setTimeout(90_000);
   await owner.setViewportSize({ width: 1440, height: 1100 });
@@ -126,10 +221,11 @@ test('organizer and client configure the same drawer live, with conflicts and re
     const share = owner.getByRole('region', { name: 'Share workspace' });
     await share.getByRole('button', { name: 'Share preview', exact: true }).click();
     await share.getByLabel('Allow client editing (live)').check();
-    await share.getByLabel('Approved bin library').selectOption('bins_standard');
+    await share.getByRole('checkbox', { name: 'Standard Bins', exact: true }).check();
     await share.getByRole('button', { name: 'Create collaboration link' }).click();
     const invitation = await share.getByLabel('Preview link', { exact: true }).inputValue();
-    await share.getByRole('link', { name: 'Open live editor' }).click();
+    // Older direct editor bookmarks remain compatible; hosts normally stay in Workspace.
+    await owner.goto(`/collaborate/${id}`);
     await expect(owner).toHaveURL(new RegExp(`/collaborate/${id}$`));
     await expect(owner.locator('.live-status')).toContainText('Live · Saved');
     const guest = await guestContext.newPage(); await guest.goto(invitation);
@@ -196,9 +292,8 @@ test('organizer and client configure the same drawer live, with conflicts and re
     await owner.goto(`/collaborate/${id}`);
     await expect(owner.locator('.live-status')).toContainText('Live · Saved');
 
-    const staleSave = stale.waitForResponse(response => response.url().endsWith(`/layouts/${id}`) && response.request().method() === 'PUT');
-    await stale.getByRole('button', { name: 'Save Changes', exact: true }).click();
-    expect((await staleSave).status()).toBe(409);
+    await expect(stale.getByRole('spinbutton', { name: 'Width mm', exact: true })).toHaveValue('210');
+    await expect(stale.getByRole('region', { name: 'Live workspace' })).toContainText('Live · Saved');
     expect((await current()).layout.widthMm).toBe(210);
     await owner.getByRole('button', { name: 'Close live guest access' }).click();
     await expect(guest.getByRole('heading', { name: 'Session unavailable' })).toBeVisible({ timeout: 7000 });

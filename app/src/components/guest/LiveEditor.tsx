@@ -49,7 +49,8 @@ export function LiveEditor({ base, modelBase = base, owner = false, onExit }: Li
       {live.problem && <p className="live-problem" role="alert">{live.problem}</p>}
       {live.ambiguous && <button type="button" disabled={live.connection !== 'live' || live.sending} onClick={() => void live.retry()}>Retry last change</button>}
       <LivePlacementCanvas snapshot={snapshot} models={models.data?.bins ?? []} selected={visibleSelection} disabled={!live.canEdit}
-        onSelect={select} onSelectAll={() => setSelected(new Set(snapshot.layout.bins.map(bin => bin.id)))} sidebar={sidebar} send={live.send} />
+        onSelect={select} onSelectAll={() => setSelected(new Set(snapshot.layout.bins.map(bin => bin.id)))} sidebar={sidebar} send={live.send}
+        renderBinOptions={id => { const bin = snapshot.bins.find(bin => bin.id === id); return bin ? <BinEditor key={bin.stableId} snapshot={snapshot} bin={bin} send={live.send} disabled={!live.canEdit} optionsOnly /> : null; }} />
       {models.isError && <p role="status">Bin images are temporarily unavailable. The drawer footprints remain visible.</p>}
       {owner && <div className="live-access"><button type="button" disabled={closing} onClick={() => void closeAccess()}>{closing ? 'Closing…' : 'Close live guest access'}</button><p>Closes every live invitation for this drawer and disconnects its guests. Saved changes are kept.</p>{accessMessage && <p role="status">{accessMessage}</p>}</div>}
     </main>
@@ -62,16 +63,16 @@ function LiveDetails({ title, defaultOpen = false, children }: { title: string; 
 function RevisionNotice({ base, current, rebase }: { base: number; current: number; rebase: () => void }) {
   return base !== current ? <div className="live-revision" role="status"><p>The drawer changed while these values were open. Review the current layout before retrying.</p><button type="button" onClick={rebase}>Use latest revision for these values</button></div> : null;
 }
-function BinEditor({ snapshot, bin, send, disabled }: { snapshot: LiveSnapshot; bin: LiveBin; send: Send; disabled: boolean }) {
+function BinEditor({ snapshot, bin, send, disabled, optionsOnly = false }: { snapshot: LiveSnapshot; bin: LiveBin; send: Send; disabled: boolean; optionsOnly?: boolean }) {
   const placed = snapshot.layout.bins.find(item => item.id === bin.id)!;
   const [revision, setRevision] = useState(snapshot.revision);
   const [x, setX] = useState(String(placed.x / 2)), [y, setY] = useState(String(placed.y / 2));
   const [height, setHeight] = useState(bin.height), [lipStyle, setLip] = useState(bin.lipStyle as 'normal' | 'reduced' | 'minimum' | 'none'), [pattern, setPattern] = useState(bin.wallPatternEnabled);
   const apply = async (change: LiveChange) => { const next = await send(change, revision); if (next !== undefined) setRevision(next); };
-  return <section className="live-bin-editor" aria-label="Selected bin"><h2>{placed.name}</h2>
-    <fieldset disabled={disabled}><legend>Position</legend><form onSubmit={event => { event.preventDefault(); void apply({ type: 'move', stableId: bin.stableId, x: Number(x) * 2, y: Number(y) * 2 }); }}>
+  return <section className="live-bin-editor" aria-label={optionsOnly ? 'Bin options' : 'Selected bin'}><h2>{placed.name}</h2>
+    <fieldset disabled={disabled}>{!optionsOnly && <><legend>Position</legend><form onSubmit={event => { event.preventDefault(); void apply({ type: 'move', stableId: bin.stableId, x: Number(x) * 2, y: Number(y) * 2 }); }}>
       <div className="live-fields"><label>X position<input type="number" min="0" max="20" step="0.5" required value={x} onChange={event => setX(event.target.value)} /></label><label>Y position<input type="number" min="0" max="20" step="0.5" required value={y} onChange={event => setY(event.target.value)} /></label></div><button type="submit">Move bin</button>
-    </form><div className="live-buttons"><button type="button" onClick={() => void apply({ type: 'rotate', stableId: bin.stableId, direction: 'ccw' })}>Rotate left</button><button type="button" onClick={() => void apply({ type: 'rotate', stableId: bin.stableId, direction: 'cw' })}>Rotate right</button><button type="button" onClick={() => void apply({ type: 'remove', stableId: bin.stableId })}>Remove bin</button></div>
+    </form><div className="live-buttons"><button type="button" onClick={() => void apply({ type: 'rotate', stableId: bin.stableId, direction: 'ccw' })}>Rotate left</button><button type="button" onClick={() => void apply({ type: 'rotate', stableId: bin.stableId, direction: 'cw' })}>Rotate right</button><button type="button" onClick={() => void apply({ type: 'remove', stableId: bin.stableId })}>Remove bin</button></div></>}
     {bin.customizable && <form onSubmit={event => { event.preventDefault(); void apply({ type: 'customize', stableId: bin.stableId, height, lipStyle, wallPatternEnabled: pattern }); }}>
       <label>Height units (7 mm)<input type="number" min={bin.heightStep ?? 1} max="20" step={bin.heightStep ?? 1} required value={height} onChange={event => setHeight(Number(event.target.value))} /></label>
       <label>Lip style<select value={lipStyle} onChange={event => setLip(event.target.value as typeof lipStyle)}>{['normal', 'reduced', 'minimum', 'none'].map(value => <option key={value}>{value}</option>)}</select></label>

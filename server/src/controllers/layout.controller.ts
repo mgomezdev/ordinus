@@ -42,6 +42,7 @@ const customSpecSchema = z.custom<CustomBinSpec>((raw) => validateCustomBinSpec(
 });
 
 const placedItemSchema = z.object({
+  stableId: z.string().uuid().optional(),
   itemId: z.string().min(1),
   x: z.number().int().min(0),
   y: z.number().int().min(0),

@@ -108,3 +108,18 @@ it('removes remotely deleted bins from the local selection', async () => {
   expect(screen.getByRole('button', { name: 'Delete selected' })).toBeDisabled();
   view.unmount(); client.clear();
 });
+it('shows the regular selected-bin toolbar and opens customization from its gear button', async () => {
+  const { view, client } = await mount();
+  fireEvent.click(screen.getByRole('button', { name: /^Select bin 1:/ }));
+  const toolbar = await screen.findByRole('toolbar', { name: 'Selected bin actions' });
+  expect(toolbar.querySelector('[aria-label="Rotate clockwise"]')).not.toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Customize', exact: true }));
+  const dialog = await screen.findByRole('dialog', { name: 'Customize bin' });
+  fireEvent.change(dialog.querySelector('input[step]')!, { target: { value: '8' } });
+  fireEvent.click([...dialog.querySelectorAll('button')].find(button => button.textContent === 'Apply bin options')!);
+  await waitFor(() => expect(writes).toHaveLength(1));
+  expect(writes[0].change).toMatchObject({ type: 'customize', height: 8 });
+  fireEvent.click(screen.getByRole('button', { name: 'Close customization' }));
+  expect(screen.queryByRole('dialog', { name: 'Customize bin' })).toBeNull();
+  view.unmount(); client.clear();
+});

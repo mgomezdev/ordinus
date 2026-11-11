@@ -5,7 +5,8 @@ import { parseIntParam } from '../utils/params.js';
 import { createGuestLink, listGuestLinks, revokeGuestLink } from '../services/guestPreview.service.js';
 
 const router = Router({ mergeParams: true });
-const createSchema = z.object({ expiresInHours: z.union([z.literal(1), z.literal(24), z.literal(168)]).default(24), allowEdit: z.boolean().default(false), libraryId: z.string().regex(/^[a-z0-9_-]+$/).max(100).optional() }).strict();
+const libraryId = z.string().regex(/^[a-z0-9_-]+$/).max(100);
+const createSchema = z.object({ expiresInHours: z.union([z.literal(1), z.literal(24), z.literal(168)]).default(24), allowEdit: z.boolean().default(false), libraryId: libraryId.optional(), libraryIds: z.array(libraryId).min(1).max(20).optional() }).strict();
 router.get('/', async (req, res, next) => {
   try { res.json({ data: await listGuestLinks(parseIntParam(req, 'layoutId', 'layout ID')) }); }
   catch (err) { next(err); }

@@ -10,3 +10,6 @@
 .guest-link-panel [role="alert"] { color: var(--danger, #b42318); }
 .guest-link-panel .share-edit-choice { display: flex; align-items: center; gap: .6rem; }
 .guest-link-panel .share-edit-choice input { width: auto; }
+.share-libraries { max-height: 15rem; overflow-y: auto; border: 1px solid var(--border-primary); border-radius: var(--radius-sm); margin: 1rem 0; }
+.guest-link-panel .share-libraries label { display: flex; align-items: center; gap: .6rem; font-weight: 400; }
+.guest-link-panel .share-libraries input { width: auto; }

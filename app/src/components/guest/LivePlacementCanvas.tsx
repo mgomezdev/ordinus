@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { KeyboardEvent, ReactNode } from 'react';
 import type { GuestBinModel, LiveChange, LivePlacementChange, LiveSnapshot } from '@gridfinity/shared';
 import type { DragData, PlacedItem, Rotation } from '../../types/gridfinity';
@@ -9,6 +10,7 @@ import { useGridTransform } from '../../hooks/useGridTransform';
 import { GridViewport } from '../GridViewport';
 import { SnapPreviewOverlay } from '../SnapPreviewOverlay';
 import { BinContextMenu } from '../BinContextMenu';
+import { BinPlacementToolbar } from '../BinPlacementToolbar';
 import { GuestBinImage } from './GuestDrawer';
 
 type Send = (change: LiveChange, revision: number) => Promise<number | undefined>;
@@ -17,10 +19,11 @@ interface LiveDrag extends DragData { revision: number; width: number; depth: nu
 interface Props {
   snapshot: LiveSnapshot; models: GuestBinModel[]; disabled: boolean;
   selected: Set<number>; onSelect: Selection; onSelectAll: () => void; send: Send; sidebar: ReactNode;
+  renderBinOptions?: (id: number) => ReactNode;
 }
 
 /** The workspace pointer, snapping, collision and viewport primitives, using only scoped live data. */
-export function LivePlacementCanvas({ snapshot, models, disabled, selected, onSelect, onSelectAll, send, sidebar }: Props) {
+export function LivePlacementCanvas({ snapshot, models, disabled, selected, onSelect, onSelectAll, send, sidebar, renderBinOptions }: Props) {
   const { layout, revision } = snapshot;
   const gridRef = useRef<HTMLDivElement>(null), viewportRef = useRef<HTMLDivElement>(null);
   const space = useRef(false), clipboard = useRef<number[]>([]);
@@ -29,6 +32,9 @@ export function LivePlacementCanvas({ snapshot, models, disabled, selected, onSe
   const [showImages, setShowImages] = useState(true), [problem, setProblem] = useState('');
   const [menu, setMenu] = useState<{ id: number; x: number; y: number; revision: number } | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [library, setLibrary] = useState('');
+  const [customize, setCustomize] = useState<{ id: number; left: number; top: number } | null>(null);
+  const libraryNames = [...new Set(snapshot.catalog.map(item => item.libraryName).filter((name): name is string => !!name))];
   const [brokenImages, setBrokenImages] = useState<Set<number>>(() => new Set());
   const transform = useGridTransform();
   const cols = layout.gridX * layout.gridResolution, rows = layout.gridY * layout.gridResolution;
@@ -83,7 +89,7 @@ export function LivePlacementCanvas({ snapshot, models, disabled, selected, onSe
     if (event.defaultPrevented) return;
     if ((event.target as HTMLElement).closest('input, select, textarea, [contenteditable="true"]')) return;
     const key = event.key.toLowerCase(), command = event.ctrlKey || event.metaKey;
-    if (key === 'escape') { onSelect(null); setProblem(''); return; }
+    if (key === 'escape') { onSelect(null); setProblem(''); setCustomize(null); return; }
     if (key === ' ' && !(event.target as HTMLElement).closest('button')) { space.current = true; event.preventDefault(); return; }
     if (key === '+' || key === '=') { event.preventDefault(); transform.zoomIn(); return; }
     if (key === '-' || key === '_') { event.preventDefault(); transform.zoomOut(); return; }
@@ -141,6 +147,10 @@ export function LivePlacementCanvas({ snapshot, models, disabled, selected, onSe
               disabled={disabled} isPanning={() => space.current} className={`guest-bin guest-bin-movable${selected.has(bin.id) ? ' guest-bin-selected' : ''}${invalid(bin) ? ' live-bin-invalid' : ''}`} label={`Select bin ${index + 1}: ${bin.name}`} selected={selected.has(bin.id)}
               onSelect={modifiers => onSelect(bin.id, modifiers)} onContextMenu={event => { event.preventDefault(); if (!disabled) { onSelect(bin.id); setMenu({ id: bin.id, x: event.clientX, y: event.clientY, revision }); } }} style={{ left: `${bin.x / cols * 100}%`, top: `${bin.y / rows * 100}%`, width: `${bin.width / cols * 100}%`, height: `${bin.depth / rows * 100}%` }}>
               <GuestBinImage bin={bin} model={models.find(model => model.id === bin.id)} view={view} /><span className="guest-model-number">{index + 1}{invalid(bin) ? ' !' : ''}</span>
+              {selected.size === 1 && selected.has(bin.id) && <LiveBinToolbar disabled={disabled} geometry={`${bin.x}:${bin.y}:${bin.width}:${bin.depth}:${transform.transform.zoom}:${transform.transform.panX}:${transform.transform.panY}`}
+                onRotateCcw={() => commit([{ type: 'rotate', stableId: stable(bin.id)!, direction: 'ccw' }])} onRotateCw={() => commit([{ type: 'rotate', stableId: stable(bin.id)!, direction: 'cw' }])}
+                onDuplicate={() => duplicate([bin.id])} onDelete={() => commit([{ type: 'remove', stableId: stable(bin.id)! }])}
+                onCustomize={snapshot.bins.find(item => item.id === bin.id)?.customizable && renderBinOptions ? rect => setCustomize({ id: bin.id, left: Math.max(8, Math.min(rect.left, window.innerWidth - 316)), top: Math.max(8, Math.min(rect.bottom + 8, window.innerHeight - 420)) }) : undefined} />}
             </LiveDragSource>)}
           </div>
         </div>
@@ -150,14 +160,36 @@ export function LivePlacementCanvas({ snapshot, models, disabled, selected, onSe
     </section>
     <aside className="guest-bins" aria-label="Bins in this drawer"><h2>Bins <span>({layout.bins.length})</span></h2><p>Select a bin to edit its options.</p>
       <ol>{layout.bins.map((bin, index) => <li key={bin.id}><button type="button" aria-label={`Bin ${index + 1}: ${bin.name}`} aria-pressed={selected.has(bin.id)} onClick={event => onSelect(bin.id, { shift: event.shiftKey, ctrl: event.ctrlKey || event.metaKey })}><span className="guest-bin-number">{index + 1}</span><span><strong>{bin.name}</strong><span>{bin.width / layout.gridResolution} × {bin.depth / layout.gridResolution} grid units{bin.heightUnits !== null ? ` · ${bin.heightUnits * 7} mm tall` : ''}</span>{invalid(bin) && <span className="live-bin-warning">Overlapping or outside drawer</span>}</span></button></li>)}</ol>
-      <section className={`live-library${libraryOpen ? ' live-library-open' : ''}`} aria-label="Approved bin library"><h2>Bin library</h2><button type="button" className="live-library-toggle" onClick={() => setLibraryOpen(false)}>Close library</button><p>Drag a footprint into the drawer, or use Add a bin below.</p><div className="live-library-items">{snapshot.catalog.map(item => <LiveDragSource key={item.key} data={{ type: 'library', itemId: item.key, snapStep: item.snapStep ?? 1, revision, width: item.width * 2, depth: item.depth * 2, selected: [] }} onDragStart={() => setLibraryOpen(false)} disabled={disabled} className="live-library-item" label={`Drag ${item.name} into drawer`}><span className="live-library-footprint" style={{ aspectRatio: `${item.width} / ${item.depth}` }} /><strong>{item.name}</strong><span>{item.width} × {item.depth}</span></LiveDragSource>)}</div></section>
+      <section className={`live-library${libraryOpen ? ' live-library-open' : ''}`} aria-label="Approved bin library"><h2>Bin library</h2><button type="button" className="live-library-toggle" onClick={() => setLibraryOpen(false)}>Close library</button><p>Drag a footprint into the drawer, or use Add a bin below.</p>
+        {libraryNames.length > 1 && <label>Filter bin library<select value={library} onChange={event => setLibrary(event.target.value)}><option value="">All approved libraries</option>{libraryNames.map(name => <option key={name}>{name}</option>)}</select></label>}
+        <div className="live-library-items">{snapshot.catalog.filter(item => !library || item.libraryName === library).map(item => <LiveDragSource key={item.key} data={{ type: 'library', itemId: item.key, snapStep: item.snapStep ?? 1, revision, width: item.width * 2, depth: item.depth * 2, selected: [] }} onDragStart={() => setLibraryOpen(false)} disabled={disabled} className="live-library-item" label={`Drag ${item.name} into drawer`}><span className="live-library-footprint" style={{ aspectRatio: `${item.width} / ${item.depth}` }} /><strong>{item.name}</strong><span>{item.width} × {item.depth}{libraryNames.length > 1 ? ` · ${item.libraryName ?? ''}` : ''}</span></LiveDragSource>)}</div></section>
       {sidebar}
     </aside>
     {menu && stable(menu.id) && <BinContextMenu x={menu.x} y={menu.y} onClose={() => setMenu(null)}
       onRotateCw={() => commit([{ type: 'rotate', stableId: stable(menu.id)!, direction: 'cw' }], menu.revision)}
       onRotateCcw={() => commit([{ type: 'rotate', stableId: stable(menu.id)!, direction: 'ccw' }], menu.revision)}
       onDuplicate={() => duplicate([menu.id], menu.revision)} onDelete={() => commit([{ type: 'remove', stableId: stable(menu.id)! }], menu.revision)} />}
+    {customize && selected.size === 1 && selected.has(customize.id) && snapshot.bins.some(bin => bin.id === customize.id) && createPortal(<div role="dialog" aria-label="Customize bin" className="placed-item-customize-popover live-options-popover live-controls" style={{ position: 'fixed', left: customize.left, top: customize.top }} onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') setCustomize(null); }}>
+      <div className="placed-item-customize-popover-header"><strong>Customize</strong><button type="button" aria-label="Close customization" onClick={() => setCustomize(null)}>×</button></div>{renderBinOptions?.(customize.id)}
+    </div>, document.body)}
   </div>;
+}
+
+function LiveBinToolbar({ geometry, disabled, onRotateCcw, onRotateCw, onDuplicate, onDelete, onCustomize }: {
+  geometry: string; disabled: boolean; onRotateCcw: () => void; onRotateCw: () => void; onDuplicate: () => void; onDelete: () => void; onCustomize?: (rect: DOMRect) => void;
+}) {
+  const anchor = useRef<HTMLSpanElement>(null);
+  const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
+  useLayoutEffect(() => {
+    const update = () => {
+      const rect = anchor.current?.parentElement?.getBoundingClientRect(); if (!rect) return;
+      const width = Math.min(window.innerWidth - 16, (onCustomize ? 5 : 4) * (window.innerWidth <= 768 ? 44 : 28) + 16);
+      setPosition({ left: Math.max(8, Math.min(rect.left + rect.width / 2 - width / 2, window.innerWidth - width - 8)), top: rect.top > 56 ? rect.top - 48 : rect.bottom + 4 });
+    };
+    update(); window.addEventListener('scroll', update, true); window.addEventListener('resize', update);
+    return () => { window.removeEventListener('scroll', update, true); window.removeEventListener('resize', update); };
+  }, [geometry, onCustomize]);
+  return <span ref={anchor}>{position && createPortal(<BinPlacementToolbar disabled={disabled} style={{ position: 'fixed', ...position, transform: 'none', zIndex: 1000 }} onRotateCcw={onRotateCcw} onRotateCw={onRotateCw} onDuplicate={onDuplicate} onDelete={onDelete} onCustomize={onCustomize ? event => onCustomize(event.currentTarget.getBoundingClientRect()) : undefined} />, document.body)}</span>;
 }
 
 function LiveDragSource({ data, disabled, isPanning, onSelect, onContextMenu, onDragStart, children, className, label, selected, style }: {

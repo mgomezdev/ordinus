@@ -95,7 +95,7 @@ export function GridPreview({
 }: GridPreviewProps) {
   const gridRef = useRef<HTMLDivElement>(null);
 
-  const { trackGeneration, instanceGenerationHash, getGenerationEntry, clearInstanceHash } = useWorkspace();
+  const { trackGeneration, instanceGenerationHash, getGenerationEntry, clearInstanceHash, layoutMeta } = useWorkspace();
 
   usePointerDropTarget({
     gridRef,
@@ -203,6 +203,7 @@ export function GridPreview({
               <PlacedItemOverlay
                 key={item.instanceId}
                 item={item}
+                layoutRevision={layoutMeta?.revision}
                 gridX={gridX}
                 gridY={gridY}
                 isSelected={selectedItemIds.has(item.instanceId)}

@@ -16,13 +16,14 @@ import { WorkspaceToolbar } from '../components/WorkspaceToolbar';
 import { LibraryPanel } from '../components/LibraryPanel';
 import { exportToPdf } from '../utils/exportPdf';
 import { useMobileLayout } from '../hooks/useMobileLayout';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useUpdateLayoutMutation } from '../hooks/useLayouts';
 import { buildPayload } from '../utils/layoutHelpers';
 import { MobileActionBar } from '../components/MobileActionBar';
 import { SimpleLibraryPanel } from '../components/simple/SimpleLibraryPanel';
 import type { DrawnFootprint } from '../components/simple/DrawFootprint';
 import { WorkspaceShare } from '../components/layouts/WorkspaceShare';
+import { WorkspaceLiveStatus } from '../components/WorkspaceLiveStatus';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api/v1';
 
@@ -37,6 +38,15 @@ const GRIDFINITY_UNIT_MM = 42;
 
 export function WorkspacePage() {
   const ws = useWorkspace();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedLayout = searchParams.get('layout');
+  const { loadLayout } = ws;
+  useEffect(() => {
+    if (!requestedLayout || !/^\d+$/.test(requestedLayout)) return;
+    let active = true;
+    void loadLayout(Number(requestedLayout)).then(() => { if (active) setSearchParams({}, { replace: true }); }).catch(() => {});
+    return () => { active = false; };
+  }, [requestedLayout, loadLayout, setSearchParams]);
 
   const {
     width, setWidth, depth, setDepth, unitSystem, imperialFormat, setImperialFormat,
@@ -207,6 +217,7 @@ export function WorkspacePage() {
       drawerWidth, drawerDepth, spacerConfig, placedItems, refImagePlacements,
     );
     try {
+      if (ws.liveSync?.enabled) { await ws.liveSync.flush(); setMobileSaveError(false); return; }
       const result = await updateLayoutMutation.mutateAsync({ id: layoutMeta.id, data: { ...payload, ...(layoutMeta.revision !== undefined ? { baseRevision: layoutMeta.revision } : {}) } });
       setMobileSaveError(false);
       handleSaveComplete(result.id, result.name, result.revision);
@@ -214,7 +225,7 @@ export function WorkspacePage() {
       setMobileSaveError(true);
     }
   }, [layoutMeta, gridResult, drawerWidth, drawerDepth, spacerConfig, placedItems,
-    refImagePlacements, updateLayoutMutation, handleSaveComplete, dialogDispatch]);
+    refImagePlacements, updateLayoutMutation, handleSaveComplete, dialogDispatch, ws.liveSync]);
 
   const handleMobileSaveAsNew = useCallback(() => {
     dialogDispatch({ type: 'OPEN', dialog: 'save' });
@@ -422,6 +433,7 @@ export function WorkspacePage() {
           </div>
         </nav>
         <WorkspaceShare />
+        <WorkspaceLiveStatus />
         <div className="preview-toolbar preview-toolbar--desktop-only">
           <WorkspaceToolbar onExportPdf={handleExportPdf} exportPdfError={exportPdfError} />
           <ImageViewToggle mode={imageViewMode} onToggle={toggleImageViewMode} />

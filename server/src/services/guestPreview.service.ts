@@ -19,10 +19,10 @@ function linkMetadata(row: Row): GuestLink {
 async function requireLayout(layoutId: number): Promise<void> {
   if (!(await client.execute({ sql: 'SELECT id FROM layouts WHERE id = ?', args: [layoutId] })).rows.length) throw new AppError(ErrorCodes.NOT_FOUND, 'Layout not found');
 }
-async function createGuestLinkInner(layoutId: number, hours: number, options: { allowEdit?: boolean; libraryId?: string }): Promise<GuestLink & { secret: string }> {
+async function createGuestLinkInner(layoutId: number, hours: number, options: { allowEdit?: boolean; libraryId?: string; libraryIds?: string[] }): Promise<GuestLink & { secret: string }> {
   await requireLayout(layoutId);
   if (options.allowEdit) {
-    const link = await createEditableLink(layoutId, hours, options.libraryId ?? 'bins_standard');
+    const link = await createEditableLink(layoutId, hours, options.libraryIds ?? [options.libraryId ?? 'bins_standard']);
     await prepareGuestModels(layoutId);
     return { ...link, allowEdit: true };
   }
@@ -47,7 +47,7 @@ async function revokeGuestLinkInner(layoutId: number, id: string): Promise<void>
   if (!result.rowsAffected) throw new AppError(ErrorCodes.NOT_FOUND, 'Preview link not found');
   layoutChanged(layoutId);
 }
-export const createGuestLink = (layoutId: number, hours: number, options: { allowEdit?: boolean; libraryId?: string } = {}) => layoutWrite(() => createGuestLinkInner(layoutId, hours, options));
+export const createGuestLink = (layoutId: number, hours: number, options: { allowEdit?: boolean; libraryId?: string; libraryIds?: string[] } = {}) => layoutWrite(() => createGuestLinkInner(layoutId, hours, options));
 export const revokeGuestLink = (layoutId: number, id: string) => layoutWrite(() => revokeGuestLinkInner(layoutId, id));
 export async function joinGuestLink(id: string, secret: string, displayName = 'Client'): Promise<{ token: string; expiresAt: number }> {
   const token = randomBytes(32).toString('base64url');

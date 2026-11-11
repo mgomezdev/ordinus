@@ -258,6 +258,7 @@ export interface ApiLayout {
 }
 
 export interface ApiPlacedItem {
+  stableId?: string;
   id: number;
   layoutId: number;
   libraryId: string;
@@ -351,6 +352,7 @@ export interface CreateLayoutRequest {
   spacerHorizontal?: string;
   spacerVertical?: string;
   placedItems: Array<{
+    stableId?: string;
     itemId: string;
     x: number;
     y: number;

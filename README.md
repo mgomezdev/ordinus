@@ -256,9 +256,10 @@ controls, model/STL downloads, customer records and other configurations remain
 private.
 
 Links default to a **read-only preview**. To work together, enable **Allow client
-editing (live)**, choose the **Approved bin library**, then select **Create
-collaboration link**. Send the client that link and choose **Open live editor**
-for your own editing view. Existing preview links keep their original read-only
+editing (live)**, choose one or more **Approved bin libraries**, then select **Create
+collaboration link**. Send the client that link and keep working in **Workspace**.
+Client edits appear there automatically and your workspace changes save back to
+the shared drawer as you work. Existing preview links keep their original read-only
 permissions.
 
 The organizer and client can both drag or move bins, place approved models,
@@ -285,6 +286,18 @@ multiple bins for atomic group moves, rotation and deletion. Right-click opens
 the workspace bin menu. **R** / **Shift+R** rotate, **Delete** removes,
 **Ctrl/Cmd+D** duplicates, and **Ctrl/Cmd+C/V** copies/pastes within this drawer.
 The library and attached images remain scoped to the invitation.
+
+Selecting a client-side bin shows the same rotate, duplicate, customize and
+remove toolbar as the normal editor. The library panel can filter the combined
+approved libraries. Each invitation freezes its chosen set; create a new link
+to grant a different set and close the older link when appropriate.
+
+If client edits race with pending workspace changes, the host keeps their local
+draft and chooses **Use latest shared drawer** or explicitly **Keep my workspace
+changes** after review. Open customization drafts also require review before
+applying to a newer shared revision. Offline drafts remain local until the
+connection and current version have been checked. Older direct live-editor
+bookmarks remain supported, but the host does not need that separate view.
 
 Choose **Close access** in the configuration's sharing panel to revoke an
 invitation and every guest session created from it. Open previews check access

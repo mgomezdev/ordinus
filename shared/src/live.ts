@@ -1,5 +1,5 @@
 import type { GuestPreview } from './guestPreview.js';
-export interface LiveCatalogItem { key: string; name: string; width: number; depth: number; snapStep?: number }
+export interface LiveCatalogItem { key: string; name: string; width: number; depth: number; snapStep?: number; libraryName?: string }
 export interface LiveBin { id: number; stableId: string; customizable: boolean; height: number; heightStep?: number; lipStyle: string; wallPatternEnabled: boolean; snapStep?: number }
 export interface LiveSnapshot {
   revision: number;

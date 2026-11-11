@@ -5,7 +5,8 @@ import { AppError, ErrorCodes } from '@gridfinity/shared';
 import type { GuestAccess } from '../services/guestPreview.service.js';
 import { guestImagePath } from '../services/guestPreview.service.js';
 import { guestModels, guestModelPath } from '../services/guestModels.service.js';
-import { authorizeLive, enterLive, liveCommand, liveSnapshot, livePresent } from '../services/live.service.js';
+import { authorizeLive, enterLive, liveCommand, liveSnapshot, livePresent, acknowledgeLive, liveNames } from '../services/live.service.js';
+import { getLayoutById } from '../services/layout.service.js';
 import type { LiveActor } from '../services/live.service.js';
 import { layoutChanged, layoutWrite, watchLayout } from '../services/layoutWrites.js';
 import { client } from '../db/connection.js';
@@ -54,6 +55,13 @@ export function ownerLiveRouter(): Router {
   const id = (req: Request) => parseIntParam(req, 'layoutId', 'layout ID');
   const actor = (req: Request): LiveActor => ({ role: 'owner', token: readAdminCookie(req) });
   const access = (req: Request): GuestAccess => ({ layoutId: id(req), linkId: `owner-${id(req)}`, expiresAt: Infinity });
+  router.get('/workspace', async (req, res, next) => {
+    try {
+      const authorization = await authorizeLive(id(req), actor(req));
+      acknowledgeLive(id(req), authorization.id);
+      res.json({ data: await getLayoutById(id(req)), participants: liveNames(id(req)) });
+    } catch (err) { next(err); }
+  });
   router.get('/snapshot', async (req, res, next) => {
     try {
       const snapshot = await liveSnapshot(id(req), actor(req), access(req).linkId);

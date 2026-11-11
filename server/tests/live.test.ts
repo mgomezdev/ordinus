@@ -37,6 +37,44 @@ async function fixture(edit = true) {
   return { data, layoutId, linkId: issued.body.id as string, cookie, base, host, snapshot, command };
 }
 describe('live collaboration', () => {
+  it('approves multiple frozen libraries per invitation and rejects empty or unavailable sets atomically', async () => {
+    await client.execute("INSERT INTO libraries (id, name) VALUES ('live-second', 'Second approved library')");
+    await client.execute("INSERT INTO library_items (library_id, id, name, width_units, height_units) VALUES ('live-second', 'second', 'Second bin', 1, 2)");
+    const f = await fixture();
+    const issue = await owner(app).post(`/api/v1/layouts/${f.layoutId}/guest-links`).send({ allowEdit: true, libraryIds: ['live-test', 'live-second', 'live-test'] });
+    expect(issue.status).toBe(201);
+    const joined = await request(app).post(`/api/v1/guest/${issue.body.id}/join`).set('X-Ordinus-Request', '1').send({ secret: issue.body.secret });
+    const cookie = String(joined.headers['set-cookie'][0]).split(';')[0];
+    const base = `/api/v1/guest/${issue.body.id}/live`;
+    const state = (await request(app).get(`${base}/snapshot`).set('Cookie', cookie)).body;
+    expect(state.catalog).toHaveLength(2);
+    expect(state.catalog.map((item: { libraryName: string }) => item.libraryName)).toEqual(['Approved bins', 'Second approved library']);
+    const added = await request(app).post(`${base}/commands`).set('Cookie', cookie).set('X-Ordinus-Request', '1').send({ commandId: randomUUID(), baseRevision: state.revision, change: { type: 'add', catalogKey: state.catalog[1].key, x: 4, y: 0 } });
+    expect(added.status).toBe(200);
+    expect((await f.snapshot()).body.layout.bins).toHaveLength(2);
+    const before = (await f.snapshot()).body.revision;
+    expect((await owner(app).post(`/api/v1/layouts/${f.layoutId}/guest-links`).send({ allowEdit: true, libraryIds: [] })).status).toBe(400);
+    expect((await owner(app).post(`/api/v1/layouts/${f.layoutId}/guest-links`).send({ allowEdit: true, libraryIds: ['live-test', 'missing-library'] })).status).toBe(400);
+    expect((await f.snapshot()).body.revision).toBe(before);
+    // Earlier invitations keep their original scope.
+    expect((await f.snapshot()).body.catalog).toHaveLength(1);
+  });
+  it('preserves bin IDs and frozen sources across normal workspace saves, so a guest can continue editing', async () => {
+    const f = await fixture(); const before = (await f.snapshot()).body;
+    const loaded = await owner(app).get(`/api/v1/layouts/${f.layoutId}/live/workspace`);
+    expect(loaded.status).toBe(200);
+    const placed = loaded.body.data.placedItems[0]; expect(placed.stableId).toBe(before.bins[0].stableId);
+    const source = (await client.execute({ sql: 'SELECT source_snapshot FROM placed_items WHERE id=?', args: [placed.id] })).rows[0].source_snapshot;
+    const saved = await owner(app).put(`/api/v1/layouts/${f.layoutId}`).send({ ...f.data, baseRevision: before.revision, placedItems: [{ ...f.data.placedItems[0], stableId: placed.stableId, x: 2 }] });
+    expect(saved.status).toBe(200); expect(saved.body.data.placedItems[0]).toMatchObject({ id: placed.id, stableId: placed.stableId });
+    expect((await client.execute({ sql: 'SELECT source_snapshot FROM placed_items WHERE id=?', args: [placed.id] })).rows[0].source_snapshot).toBe(source);
+    const next = (await f.snapshot()).body;
+    expect((await f.command({ commandId: randomUUID(), baseRevision: next.revision, change: { type: 'rotate', stableId: placed.stableId, direction: 'cw' } })).status).toBe(200);
+    const current = (await f.snapshot()).body;
+    expect((await owner(app).put(`/api/v1/layouts/${f.layoutId}`).send({ ...f.data, baseRevision: current.revision, placedItems: [{ ...f.data.placedItems[0], stableId: placed.stableId }, { ...f.data.placedItems[0], stableId: placed.stableId }] })).status).toBe(400);
+    expect((await f.snapshot()).body.revision).toBe(current.revision);
+    expect((await request(app).get(`/api/v1/layouts/${f.layoutId}/live/workspace`).set('Cookie', f.cookie)).status).toBe(401);
+  });
   it('duplicates frozen bins and commits selection actions atomically with one restart-safe receipt', async () => {
     const f = await fixture(); let s = (await f.snapshot()).body;
     const originalId = s.bins[0].stableId;

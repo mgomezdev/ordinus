@@ -4,6 +4,7 @@ import type { RefImagePlacement } from './useRefImagePlacements';
 import type { LoadedLayoutConfig } from '../types/layoutConfig';
 import type { LayoutMetaAction } from '../reducers/layoutMetaReducer';
 import { LEGACY_GRID_RESOLUTION, rescalePlacedGeometry } from '@gridfinity/shared';
+import type { ApiLayoutDetail } from '@gridfinity/shared';
 import { mmToInches } from '../utils/conversions';
 import { fetchLayout } from '../api/layouts.api';
 
@@ -12,7 +13,7 @@ interface UseLayoutLoaderParams {
   setWidth: (w: number) => void;
   setDepth: (d: number) => void;
   setSpacerConfig: (c: GridSpacerConfig) => void;
-  loadItems: (items: PlacedItem[]) => void;
+  loadItems: (items: PlacedItem[], preserveIds?: boolean) => void;
   loadRefImagePlacements: (placements: RefImagePlacement[]) => void;
   layoutDispatch: React.Dispatch<LayoutMetaAction>;
   clearExtras?: () => void;
@@ -23,7 +24,7 @@ export function useLayoutLoader({
   loadItems, loadRefImagePlacements, layoutDispatch,
   clearExtras,
 }: UseLayoutLoaderParams) {
-  const handleLoadLayout = useCallback((config: LoadedLayoutConfig) => {
+  const handleLoadLayout = useCallback((config: LoadedLayoutConfig, keepLocalUI = false) => {
     if (unitSystem === 'imperial') {
       setWidth(parseFloat(mmToInches(config.widthMm).toFixed(4)));
       setDepth(parseFloat(mmToInches(config.depthMm).toFixed(4)));
@@ -32,12 +33,12 @@ export function useLayoutLoader({
       setDepth(config.depthMm);
     }
     setSpacerConfig(config.spacerConfig);
-    loadItems(config.placedItems);
+    if (config.revision !== undefined) loadItems(config.placedItems, true); else loadItems(config.placedItems);
     loadRefImagePlacements(config.refImagePlacements ?? []);
 
     const owner = config.ownerUsername ?? '';
 
-    clearExtras?.();
+    if (!keepLocalUI) clearExtras?.();
 
     layoutDispatch({
       type: 'LOAD_LAYOUT',
@@ -51,14 +52,12 @@ export function useLayoutLoader({
     });
   }, [unitSystem, setWidth, setDepth, setSpacerConfig, loadItems, loadRefImagePlacements, layoutDispatch, clearExtras]);
 
-  const loadLayout = useCallback(async (id: number) => {
-    try {
-      const detail = await fetchLayout(id);
+  const loadDetail = useCallback((detail: ApiLayoutDetail, keepLocalUI = false) => {
       const loadPrefix = Date.now();
 
       const sourceResolution = detail.gridResolution ?? LEGACY_GRID_RESOLUTION;
       const loadedPlacedItems: PlacedItem[] = detail.placedItems.map(rawItem => rescalePlacedGeometry(rawItem, sourceResolution)).map((item, index) => ({
-        instanceId: `loaded-${loadPrefix}-${index}`,
+        instanceId: item.stableId ? `item-${item.stableId}` : `loaded-${loadPrefix}-${index}`,
         itemId: `${item.libraryId}:${item.itemId}`,
         x: item.x, y: item.y, width: item.width, height: item.height,
         rotation: item.rotation as Rotation,
@@ -67,7 +66,7 @@ export function useLayoutLoader({
       }));
 
       const loadedRefImagePlacements: RefImagePlacement[] = (detail.refImagePlacements ?? []).map((p, index) => ({
-        id: `loaded-ref-${loadPrefix}-${index}`,
+        id: detail.revision !== undefined ? `ref-${p.id}` : `loaded-ref-${loadPrefix}-${index}`,
         refImageId: p.refImageId, name: p.name, imageUrl: p.imageUrl,
         x: p.x, y: p.y, width: p.width, height: p.height,
         opacity: p.opacity, scale: p.scale, isLocked: p.isLocked,
@@ -86,12 +85,17 @@ export function useLayoutLoader({
         },
         placedItems: loadedPlacedItems,
         refImagePlacements: loadedRefImagePlacements,
-      });
+      }, keepLocalUI);
+  }, [handleLoadLayout]);
+
+  const loadLayout = useCallback(async (id: number) => {
+    try {
+      loadDetail(await fetchLayout(id));
     } catch (err) {
       console.error('Failed to load layout:', err);
       throw err;
     }
-  }, [handleLoadLayout]);
+  }, [loadDetail]);
 
-  return { handleLoadLayout, loadLayout };
+  return { handleLoadLayout, loadLayout, loadDetail };
 }

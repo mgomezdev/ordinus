@@ -15,7 +15,7 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
     layoutMeta,
     placedItems, refImagePlacements, gridResult, drawerWidth, drawerDepth,
     spacerConfig, handleSaveComplete,
-    handleClearAll, dialogDispatch,
+    handleClearAll, dialogDispatch, liveSync,
   } = useWorkspace();
 
   const updateLayoutMutation = useUpdateLayoutMutation();
@@ -32,6 +32,7 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
   const handleDirectSave = useCallback(async () => {
     if (!layoutMeta.id) return;
     try {
+      if (liveSync?.enabled) { await liveSync.flush(); return; }
       const payload = buildPayload(
         layoutMeta.name, layoutMeta.description,
         gridResult.gridX, gridResult.gridY,
@@ -48,7 +49,7 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
       setToast({ visible: true, isError: true, message: err instanceof Error ? err.message : undefined });
     }
   }, [layoutMeta, gridResult, drawerWidth, drawerDepth, spacerConfig, placedItems,
-    refImagePlacements, updateLayoutMutation, handleSaveComplete]);
+    refImagePlacements, updateLayoutMutation, handleSaveComplete, liveSync]);
 
   return (
     <div className="reference-image-toolbar">

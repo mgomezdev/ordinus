@@ -512,14 +512,14 @@ export function useGridItems(
     updateClipboard(selected);
   }, [updateClipboard]);
 
-  const loadItems = useCallback((items: PlacedItem[]) => {
+  const loadItems = useCallback((items: PlacedItem[], preserveIds = false) => {
     // Replace all current items with the given items, assigning new instance IDs
     const newItems = items.map(item => ({
       ...item,
-      instanceId: generateInstanceId(),
+      instanceId: preserveIds ? item.instanceId : generateInstanceId(),
     }));
     updateItems(newItems);
-    updateSelected(EMPTY_SET);
+    updateSelected(preserveIds ? new Set([...selectedRef.current].filter(id => newItems.some(item => item.instanceId === id))) : EMPTY_SET);
   }, [updateItems, updateSelected]);
 
   const pasteItems = useCallback(() => {

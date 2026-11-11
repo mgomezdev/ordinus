@@ -20,6 +20,7 @@ export function WorkspaceShare() {
   async function save() {
     setSaving(true); setError('');
     try {
+      if (ws.liveSync?.enabled) { await ws.liveSync.flush(); return; }
       const payload = buildPayload(
         ws.layoutMeta.id ? ws.layoutMeta.name : name, ws.layoutMeta.description,
         ws.gridResult.gridX, ws.gridResult.gridY, ws.drawerWidth, ws.drawerDepth,

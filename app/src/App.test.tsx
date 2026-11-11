@@ -448,8 +448,8 @@ describe('App Integration Tests', () => {
     it('shows Save Changes and Save as New when layout is saved (draft)', () => {
       renderApp();
       act(() => {
-        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, status: string) => void;
-        onSaveComplete(10, 'My Layout', 'draft');
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, revision?: number) => void;
+        onSaveComplete(10, 'My Layout');
       });
       expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /save changes/i })).toBeDisabled();
@@ -463,8 +463,8 @@ describe('App Integration Tests', () => {
       mockUpdateMutateAsync.mockResolvedValue({ id: 10, name: 'My Layout', status: 'draft' });
       renderApp();
       act(() => {
-        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, status: string) => void;
-        onSaveComplete(10, 'My Layout', 'draft');
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, revision?: number) => void;
+        onSaveComplete(10, 'My Layout');
       });
       placeItemViaGridPreview();
       await act(async () => {
@@ -480,8 +480,8 @@ describe('App Integration Tests', () => {
       mockUpdateMutateAsync.mockRejectedValue(new Error('Network error'));
       renderApp();
       act(() => {
-        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, status: string) => void;
-        onSaveComplete(10, 'My Layout', 'draft');
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, revision?: number) => void;
+        onSaveComplete(10, 'My Layout');
       });
       placeItemViaGridPreview();
       await act(async () => {
@@ -494,8 +494,8 @@ describe('App Integration Tests', () => {
       mockUpdateMutateAsync.mockRejectedValue(new Error('Network error'));
       renderApp();
       act(() => {
-        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, status: string) => void;
-        onSaveComplete(10, 'My Layout', 'draft');
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, revision?: number) => void;
+        onSaveComplete(10, 'My Layout');
       });
       placeItemViaGridPreview();
       await act(async () => {

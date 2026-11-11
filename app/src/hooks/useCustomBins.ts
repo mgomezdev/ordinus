@@ -16,7 +16,7 @@ export function useCustomBins(
   placedItems: PlacedItem[],
 ) {
   const [items, setItems] = useState<Map<string, LibraryItem>>(new Map());
-  const requestedRef = useRef<Set<string>>(new Set());
+  const requestedRef = useRef<Map<string, string>>(new Map());
 
   const register = useCallback((item: LibraryItem) => {
     setItems(prev => new Map(prev).set(item.id, item));
@@ -25,7 +25,7 @@ export function useCustomBins(
   const createCustomItem = useCallback(async (spec: CustomBinSpec) => {
     const { hash, status } = await requestCustomGenerationApi(spec);
     const item = buildCustomItem(customItemId(hash), spec, hash);
-    requestedRef.current.add(item.id);
+    requestedRef.current.set(item.id, JSON.stringify(spec));
     register(item);
     return { item, status };
   }, [register]);
@@ -33,13 +33,14 @@ export function useCustomBins(
   useEffect(() => {
     const pending = new Map<string, CustomBinSpec>();
     for (const placed of placedItems) {
-      if (placed.customSpec && !requestedRef.current.has(placed.itemId)) pending.set(placed.itemId, placed.customSpec);
+      if (placed.customSpec && requestedRef.current.get(placed.itemId) !== JSON.stringify(placed.customSpec)) pending.set(placed.itemId, placed.customSpec);
     }
     pending.forEach((spec, id) => {
-      requestedRef.current.add(id);
+      const fingerprint = JSON.stringify(spec);
+      requestedRef.current.set(id, fingerprint);
       requestCustomGenerationApi(spec)
-        .then(({ hash }) => register(buildCustomItem(id, spec, hash)))
-        .catch(() => requestedRef.current.delete(id));
+        .then(({ hash }) => { if (requestedRef.current.get(id) === fingerprint) register(buildCustomItem(id, spec, hash)); })
+        .catch(() => { if (requestedRef.current.get(id) === fingerprint) requestedRef.current.delete(id); });
     });
   }, [placedItems, register]);
 

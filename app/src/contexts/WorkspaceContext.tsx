@@ -7,7 +7,7 @@ import type {
   ComputedSpacer, BOMExtras,
 } from '../types/gridfinity';
 import type { SelectModifiers } from '../hooks/useGridItems';
-import type { BOMItem, CustomBinSpec, CuratedEntry } from '@gridfinity/shared';
+import type { BOMItem, CustomBinSpec, CuratedEntry, ApiLayoutDetail } from '@gridfinity/shared';
 import { matchCuratedEntry } from '@gridfinity/shared';
 import type { RefImagePlacement, UseRefImagePlacementsReturn } from '../hooks/useRefImagePlacements';
 import type { LayoutMetaState } from '../reducers/layoutMetaReducer';
@@ -31,6 +31,9 @@ import { useGenerationState } from '../hooks/useGenerationState';
 import type { GenerationEntry } from '../hooks/useGenerationState';
 import { requestGenerationApi } from '../api/generation.api';
 import { API_BASE_URL } from '../api/apiClient';
+import { buildPayload } from '../utils/layoutHelpers';
+import { useWorkspaceLiveSync } from '../hooks/useWorkspaceLiveSync';
+import type { WorkspaceLiveSync } from '../hooks/useWorkspaceLiveSync';
 
 // ConfirmDialog props shape returned by useConfirmDialog
 interface ConfirmDialogProps {
@@ -45,6 +48,7 @@ interface ConfirmDialogProps {
 }
 
 interface WorkspaceContextValue {
+  liveSync?: WorkspaceLiveSync;
   // Dimensions
   width: number;
   setWidth: (w: number) => void;
@@ -281,7 +285,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     setIsDirty(false);
   }, [rawHandleSaveComplete]);
 
-  const { loadLayout: rawLoadLayout } = useLayoutLoader({
+  const { loadLayout: rawLoadLayout, loadDetail } = useLayoutLoader({
     unitSystem, setWidth, setDepth, setSpacerConfig,
     loadItems, loadRefImagePlacements, layoutDispatch,
     clearExtras,
@@ -384,7 +388,26 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     closeRebind();
   }, [dialogs.rebindTargetId, rebindRefImage, closeRebind]);
 
+  const workspacePayload = buildPayload(layoutMeta.name, layoutMeta.description, gridResult.gridX, gridResult.gridY, drawerWidth, drawerDepth, spacerConfig, placedItems, refImagePlacements);
+  const workspaceContent = JSON.stringify({ ...workspacePayload, refImagePlacements: workspacePayload.refImagePlacements ?? [] });
+  const liveSync = useWorkspaceLiveSync({ id: layoutMeta.id, revision: layoutMeta.revision, content: workspaceContent, dirty: isDirty,
+    apply: (detail: ApiLayoutDetail) => {
+      skipNextDirtyRef.current = true;
+      loadDetail(detail, true); setIsDirty(false);
+      for (const item of detail.placedItems) {
+        const instanceId = item.stableId ? `item-${item.stableId}` : '';
+        const old = placedItems.find(bin => bin.instanceId === instanceId);
+        if (instanceId && JSON.stringify(old?.customization) !== JSON.stringify(item.customization)) {
+          clearInstanceHash(instanceId);
+          if (item.customization && !item.customSpec) void trackGeneration(instanceId, item.libraryId, item.itemId, item.customization);
+        }
+      }
+    },
+    saved: (detail, unchanged) => { rawHandleSaveComplete(detail.id, detail.name, detail.revision); if (unchanged) setIsDirty(false); },
+  });
+
   const value: WorkspaceContextValue = {
+    liveSync,
     // Dimensions
     width,
     setWidth,

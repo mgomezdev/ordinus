@@ -13,8 +13,8 @@ import { parseCustomization } from './formatters.js';
 const client = Object.hasOwn(connections, 'liveClient') ? connections.liveClient : connections.client;
 
 export type LiveActor = { role: 'owner'; token: string } | { role: 'guest'; token: string; linkId: string };
-interface CatalogEntry { key: string; name: string; width: number; depth: number; libraryId: string; itemId: string; sourceSnapshot: string }
-interface Catalog { libraryId: string; items: CatalogEntry[] }
+interface CatalogEntry { key: string; name: string; width: number; depth: number; libraryId: string; libraryName?: string; itemId: string; sourceSnapshot: string }
+interface Catalog { libraryId?: string; libraryIds?: string[]; items: CatalogEntry[] }
 const uuid = z.string().uuid();
 const coordinate = z.number().int().min(0).max(40);
 const spacer = z.enum(['none', 'one-sided', 'symmetrical']);
@@ -53,22 +53,27 @@ function validateGeometry(layout: Row, bins: Row[]): void {
   checkLiveGeometry(Number(layout.grid_x), Number(layout.grid_y), bins.map(bin => ({ x: Number(bin.x), y: Number(bin.y), width: Number(bin.width), height: Number(bin.height) })));
 }
 async function catalogForLibrary(libraryId: string): Promise<Catalog> {
-  const library = (await client.execute({ sql: 'SELECT id FROM libraries WHERE id = ? AND is_active = 1', args: [libraryId] })).rows[0];
+  const library = (await client.execute({ sql: 'SELECT id, name FROM libraries WHERE id = ? AND is_active = 1', args: [libraryId] })).rows[0];
   if (!library) throw invalid('Choose an available bin library');
   const result = await client.execute({ sql: `SELECT li.*, l.base_model_path, l.parameters,
     (SELECT base_model_path FROM libraries WHERE id = 'bins_standard') AS custom_base
-    FROM library_items li JOIN libraries l ON li.library_id = l.id WHERE li.library_id = ? AND li.is_active = 1 ORDER BY li.sort_order LIMIT 200`, args: [libraryId] });
+    FROM library_items li JOIN libraries l ON li.library_id = l.id WHERE li.library_id = ? AND li.is_active = 1 ORDER BY li.sort_order LIMIT 1001`, args: [libraryId] });
   if (!result.rows.length) throw invalid('The approved library has no bins');
   return { libraryId, items: result.rows.map(row => ({ key: randomUUID(), name: String(row.name), width: Number(row.width_units), depth: Number(row.height_units),
-    libraryId, itemId: String(row.id), sourceSnapshot: modelSourceSnapshot(row) })) };
+    libraryId, libraryName: String(library.name), itemId: String(row.id), sourceSnapshot: modelSourceSnapshot(row) })) };
 }
 
 /** Called inside the layout writer; activation and the invitation commit together. */
-export async function createEditableLink(layoutId: number, hours: number, libraryId: string): Promise<GuestLink & { secret: string }> {
+export async function createEditableLink(layoutId: number, hours: number, libraryIds: string[]): Promise<GuestLink & { secret: string }> {
   await client.execute('BEGIN IMMEDIATE');
   let link: GuestLink & { secret: string };
   try {
-    const layout = await layoutRow(layoutId); const catalog = await catalogForLibrary(libraryId);
+    const layout = await layoutRow(layoutId);
+    const approved = [...new Set(libraryIds)];
+    if (!approved.length || approved.length > 20) throw invalid('Choose between 1 and 20 bin libraries');
+    const catalog: Catalog = { libraryIds: approved, items: [] };
+    for (const libraryId of approved) catalog.items.push(...(await catalogForLibrary(libraryId)).items);
+    if (catalog.items.length > 1000) throw invalid('Choose libraries containing at most 1000 approved bins');
     const before = await binRows(layoutId);
     const refs = (await client.execute({ sql: 'SELECT * FROM reference_images WHERE layout_id = ?', args: [layoutId] })).rows;
     await client.execute({ sql: 'INSERT OR IGNORE INTO live_backups(layout_id, snapshot, created_at) VALUES (?, ?, ?)', args: [layoutId, JSON.stringify({ layout, bins: before, references: refs }), Date.now()] });
@@ -100,6 +105,12 @@ export function livePresent(layoutId: number, actorId: string): boolean {
   const person = presence.get(layoutId)?.get(actorId);
   return !!person && Date.now() - person.lastSeen < 45_000;
 }
+export function acknowledgeLive(layoutId: number, actorId: string): void {
+  const person = presence.get(layoutId)?.get(actorId); if (person) person.lastSeen = Date.now();
+}
+export function liveNames(layoutId: number): string[] {
+  return [...(presence.get(layoutId)?.values() ?? [])].map(person => person.name);
+}
 export function enterLive(layoutId: number, id: string, name: string, role: 'owner' | 'guest'): () => void {
   const people = presence.get(layoutId) ?? new Map(); const person = people.get(id) ?? { name, role, connections: 0, lastSeen: Date.now() };
   person.lastSeen = Date.now();
@@ -123,7 +134,7 @@ export function liveSnapshot(layoutId: number, actor: LiveActor, assetId: string
           heightStep: spec ? 0.5 : 1, snapStep: snapStep(row.source_snapshot, row.custom_spec),
           lipStyle: String(spec?.overrides.lip_style ?? customization?.lipStyle ?? 'normal'), wallPatternEnabled: Boolean(spec?.overrides.wallpattern_enabled ?? customization?.wallPatternEnabled) };
       }),
-      catalog: authorization.catalog.items.map(({ key, name, width, depth, sourceSnapshot }) => ({ key, name, width, depth, snapStep: snapStep(sourceSnapshot) })),
+      catalog: authorization.catalog.items.map(({ key, name, width, depth, sourceSnapshot, libraryName }) => ({ key, name, width, depth, snapStep: snapStep(sourceSnapshot), ...(libraryName ? { libraryName } : {}) })),
       participants: [...(presence.get(layoutId)?.entries() ?? [])].map(([id, person]) => ({ id: hashToken(id).slice(0, 16), name: person.name, role: person.role })),
     };
   });

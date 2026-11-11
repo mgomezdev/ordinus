@@ -2212,6 +2212,20 @@ describe('PlacedItemOverlay', () => {
       );
     });
 
+    it('keeps stale live options for review instead of applying them on close or deselection', async () => {
+      const item = createMockItemWithLibrary({ customization: { ...DEFAULT_BIN_CUSTOMIZATION, wallPatternEnabled: true, wallPattern: 'grid' } });
+      const props = { item, gridX: 4, gridY: 4, isSelected: true, onSelect: mockOnSelect, getItemById: mockGetItemById, onCustomizationChange: mockOnCustomizationChange, getLibraryMeta: mockGetLibraryMeta };
+      const { rerender } = render(<PlacedItemOverlay {...props} layoutRevision={1} />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Customize', exact: true }));
+      fireEvent.change(screen.getByLabelText('Style'), { target: { value: 'hexgrid' } });
+      rerender(<PlacedItemOverlay {...props} isSelected={false} layoutRevision={2} />);
+      expect(screen.getByRole('alert')).toHaveTextContent('Your draft is kept');
+      fireEvent.click(screen.getByRole('button', { name: 'Close customization' }));
+      expect(mockOnCustomizationChange).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'Apply my options to latest drawer' }));
+      expect(mockOnCustomizationChange).toHaveBeenCalledWith(item.instanceId, expect.objectContaining({ wallPattern: 'hexgrid' }));
+    });
+
     it('should render reset button in popover', async () => {
       const item = createMockItemWithLibrary();
       render(

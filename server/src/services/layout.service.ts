@@ -9,6 +9,7 @@ import * as layoutThumbnailService from './layoutThumbnail.service.js';
 import { releaseWarps } from './refImageWarp.service.js';
 import { randomUUID } from 'node:crypto';
 import { layoutWrite, layoutChanged, checkLiveGeometry } from './layoutWrites.js';
+import { modelRows, modelSourceSnapshot, prepareGuestModels } from './guestModels.service.js';
 
 type LayoutRow = typeof layouts.$inferSelect;
 type PlacedItemRow = typeof placedItems.$inferSelect;
@@ -32,6 +33,7 @@ interface CreateLayoutData {
   spacerHorizontal?: string;
   spacerVertical?: string;
   placedItems: Array<{
+    stableId?: string;
     itemId: string;
     x: number;
     y: number;
@@ -344,7 +346,7 @@ async function readLayoutById(
 
   return {
     ...formatLayout(layout, customerName ?? undefined),
-    placedItems: itemRows.map(formatPlacedItem),
+    placedItems: itemRows.map(row => formatPlacedItem(row, !!layout.liveGuarded)),
     referenceImages: refPlacementRows.map(row => formatReferenceImage(row.ri)),
     refImagePlacements,
   };
@@ -383,7 +385,7 @@ async function createLayoutInner(
 
   return {
     ...formatLayout({ ...layout, thumbnailPath: thumbnailFilename ?? null }, await customerNameFor(data.customerId)),
-    placedItems: insertedItems.map(formatPlacedItem),
+    placedItems: insertedItems.map(row => formatPlacedItem(row)),
     refImagePlacements,
   };
 }
@@ -435,10 +437,29 @@ async function updateLayoutInner(
       .where(eq(layouts.id, layoutId))
       .returning();
 
+    const values = toPlacedItemValues(layoutId, data.placedItems);
+    if (existing.liveGuarded) {
+      const previous = await db.select().from(placedItems).where(eq(placedItems.layoutId, layoutId));
+      const identities = data.placedItems.flatMap(item => item.stableId ? [item.stableId] : []);
+      if (new Set(identities).size !== identities.length) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Each bin must have a distinct identity');
+      for (let index = 0; index < values.length; index++) {
+        const identity = data.placedItems[index].stableId;
+        if (!identity) continue;
+        const old = previous.find(item => item.stableId === identity);
+        if (!old && (await db.select({ id: placedItems.id }).from(placedItems).where(eq(placedItems.stableId, identity))).length) throw new AppError(ErrorCodes.VALIDATION_ERROR, 'Bin identity belongs to another configuration');
+        values[index].stableId = identity;
+        if (old) {
+          values[index].id = old.id;
+          if (old.libraryId === values[index].libraryId && old.itemId === values[index].itemId) values[index].sourceSnapshot = old.sourceSnapshot;
+        }
+      }
+    }
     await db.delete(placedItems).where(eq(placedItems.layoutId, layoutId));
     await db.delete(referenceImages).where(eq(referenceImages.layoutId, layoutId));
-
-    insertedItems = await insertPlacedItems(toPlacedItemValues(layoutId, data.placedItems));
+    insertedItems = await insertPlacedItems(values);
+    if (existing.liveGuarded) {
+      for (const row of await modelRows(layoutId)) if (!row.source_snapshot) await db.update(placedItems).set({ sourceSnapshot: modelSourceSnapshot(row) }).where(eq(placedItems.id, Number(row.id)));
+    }
     refImagePlacements = await insertRefPlacements(
       toRefPlacementValues(layoutId, data.refImagePlacements, now),
     );
@@ -452,13 +473,14 @@ async function updateLayoutInner(
   await releaseWarps(previousWarps);
 
   const thumbnailFilename = await tryGenerateThumbnail(layoutId, data.gridX, data.gridY, insertedItems);
+  if (updated.liveGuarded) await prepareGuestModels(layoutId);
 
   return {
     ...formatLayout(
       { ...updated, thumbnailPath: thumbnailFilename ?? updated.thumbnailPath ?? null },
       await customerNameFor(updated.customerId),
     ),
-    placedItems: insertedItems.map(formatPlacedItem),
+    placedItems: insertedItems.map(row => formatPlacedItem(row, !!updated.liveGuarded)),
     refImagePlacements,
   };
 }
@@ -549,7 +571,7 @@ async function cloneLayoutInner(
 
   return {
     ...formatLayout({ ...newLayout, thumbnailPath: thumbnailFilename ?? null }, await customerNameFor(source.customerId)),
-    placedItems: insertedItems.map(formatPlacedItem),
+    placedItems: insertedItems.map(row => formatPlacedItem(row)),
     refImagePlacements,
   };
 }

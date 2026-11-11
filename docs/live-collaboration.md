@@ -26,8 +26,9 @@ mutations without an Origin need `X-Ordinus-Request: 1`.
   invitations for that drawer. Individual invitation revocation still uses
   `/layouts/:layoutId/guest-links/:linkId`.
 
-Creating an editable invitation snapshots up to 200 active entries from the
-chosen library. Public entries expose an opaque catalog key, name and footprint;
+Creating an editable invitation snapshots up to 1,000 active entries from 1–20
+chosen libraries (`libraryIds`; legacy single `libraryId` requests still work).
+Public entries expose an opaque catalog key, library name, name and footprint;
 private source metadata is retained server-side. Existing and added bins retain
 frozen source definitions for their image resolution. Advanced-only custom-bin
 settings survive supported edits. Reference image and bin preview fetches each
@@ -75,3 +76,28 @@ The supported deployment is one Node API process. Multiple API instances would
 need coordinated notifications and presence; SQLite durability alone does not
 provide that fan-out. Concordia is independently maintained and its harness
 adaptation is tracked in BIZ-374.
+
+## Host workspace synchronization
+
+The normal workspace subscribes to the layout's authorized owner event stream.
+`GET /layouts/:id/live/workspace` returns private layout detail and acknowledges
+owner presence. It remains inaccessible to guest sessions. A shared layout's
+ordinary detail includes stable bin UUIDs. Workspace refreshes preserve local
+selection, viewing state and BOM extras; changed custom specifications refresh
+their generated model cache under the existing stable item identity.
+
+Workspace edits save automatically after a short debounce using the current
+revision. Full owner saves preserve the numeric ID, UUID and frozen source of
+unchanged source models; new bins receive new identities. Duplicate identities
+and identities belonging to other layouts are rejected. Sources for new or
+changed models are frozen and their images prepared as an owner action.
+
+An in-flight save serializes later local edits. Incoming newer revisions never
+replace pending workspace edits silently. Conflicts keep the local draft and
+require the host to choose the latest shared drawer or explicitly keep their
+workspace version. Ambiguous saves are checked against the authoritative state,
+not blindly replayed. Reconnect checks the current version before saving offline
+drafts. Pending customization popovers keep their draft and require explicit
+review when their base revision changes. Unshared configurations retain ordinary
+manual-save behavior. The separate owner live page remains a compatible legacy
+route, rather than a requirement for participating.
