@@ -11,7 +11,7 @@ vi.mock('../src/db/connection.js', async () => {
   const client = createClient({ url: ':memory:' });
   const db = drizzle(client, { schema });
 
-  return { db, client };
+  return { db, client, authClient: client };
 });
 
 // Mock the logger with a real pino instance (silent) so pino-http works

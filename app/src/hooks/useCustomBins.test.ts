@@ -65,4 +65,15 @@ describe('useCustomBins', () => {
     rerender();
     expect(requestCustomGenerationApi).toHaveBeenCalledTimes(1);
   });
+  it('refreshes a live custom bin when its specification changes under the same stable item id', async () => {
+    const placed: PlacedItem = { instanceId: 'p', itemId: 'custom:custom-saved', x: 0, y: 0, width: 5, height: 3, rotation: 0, customSpec: spec };
+    const { result, rerender } = renderHook(({ item }) => useCustomBins(getItemById, [item]), { initialProps: { item: placed } });
+    await waitFor(() => expect(result.current.resolveItem(placed.itemId)).toBeDefined());
+    vi.mocked(requestCustomGenerationApi).mockResolvedValue({ hash: 'b'.repeat(64), status: 'complete' });
+    const changed = { ...placed, customSpec: { ...spec, height: 6 } };
+    rerender({ item: changed });
+    await waitFor(() => expect(result.current.resolveItem(placed.itemId)?.paramHash).toBe('b'.repeat(64)));
+    expect(result.current.resolveItem(placed.itemId)?.customSpec?.height).toBe(6);
+    expect(requestCustomGenerationApi).toHaveBeenCalledTimes(2);
+  });
 });

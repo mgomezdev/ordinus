@@ -40,7 +40,7 @@ router.get('/:libraryId/:filename', (req: Request, res: Response, next: NextFunc
       throw new AppError(ErrorCodes.NOT_FOUND, 'Image not found');
     }
 
-    res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+    res.setHeader('Cache-Control', 'no-store');
     res.sendFile(filePath);
   } catch (err) {
     next(err);

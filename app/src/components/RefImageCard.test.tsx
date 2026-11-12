@@ -27,7 +27,7 @@ describe('RefImageCard', () => {
     render(<RefImageCard image={mockImage} />);
 
     const img = screen.getByRole('img', { name: mockImage.name });
-    expect(img).toHaveAttribute('src', 'http://localhost:3001/api/v1/images/ref-lib/abc123.webp');
+    expect(img).toHaveAttribute('src', '/api/v1/images/ref-lib/abc123.webp');
   });
 
   it('renders image name', () => {

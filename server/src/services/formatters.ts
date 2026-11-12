@@ -26,6 +26,7 @@ export function formatLayout(
   customerName?: string,
 ): ApiLayout {
   return {
+    ...(row.liveGuarded ? { revision: row.revision } : {}),
     id: row.id,
     userId: row.userId ?? 0,
     customerId: row.customerId ?? null,
@@ -46,8 +47,9 @@ export function formatLayout(
   };
 }
 
-export function formatPlacedItem(row: typeof placedItems.$inferSelect): ApiPlacedItem {
+export function formatPlacedItem(row: typeof placedItems.$inferSelect, includeStable = false): ApiPlacedItem {
   return {
+    ...(includeStable && row.stableId ? { stableId: row.stableId } : {}),
     id: row.id,
     layoutId: row.layoutId,
     libraryId: row.libraryId,

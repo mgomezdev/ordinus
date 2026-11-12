@@ -19,6 +19,11 @@ import thumbnailsRoutes from './routes/thumbnails.routes.js';
 import customersRoutes from './routes/customers.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
 import curatedLibrariesRoutes from './routes/curatedLibraries.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import { checkMutationOrigin, requireAdmin } from './middleware/adminAuth.js';
+import guestPreviewRoutes from './routes/guestPreview.routes.js';
+import guestLinksRoutes from './routes/guestLinks.routes.js';
+import { ownerLiveRouter } from './routes/live.routes.js';
 
 export function createApp(): express.Express {
   const app = express();
@@ -48,12 +53,21 @@ export function createApp(): express.Express {
     }),
   );
 
-  // Image routes (before rate limiter — read-only static assets, no auth)
+  // Entry/recovery routes and the separately scoped guest router precede the
+  // owner boundary. Every ordinary API and asset route requires owner access.
+  app.use('/api/v1', healthRoutes);
+  app.use('/api/v1', checkMutationOrigin);
+  app.use('/api/v1/auth', authRoutes);
+  app.use('/api/v1/guest', guestPreviewRoutes);
+  app.use('/api/v1', requireAdmin);
+
+  // Private assets are never shared-cacheable.
   app.use('/api/v1/images', imagesRoutes);
   app.use('/api/v1/thumbnails', thumbnailsRoutes);
 
   // Routes
-  app.use('/api/v1', healthRoutes);
+  app.use('/api/v1/layouts/:layoutId/guest-links', guestLinksRoutes);
+  app.use('/api/v1/layouts/:layoutId/live', ownerLiveRouter());
   app.use('/api/v1/libraries', librariesRoutes);
   app.use('/api/v1/curated-libraries', curatedLibrariesRoutes);
   app.use('/api/v1/categories', categoriesRoutes);

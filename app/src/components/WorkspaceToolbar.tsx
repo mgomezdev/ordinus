@@ -15,11 +15,11 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
     layoutMeta,
     placedItems, refImagePlacements, gridResult, drawerWidth, drawerDepth,
     spacerConfig, handleSaveComplete,
-    handleClearAll, dialogDispatch,
+    handleClearAll, dialogDispatch, liveSync,
   } = useWorkspace();
 
   const updateLayoutMutation = useUpdateLayoutMutation();
-  const [toast, setToast] = useState<{ visible: boolean; isError: boolean }>({
+  const [toast, setToast] = useState<{ visible: boolean; isError: boolean; message?: string }>({
     visible: false,
     isError: false,
   });
@@ -32,23 +32,24 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
   const handleDirectSave = useCallback(async () => {
     if (!layoutMeta.id) return;
     try {
+      if (liveSync?.enabled) { await liveSync.flush(); return; }
       const payload = buildPayload(
         layoutMeta.name, layoutMeta.description,
         gridResult.gridX, gridResult.gridY,
         drawerWidth, drawerDepth, spacerConfig, placedItems, refImagePlacements,
       );
-      const result = await updateLayoutMutation.mutateAsync({ id: layoutMeta.id, data: payload });
-      handleSaveComplete(result.id, result.name);
+      const result = await updateLayoutMutation.mutateAsync({ id: layoutMeta.id, data: { ...payload, ...(layoutMeta.revision !== undefined ? { baseRevision: layoutMeta.revision } : {}) } });
+      handleSaveComplete(result.id, result.name, result.revision);
       setToast({ visible: true, isError: false });
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       toastTimerRef.current = setTimeout(
         () => setToast(t => ({ ...t, visible: false })), 1500,
       );
-    } catch {
-      setToast({ visible: true, isError: true });
+    } catch (err) {
+      setToast({ visible: true, isError: true, message: err instanceof Error ? err.message : undefined });
     }
   }, [layoutMeta, gridResult, drawerWidth, drawerDepth, spacerConfig, placedItems,
-    refImagePlacements, updateLayoutMutation, handleSaveComplete]);
+    refImagePlacements, updateLayoutMutation, handleSaveComplete, liveSync]);
 
   return (
     <div className="reference-image-toolbar">
@@ -91,7 +92,7 @@ export function WorkspaceToolbar({ onExportPdf, exportPdfError }: WorkspaceToolb
         <div className={`save-toast ${toast.isError ? 'save-toast-error' : 'save-toast-success'}`}>
           {toast.isError ? (
             <>
-              <span>Save failed. Try again.</span>
+              <span role="alert">Save failed. {toast.message ?? 'Try again.'}</span>
               <button
                 type="button"
                 className="save-toast-dismiss"

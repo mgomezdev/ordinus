@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WorkspacePage } from './pages/WorkspacePage';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
@@ -10,6 +11,10 @@ import { RebindImageDialog } from './components/RebindImageDialog';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import type { LibraryItem } from './types/gridfinity';
 import type { RefImagePlacement } from './hooks/useRefImagePlacements';
+
+vi.mock('./contexts/CustomerContext', () => ({
+  useCustomers: () => ({ selectedCustomer: null }),
+}));
 
 // --- Captured callback props from mocked components ---
 let capturedGridPreviewProps: Record<string, unknown> = {};
@@ -243,7 +248,9 @@ function TestAppShellInner({ children }: { children: React.ReactNode }) {
 
 // --- Helpers ---
 function renderApp() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
+    <QueryClientProvider client={queryClient}>
     <MemoryRouter>
       <WorkspaceProvider>
         <TestAppShellInner>
@@ -251,6 +258,7 @@ function renderApp() {
         </TestAppShellInner>
       </WorkspaceProvider>
     </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 
@@ -444,8 +452,8 @@ describe('App Integration Tests', () => {
     it('shows Save Changes and Save as New when layout is saved (draft)', () => {
       renderApp();
       act(() => {
-        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, status: string) => void;
-        onSaveComplete(10, 'My Layout', 'draft');
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, revision?: number) => void;
+        onSaveComplete(10, 'My Layout');
       });
       expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /save changes/i })).toBeDisabled();
@@ -459,8 +467,8 @@ describe('App Integration Tests', () => {
       mockUpdateMutateAsync.mockResolvedValue({ id: 10, name: 'My Layout', status: 'draft' });
       renderApp();
       act(() => {
-        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, status: string) => void;
-        onSaveComplete(10, 'My Layout', 'draft');
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, revision?: number) => void;
+        onSaveComplete(10, 'My Layout');
       });
       placeItemViaGridPreview();
       await act(async () => {
@@ -476,8 +484,8 @@ describe('App Integration Tests', () => {
       mockUpdateMutateAsync.mockRejectedValue(new Error('Network error'));
       renderApp();
       act(() => {
-        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, status: string) => void;
-        onSaveComplete(10, 'My Layout', 'draft');
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, revision?: number) => void;
+        onSaveComplete(10, 'My Layout');
       });
       placeItemViaGridPreview();
       await act(async () => {
@@ -490,8 +498,8 @@ describe('App Integration Tests', () => {
       mockUpdateMutateAsync.mockRejectedValue(new Error('Network error'));
       renderApp();
       act(() => {
-        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, status: string) => void;
-        onSaveComplete(10, 'My Layout', 'draft');
+        const onSaveComplete = capturedSaveLayoutDialogProps.onSaveComplete as (id: number, name: string, revision?: number) => void;
+        onSaveComplete(10, 'My Layout');
       });
       placeItemViaGridPreview();
       await act(async () => {

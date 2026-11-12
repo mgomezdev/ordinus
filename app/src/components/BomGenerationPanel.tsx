@@ -1,3 +1,4 @@
+import { authenticatedFetch } from '../api/apiClient';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ApiBomGeneration, BOMItem } from '@gridfinity/shared';
 import { triggerBomGeneration, getBomGeneration, getFileDownloadUrl, sendToThemis } from '../api/bomGeneration.api';
@@ -106,7 +107,7 @@ export function BomGenerationPanel({ layoutId, layoutTitle, bomItems }: BomGener
   const handleDownload = async () => {
     if (!downloadUrl) return;
     try {
-      const response = await fetch(downloadUrl);
+      const response = await authenticatedFetch(downloadUrl);
       if (!response.ok) {
         const data = await response.json().catch(() => ({})) as { error?: { message?: string } };
         setError(data?.error?.message ?? 'Download failed');

@@ -2212,6 +2212,32 @@ describe('PlacedItemOverlay', () => {
       );
     });
 
+    it('keeps stale live options for review instead of applying them on close or deselection', async () => {
+      const item = createMockItemWithLibrary({ customization: { ...DEFAULT_BIN_CUSTOMIZATION, wallPatternEnabled: true, wallPattern: 'grid' } });
+      const props = { item, gridX: 4, gridY: 4, isSelected: true, onSelect: mockOnSelect, getItemById: mockGetItemById, onCustomizationChange: mockOnCustomizationChange, getLibraryMeta: mockGetLibraryMeta };
+      const { rerender } = render(<PlacedItemOverlay {...props} layoutRevision={1} />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Customize', exact: true }));
+      fireEvent.change(screen.getByLabelText('Style'), { target: { value: 'hexgrid' } });
+      rerender(<PlacedItemOverlay {...props} isSelected={false} layoutRevision={2} />);
+      expect(screen.getByRole('alert')).toHaveTextContent('Your draft is kept');
+      fireEvent.click(screen.getByRole('button', { name: 'Close customization' }));
+      expect(mockOnCustomizationChange).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'Apply my options to latest drawer' }));
+      expect(mockOnCustomizationChange).toHaveBeenCalledWith(item.instanceId, expect.objectContaining({ wallPattern: 'hexgrid' }));
+    });
+
+    it('uses authorized workspace renders after readiness and refreshes them for a newer revision', () => {
+      const item = createMockItemWithLibrary();
+      const props = { item, gridX: 4, gridY: 4, isSelected: false, onSelect: mockOnSelect, getItemById: mockGetItemById };
+      const model = { id: 1, topUrl: '/api/v1/layouts/1/live/bins/1/top', perspectiveUrl: '/api/v1/layouts/1/live/bins/1/perspective', topRotation: 0, status: 'pending' as const };
+      const { rerender } = render(<PlacedItemOverlay {...props} layoutRevision={1} modelOverride={model} />);
+      expect(screen.getByRole('status', { name: 'Generating preview' })).toBeTruthy();
+      rerender(<PlacedItemOverlay {...props} layoutRevision={1} modelOverride={{ ...model, status: 'ready' }} />);
+      expect(screen.getByRole('img')).toHaveAttribute('src', `${model.topUrl}?v=1`);
+      rerender(<PlacedItemOverlay {...props} layoutRevision={2} imageViewMode="perspective" modelOverride={{ ...model, status: 'ready' }} />);
+      expect(screen.getByRole('img')).toHaveAttribute('src', `${model.perspectiveUrl}?v=2`);
+    });
+
     it('should render reset button in popover', async () => {
       const item = createMockItemWithLibrary();
       render(
