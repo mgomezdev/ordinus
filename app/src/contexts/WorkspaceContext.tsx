@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type {
   UnitSystem, ImperialFormat, GridSpacerConfig, LibraryItem,
   LibraryMeta, DragData, BinCustomization, Category,
@@ -7,7 +8,7 @@ import type {
   ComputedSpacer, BOMExtras,
 } from '../types/gridfinity';
 import type { SelectModifiers } from '../hooks/useGridItems';
-import type { BOMItem, CustomBinSpec, CuratedEntry, ApiLayoutDetail } from '@gridfinity/shared';
+import type { BOMItem, CustomBinSpec, CuratedEntry, ApiLayoutDetail, GuestBinModel } from '@gridfinity/shared';
 import { matchCuratedEntry } from '@gridfinity/shared';
 import type { RefImagePlacement, UseRefImagePlacementsReturn } from '../hooks/useRefImagePlacements';
 import type { LayoutMetaState } from '../reducers/layoutMetaReducer';
@@ -30,7 +31,7 @@ import { useLayoutLoader } from '../hooks/useLayoutLoader';
 import { useGenerationState } from '../hooks/useGenerationState';
 import type { GenerationEntry } from '../hooks/useGenerationState';
 import { requestGenerationApi } from '../api/generation.api';
-import { API_BASE_URL } from '../api/apiClient';
+import { API_BASE_URL, apiFetch } from '../api/apiClient';
 import { buildPayload } from '../utils/layoutHelpers';
 import { useWorkspaceLiveSync } from '../hooks/useWorkspaceLiveSync';
 import type { WorkspaceLiveSync } from '../hooks/useWorkspaceLiveSync';
@@ -49,6 +50,7 @@ interface ConfirmDialogProps {
 
 interface WorkspaceContextValue {
   liveSync?: WorkspaceLiveSync;
+  liveModels?: GuestBinModel[];
   // Dimensions
   width: number;
   setWidth: (w: number) => void;
@@ -406,8 +408,13 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     saved: (detail, unchanged) => { rawHandleSaveComplete(detail.id, detail.name, detail.revision); if (unchanged) setIsDirty(false); },
   });
 
+  const liveModels = useQuery({ queryKey: ['workspace-live-models', layoutMeta.id, layoutMeta.revision],
+    queryFn: () => apiFetch<{ bins: GuestBinModel[] }>(`/layouts/${layoutMeta.id}/live/models`), enabled: !!layoutMeta.id && liveSync.enabled,
+    retry: false, refetchInterval: query => query.state.data?.bins.some(bin => bin.status === 'pending') ? 2000 : false });
+
   const value: WorkspaceContextValue = {
     liveSync,
+    liveModels: liveModels.data?.bins,
     // Dimensions
     width,
     setWidth,

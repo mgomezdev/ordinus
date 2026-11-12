@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WorkspacePage } from './pages/WorkspacePage';
 import { WorkspaceProvider, useWorkspace } from './contexts/WorkspaceContext';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
@@ -247,7 +248,9 @@ function TestAppShellInner({ children }: { children: React.ReactNode }) {
 
 // --- Helpers ---
 function renderApp() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return render(
+    <QueryClientProvider client={queryClient}>
     <MemoryRouter>
       <WorkspaceProvider>
         <TestAppShellInner>
@@ -255,6 +258,7 @@ function renderApp() {
         </TestAppShellInner>
       </WorkspaceProvider>
     </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 

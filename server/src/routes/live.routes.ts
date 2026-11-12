@@ -88,7 +88,8 @@ export function ownerLiveRouter(): Router {
   router.get('/models', async (req, res, next) => {
     try {
       const base = `/api/v1/layouts/${id(req)}/live`;
-      res.json({ bins: (await guestModels(access(req))).map(model => ({ ...model, topUrl: model.topUrl ? `${base}/bins/${model.id}/top` : null, perspectiveUrl: model.perspectiveUrl ? `${base}/bins/${model.id}/perspective` : null })) });
+      const identities = (await client.execute({ sql: 'SELECT id, stable_id FROM placed_items WHERE layout_id=?', args: [id(req)] })).rows;
+      res.json({ bins: (await guestModels(access(req))).map(model => ({ ...model, stableId: String(identities.find(row => Number(row.id) === model.id)?.stable_id ?? ''), topUrl: model.topUrl ? `${base}/bins/${model.id}/top` : null, perspectiveUrl: model.perspectiveUrl ? `${base}/bins/${model.id}/perspective` : null })) });
     } catch (err) { next(err); }
   });
   router.get('/assets/:placementId', async (req, res, next) => {

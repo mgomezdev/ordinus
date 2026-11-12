@@ -2226,6 +2226,18 @@ describe('PlacedItemOverlay', () => {
       expect(mockOnCustomizationChange).toHaveBeenCalledWith(item.instanceId, expect.objectContaining({ wallPattern: 'hexgrid' }));
     });
 
+    it('uses authorized workspace renders after readiness and refreshes them for a newer revision', () => {
+      const item = createMockItemWithLibrary();
+      const props = { item, gridX: 4, gridY: 4, isSelected: false, onSelect: mockOnSelect, getItemById: mockGetItemById };
+      const model = { id: 1, topUrl: '/api/v1/layouts/1/live/bins/1/top', perspectiveUrl: '/api/v1/layouts/1/live/bins/1/perspective', topRotation: 0, status: 'pending' as const };
+      const { rerender } = render(<PlacedItemOverlay {...props} layoutRevision={1} modelOverride={model} />);
+      expect(screen.getByRole('status', { name: 'Generating preview' })).toBeTruthy();
+      rerender(<PlacedItemOverlay {...props} layoutRevision={1} modelOverride={{ ...model, status: 'ready' }} />);
+      expect(screen.getByRole('img')).toHaveAttribute('src', `${model.topUrl}?v=1`);
+      rerender(<PlacedItemOverlay {...props} layoutRevision={2} imageViewMode="perspective" modelOverride={{ ...model, status: 'ready' }} />);
+      expect(screen.getByRole('img')).toHaveAttribute('src', `${model.perspectiveUrl}?v=2`);
+    });
+
     it('should render reset button in popover', async () => {
       const item = createMockItemWithLibrary();
       render(

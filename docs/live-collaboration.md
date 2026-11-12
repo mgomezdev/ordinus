@@ -101,3 +101,10 @@ drafts. Pending customization popovers keep their draft and require explicit
 review when their base revision changes. Unshared configurations retain ordinary
 manual-save behavior. The separate owner live page remains a compatible legacy
 route, rather than a requirement for participating.
+
+Shared workspaces resolve bin images through the authenticated, placement-scoped
+model-readiness endpoint rather than assuming the global generated files already
+exist. Owner model metadata includes the stable placement UUID for matching.
+Pending models poll until their images are ready. Both shared views version image
+requests by layout revision, so a later customization or rotation refreshes the
+bitmap even when its placement URL stays the same.

@@ -12,10 +12,12 @@ import { BinPlacementToolbar } from './BinPlacementToolbar';
 import { useFavorites } from '../hooks/useFavorites';
 import { generatedImageUrl } from '../api/generation.api';
 import { GRID_RESOLUTION, halfCellsToUnits } from '@gridfinity/shared';
+import type { GuestBinModel } from '@gridfinity/shared';
 import { footprintSnapStep } from '../utils/snap';
 
 interface PlacedItemOverlayProps {
   layoutRevision?: number;
+  modelOverride?: GuestBinModel;
   item: PlacedItemWithValidity;
   gridX: number;
   gridY: number;
@@ -53,7 +55,7 @@ function getCustomizationBadges(customization: BinCustomization | undefined): st
   return badges;
 }
 
-export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, gridY, isSelected, onSelect, getItemById, onDelete, onRotateCw, onRotateCcw, onCustomizationChange, onCustomizationReset, onDuplicate, imageViewMode = 'ortho', getLibraryMeta, generationEntry, onCustomizationChangeWithGeneration, onGenerationReset, layoutRevision }: PlacedItemOverlayProps) {
+export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, gridY, isSelected, onSelect, getItemById, onDelete, onRotateCw, onRotateCcw, onCustomizationChange, onCustomizationReset, onDuplicate, imageViewMode = 'ortho', getLibraryMeta, generationEntry, onCustomizationChangeWithGeneration, onGenerationReset, layoutRevision, modelOverride }: PlacedItemOverlayProps) {
   const [showPopover, setShowPopover] = useState(false);
   interface PopoverPos { top: number; left: number; direction: 'above' | 'below' }
   const [popoverPos, setPopoverPos] = useState<PopoverPos | null>(null);
@@ -122,7 +124,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const perspectiveUrl = libraryItem?.perspectiveImageUrl;
   const orthoUrl = libraryItem?.imageUrl;
   const hasGeneratedImages = !!(item.paramHash ?? libraryItem?.paramHash) || generationEntry?.status === 'complete';
-  const usingPerspective = imageViewMode === 'perspective' && (!!perspectiveUrl || hasGeneratedImages);
+  const usingPerspective = imageViewMode === 'perspective' && (!!modelOverride?.perspectiveUrl || !!perspectiveUrl || hasGeneratedImages);
 
   // Use explicit rotation-specific URLs when available, fall back to derived
   const getPerspectiveUrlForRotation = (rotation: typeof item.rotation): string | undefined => {
@@ -140,10 +142,14 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
     return imageViewMode === 'perspective' ? (perspectiveUrl || orthoUrl) : orthoUrl;
   })();
 
-  const isGenerating = generationEntry?.status === 'pending';
-  const generationFailed = generationEntry?.status === 'failed';
+  const isGenerating = modelOverride ? modelOverride.status === 'pending' : generationEntry?.status === 'pending';
+  const generationFailed = !modelOverride && generationEntry?.status === 'failed';
 
   const effectiveImageSrc = (() => {
+    if (modelOverride) {
+      const url = imageViewMode === 'perspective' ? modelOverride.perspectiveUrl : modelOverride.topUrl;
+      return url ? `${url}?v=${layoutRevision ?? 0}` : undefined;
+    }
     const hash = generationEntry?.status === 'complete'
       ? generationEntry.hash
       : item.paramHash ?? libraryItem?.paramHash ?? null;
@@ -161,19 +167,20 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
 
   // Calculate image dimensions for rotation
   // When rotated 90° or 270°, we need to swap dimensions to fill the container
-  const isSideways = item.rotation === 90 || item.rotation === 270;
+  const imageRotation = modelOverride?.topRotation ?? item.rotation;
+  const isSideways = imageRotation === 90 || imageRotation === 270;
   const aspectRatio = item.width / item.height;
 
   const getImageStyle = (): React.CSSProperties | undefined => {
     // Perspective images are pre-rendered at the correct angle — no CSS rotation needed
     if (usingPerspective) return undefined;
-    if (!item.rotation) return undefined;
+    if (!imageRotation) return undefined;
 
     if (isSideways) {
       // When sideways, the image box needs to be inversely proportioned
       // so that after rotation it fills the swapped container
       return {
-        transform: `translate(-50%, -50%) rotate(${item.rotation}deg)`,
+        transform: `translate(-50%, -50%) rotate(${imageRotation}deg)`,
         transformOrigin: 'center center',
         position: 'absolute',
         top: '50%',
@@ -183,7 +190,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
       };
     }
 
-    return { transform: `rotate(${item.rotation}deg)` };
+    return { transform: `rotate(${imageRotation}deg)` };
   };
 
   const { onPointerDown } = usePointerDragSource({

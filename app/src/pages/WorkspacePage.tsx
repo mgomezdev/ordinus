@@ -466,6 +466,7 @@ export function WorkspacePage() {
             gridX={gridResult.gridX}
             gridY={gridResult.gridY}
             placedItems={placedItems}
+            scopedModels={ws.liveModels}
             selectedItemIds={selectedItemIds}
             spacers={spacers}
             imageViewMode={imageViewMode}

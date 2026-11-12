@@ -49,8 +49,9 @@ export function GuestDrawer({ layout, models, selectedId, onSelect, sidebar }: G
   </div>;
 }
 
-export function GuestBinImage({ bin, model, view }: { bin: GuestPreview['bins'][number]; model: GuestBinModel | undefined; view: 'top' | 'perspective' }) {
-  const url = view === 'top' ? model?.topUrl : model?.perspectiveUrl;
+export function GuestBinImage({ bin, model, view, version }: { bin: GuestPreview['bins'][number]; model: GuestBinModel | undefined; view: 'top' | 'perspective'; version?: number | string }) {
+  const rawUrl = view === 'top' ? model?.topUrl : model?.perspectiveUrl;
+  const url = rawUrl && version !== undefined ? `${rawUrl}?v=${encodeURIComponent(String(version))}` : rawUrl;
   return url ? <GuestModelImage key={url} url={url} bin={bin} rotation={view === 'top' ? model?.topRotation ?? 0 : 0} view={view} />
     : <span className="guest-model-fallback">{model?.status === 'pending' ? 'Preparing preview' : `${view === 'top' ? 'Top' : '3D'} preview unavailable`}</span>;
 }

@@ -24,6 +24,8 @@ export interface GuestPreviewResponse { layout: GuestPreview; expiresAt: string;
 
 /** Image URLs authorize one placed bin; no global model IDs or paths escape. */
 export interface GuestBinModel {
+  /** Present on authenticated workspace model responses. */
+  stableId?: string;
   id: number;
   topUrl: string | null;
   perspectiveUrl: string | null;
