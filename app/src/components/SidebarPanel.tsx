@@ -44,9 +44,9 @@ export function SidebarPanel({
           {dimensionsContent}
         </div>
 
-        <div className="sidebar-settings-group">
+        {spacerContent && <div className="sidebar-settings-group">
           {spacerContent}
-        </div>
+        </div>}
       </div>
     </section>
   );

@@ -3,19 +3,28 @@ import path from 'path';
 import { createApp } from './app.js';
 import { config } from './config.js';
 import { logger } from './logger.js';
-import { client } from './db/connection.js';
+import { client, authClient, liveClient } from './db/connection.js';
 import { runMigrations } from './db/migrate.js';
 import { reseedLibraryData } from './db/reseedLibraries.js';
 import { getPendingAndProcessingIds, getUploadById, resetToPending } from './services/userStls.service.js';
 import { processUpload, getImageOutputDir } from './services/stlProcessing.service.js';
 import { startCleanup } from './services/generationCleanup.service.js';
 import { startWarpCleanup } from './services/refImageWarp.service.js';
+import { provisionAdmin } from './services/auth.service.js';
 
 async function main(): Promise<void> {
   // Run migrations
   logger.info('Running database migrations...');
   await runMigrations(client);
   logger.info('Migrations complete');
+  // Private, deployment-controlled provisioning shared by real installs and E2E.
+  // An existing account is never overwritten on restart.
+  const admin = await client.execute('SELECT id FROM admin_account WHERE id = 1');
+  if (!admin.rows.length && config.ADMIN_SETUP_PASSWORD_FILE) {
+    const password = (await fs.readFile(config.ADMIN_SETUP_PASSWORD_FILE, 'utf8')).replace(/\r?\n$/, '');
+    await provisionAdmin(password);
+  }
+  if (!admin.rows.length && !config.ADMIN_SETUP_PASSWORD_FILE) logger.warn('Admin is not provisioned. Run the private admin setup command before signing in.');
 
   // Create data directories
   await fs.mkdir(config.USER_STL_DIR, { recursive: true });
@@ -54,6 +63,8 @@ async function main(): Promise<void> {
     server.close(() => {
       logger.info('HTTP server closed');
       client.close();
+      if (authClient !== client) authClient.close();
+      if (liveClient !== client && liveClient !== authClient) liveClient.close();
       logger.info('Database connection closed');
       process.exit(0);
     });

@@ -1,3 +1,4 @@
+import { authenticatedFetch } from '../apiClient';
 import type { LibraryItem, LibraryMeta } from '../../types/gridfinity';
 import { mergeGeneratorParams } from '../../utils/generatorParams';
 import type { DataSourceAdapter, LibraryInfo } from './types';
@@ -10,7 +11,7 @@ export class ApiAdapter implements DataSourceAdapter {
   }
 
   async getLibraries(): Promise<LibraryInfo[]> {
-    const response = await fetch(`${this.baseUrl}/libraries`);
+    const response = await authenticatedFetch(`${this.baseUrl}/libraries`);
     if (!response.ok) throw new Error('Failed to fetch libraries');
     const json = await response.json();
     return json.data.map((lib: Record<string, unknown>) => ({
@@ -22,7 +23,7 @@ export class ApiAdapter implements DataSourceAdapter {
   }
 
   async getLibraryItems(libraryId: string): Promise<LibraryItem[]> {
-    const response = await fetch(`${this.baseUrl}/libraries/${libraryId}/items`);
+    const response = await authenticatedFetch(`${this.baseUrl}/libraries/${libraryId}/items`);
     if (!response.ok) throw new Error(`Failed to fetch items for ${libraryId}`);
     const json = await response.json();
 
@@ -37,6 +38,7 @@ export class ApiAdapter implements DataSourceAdapter {
       heightUnits: item.heightUnits as number,
       color: item.color as string,
       categories: item.categories as string[],
+      isActive: item.isActive as boolean | undefined,
       stlFile: (item.stlFile as string | null | undefined) ?? undefined,
       imageUrl: item.imagePath as string | undefined,
       perspectiveImageUrl: item.perspectiveImagePath as string | undefined,
@@ -50,12 +52,12 @@ export class ApiAdapter implements DataSourceAdapter {
 
   async getLibraryMeta(libraryId: string): Promise<LibraryMeta> {
     try {
-      const manifestResponse = await fetch('/libraries/manifest.json');
+      const manifestResponse = await authenticatedFetch('/libraries/manifest.json');
       if (!manifestResponse.ok) return { customizableFields: [], parameters: {} };
       const manifest = await manifestResponse.json();
       const lib = manifest.libraries?.find((l: { id: string }) => l.id === libraryId);
       if (!lib) return { customizableFields: [], parameters: {} };
-      const indexResponse = await fetch(lib.path);
+      const indexResponse = await authenticatedFetch(lib.path);
       if (!indexResponse.ok) return { customizableFields: [], parameters: {} };
       const data = await indexResponse.json();
       return {

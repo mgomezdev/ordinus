@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ApiLayout } from '@gridfinity/shared';
 import { API_BASE_URL } from '../../api/apiClient';
+import { GuestLinkPanel } from './GuestLinkPanel';
 
 const CELL = 8;
 const PAD = 3;
@@ -70,6 +71,7 @@ export function SavedConfigCard({
   isDeleting,
 }: SavedConfigCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   return (
     <div className="saved-config-card">
@@ -85,6 +87,7 @@ export function SavedConfigCard({
       </div>
 
       <div className="saved-config-actions">
+        <button className="saved-config-btn" type="button" aria-expanded={sharing} onClick={() => setSharing(!sharing)}>{sharing ? 'Hide preview access' : 'Share preview'}</button>
         <button
           className="saved-config-btn"
           onClick={() => onEdit(layout.id)}
@@ -123,6 +126,7 @@ export function SavedConfigCard({
           </button>
         )}
       </div>
+      {sharing && <GuestLinkPanel layoutId={layout.id} name={layout.name} />}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { authenticatedFetch } from './apiClient';
 export interface ServiceSettings {
   themis_url: string;
   themis_api_key: string;
@@ -12,13 +13,13 @@ export interface ServicesHealth {
 }
 
 export async function getSettings(): Promise<ServiceSettings> {
-  const res = await fetch('/api/v1/settings');
+  const res = await authenticatedFetch('/api/v1/settings');
   if (!res.ok) throw new Error('Failed to load settings');
   return res.json() as Promise<ServiceSettings>;
 }
 
 export async function patchSettings(patch: Partial<ServiceSettings>): Promise<void> {
-  const res = await fetch('/api/v1/settings', {
+  const res = await authenticatedFetch('/api/v1/settings', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch),
@@ -27,7 +28,7 @@ export async function patchSettings(patch: Partial<ServiceSettings>): Promise<vo
 }
 
 export async function getServicesHealth(): Promise<ServicesHealth> {
-  const res = await fetch('/api/v1/settings/health');
+  const res = await authenticatedFetch('/api/v1/settings/health');
   if (!res.ok) throw new Error('Failed to check health');
   return res.json() as Promise<ServicesHealth>;
 }

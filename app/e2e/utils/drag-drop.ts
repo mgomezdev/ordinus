@@ -63,6 +63,10 @@ export async function dragToGridCell(
   gridWidth: number,
   gridHeight: number
 ): Promise<void> {
+  // The canvas can have scrolled after selecting a lower cell. Bring the actual
+  // destination cell into view before deriving pointer coordinates.
+  const destination = gridContainer.locator('.grid-cell').nth(cellY * gridWidth + cellX);
+  await destination.evaluate(el => el.scrollIntoView({ block: 'center', inline: 'center' }));
   const gridBox = await gridContainer.boundingBox();
 
   if (!gridBox) {

@@ -12,7 +12,7 @@ export function useGenerationEvents(
   onOpen?: () => void,
 ): void {
   useEffect(() => {
-    const es = new EventSource(`${apiBase}/generation/events`);
+    const es = new EventSource(`${apiBase}/generation/events`, { withCredentials: true });
     es.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data as string) as GenerationEvent;

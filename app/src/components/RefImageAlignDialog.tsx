@@ -5,7 +5,7 @@ import { warpRefImage } from '../api/refImages.api';
 import { CornerEditorDialog } from './CornerEditorDialog';
 import { gridAreaAspectRatio } from '../utils/gridAreaAspectRatio';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3001/api/v1';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api/v1';
 
 /** Corner editor bound to the workspace's currently targeted reference image. */
 export function RefImageAlignDialog() {

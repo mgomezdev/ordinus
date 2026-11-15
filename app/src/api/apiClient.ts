@@ -1,5 +1,11 @@
 export const API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3001/api/v1';
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api/v1';
+
+export async function authenticatedFetch(input: RequestInfo | URL, options: RequestInit = {}): Promise<Response> {
+  const response = await fetch(input, { ...options, credentials: 'include' });
+  if (response.status === 401 && !String(input).includes('/auth/')) window.dispatchEvent(new Event('ordinus:auth-required'));
+  return response;
+}
 
 export class ApiError extends Error {
   readonly status: number;
@@ -14,7 +20,7 @@ export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
       ...(options.headers as Record<string, string>),

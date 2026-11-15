@@ -4,6 +4,7 @@ import { config } from './config.js';
 function createLogger(): pino.Logger {
   if (config.NODE_ENV === 'development') {
     return pino({
+      redact: ['req.headers.cookie', 'req.headers.authorization', 'res.headers["set-cookie"]'],
       level: config.LOG_LEVEL,
       transport: {
         target: 'pino-pretty',
@@ -17,6 +18,7 @@ function createLogger(): pino.Logger {
   }
 
   return pino({
+    redact: ['req.headers.cookie', 'req.headers.authorization', 'res.headers["set-cookie"]'],
     level: config.LOG_LEVEL,
   });
 }

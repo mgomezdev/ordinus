@@ -151,8 +151,8 @@ describe('RebindImageDialog', () => {
     const img1 = screen.getByRole('img', { name: 'image-1.png' });
     const img2 = screen.getByRole('img', { name: 'image-2.png' });
 
-    expect(img1).toHaveAttribute('src', 'http://localhost:3001/api/v1/images/ref-lib/img1.webp');
-    expect(img2).toHaveAttribute('src', 'http://localhost:3001/api/v1/images/ref-lib/img2.webp');
+    expect(img1).toHaveAttribute('src', '/api/v1/images/ref-lib/img1.webp');
+    expect(img2).toHaveAttribute('src', '/api/v1/images/ref-lib/img2.webp');
     expect(screen.getByText('image-1.png')).toBeInTheDocument();
     expect(screen.getByText('image-2.png')).toBeInTheDocument();
   });

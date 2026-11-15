@@ -148,6 +148,9 @@ export function usePointerDragSource(
 
     const startX = e.clientX;
     const startY = e.clientY;
+    // Freeze geometry / revision metadata at pointer-down, even if a remote
+    // update arrives before this pointer crosses the drag threshold.
+    const dragData = optionsRef.current.dragData;
     const sourceElement = e.currentTarget as HTMLElement;
     let isDragging = false;
     // Set when a second pointer crosses the drag threshold while dragStore's
@@ -175,7 +178,7 @@ export function usePointerDragSource(
 
         const rect = sourceElement.getBoundingClientRect();
         dragStore.activeDrag = {
-          data: optionsRef.current.dragData,
+          data: dragData,
           ghostElement: createGhostElement(sourceElement),
           sourceElement,
           offsetX: startX - rect.left,

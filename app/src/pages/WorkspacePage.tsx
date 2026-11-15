@@ -16,12 +16,16 @@ import { WorkspaceToolbar } from '../components/WorkspaceToolbar';
 import { LibraryPanel } from '../components/LibraryPanel';
 import { exportToPdf } from '../utils/exportPdf';
 import { useMobileLayout } from '../hooks/useMobileLayout';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useUpdateLayoutMutation } from '../hooks/useLayouts';
 import { buildPayload } from '../utils/layoutHelpers';
 import { MobileActionBar } from '../components/MobileActionBar';
+import { SimpleLibraryPanel } from '../components/simple/SimpleLibraryPanel';
+import type { DrawnFootprint } from '../components/simple/DrawFootprint';
+import { WorkspaceShare } from '../components/layouts/WorkspaceShare';
+import { WorkspaceLiveStatus } from '../components/WorkspaceLiveStatus';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3001/api/v1';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api/v1';
 
 function imageUrlFor(path: string | null | undefined): string | null {
   return path ? `${API_BASE_URL}/images/${path}` : null;
@@ -34,6 +38,15 @@ const GRIDFINITY_UNIT_MM = 42;
 
 export function WorkspacePage() {
   const ws = useWorkspace();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedLayout = searchParams.get('layout');
+  const { loadLayout } = ws;
+  useEffect(() => {
+    if (!requestedLayout || !/^\d+$/.test(requestedLayout)) return;
+    let active = true;
+    void loadLayout(Number(requestedLayout)).then(() => { if (active) setSearchParams({}, { replace: true }); }).catch(() => {});
+    return () => { active = false; };
+  }, [requestedLayout, loadLayout, setSearchParams]);
 
   const {
     width, setWidth, depth, setDepth, unitSystem, imperialFormat, setImperialFormat,
@@ -62,6 +75,15 @@ export function WorkspacePage() {
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [libraryWidth, setLibraryWidth] = useState(LIBRARY_DEFAULT_WIDTH);
   const libraryDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const [simpleMode, setSimpleMode] = useState(() => localStorage.getItem('ordinus-workspace-mode') === 'simple');
+  const [drawing, setDrawing] = useState(false);
+  const [footprint, setFootprint] = useState<DrawnFootprint | null>(null);
+  const [placingBin, setPlacingBin] = useState(false);
+  const cancelDrawing = () => { if (!placingBin) { setDrawing(false); setFootprint(null); } };
+  const footprintValid = footprint !== null && footprint.width > 0 && footprint.depth > 0
+    && [footprint.x, footprint.y, footprint.width, footprint.depth].every(Number.isInteger)
+    && !isOutOfBounds(footprint.x, footprint.y, footprint.width, footprint.depth, gridResult.gridX * GRID_RESOLUTION, gridResult.gridY * GRID_RESOLUTION)
+    && !hasCollision(placedItems, footprint.x, footprint.y, footprint.width, footprint.depth);
 
   const [imageViewMode, setImageViewMode] = useState<ImageViewMode>(
     () => (localStorage.getItem('gridfinity-image-view-mode') as ImageViewMode) || 'ortho'
@@ -195,14 +217,15 @@ export function WorkspacePage() {
       drawerWidth, drawerDepth, spacerConfig, placedItems, refImagePlacements,
     );
     try {
-      const result = await updateLayoutMutation.mutateAsync({ id: layoutMeta.id, data: payload });
+      if (ws.liveSync?.enabled) { await ws.liveSync.flush(); setMobileSaveError(false); return; }
+      const result = await updateLayoutMutation.mutateAsync({ id: layoutMeta.id, data: { ...payload, ...(layoutMeta.revision !== undefined ? { baseRevision: layoutMeta.revision } : {}) } });
       setMobileSaveError(false);
-      handleSaveComplete(result.id, result.name);
+      handleSaveComplete(result.id, result.name, result.revision);
     } catch {
       setMobileSaveError(true);
     }
   }, [layoutMeta, gridResult, drawerWidth, drawerDepth, spacerConfig, placedItems,
-    refImagePlacements, updateLayoutMutation, handleSaveComplete, dialogDispatch]);
+    refImagePlacements, updateLayoutMutation, handleSaveComplete, dialogDispatch, ws.liveSync]);
 
   const handleMobileSaveAsNew = useCallback(() => {
     dialogDispatch({ type: 'OPEN', dialog: 'save' });
@@ -288,7 +311,7 @@ export function WorkspacePage() {
     if ((event.key === 'v' || event.key === 'V') && !event.ctrlKey && !event.metaKey) {
       event.preventDefault(); toggleImageViewMode(); return;
     }
-    if (event.key === 'Escape') { deselectAll(); setSelectedImageId(null); return; }
+    if (event.key === 'Escape') { cancelDrawing(); deselectAll(); setSelectedImageId(null); return; }
     if ((event.key === 'a' || event.key === 'A') && (event.ctrlKey || event.metaKey)) {
       event.preventDefault(); selectAll(); return;
     }
@@ -379,7 +402,7 @@ export function WorkspacePage() {
 
       <SidebarPanel
         dimensionsContent={dimensionsContent}
-        spacerContent={spacerContent}
+        spacerContent={simpleMode ? null : spacerContent}
         onClearCanvas={handleClearAll}
         onReset={handleReset}
         isReadOnly={false}
@@ -401,12 +424,22 @@ export function WorkspacePage() {
               <span className="unsaved-label">unsaved changes</span>
             </>
           )}
+          <div className="workspace-mode" role="group" aria-label="Placement mode">
+            {(['simple', 'advanced'] as const).map(mode => <button key={mode} type="button" disabled={placingBin} aria-pressed={simpleMode === (mode === 'simple')} onClick={() => {
+              setSimpleMode(mode === 'simple'); cancelDrawing();
+              localStorage.setItem('ordinus-workspace-mode', mode);
+              if (mode === 'simple') requestAnimationFrame(handleFitToScreen);
+            }}>{mode === 'simple' ? 'Simple' : 'Advanced'}</button>)}
+          </div>
         </nav>
+        <WorkspaceShare />
+        <WorkspaceLiveStatus />
         <div className="preview-toolbar preview-toolbar--desktop-only">
           <WorkspaceToolbar onExportPdf={handleExportPdf} exportPdfError={exportPdfError} />
           <ImageViewToggle mode={imageViewMode} onToggle={toggleImageViewMode} />
         </div>
         <GridViewport
+          drawing={drawing}
           viewportRef={viewportRef}
           transform={transform}
           handleWheel={handleWheel}
@@ -425,9 +458,15 @@ export function WorkspacePage() {
           }}
         >
           <GridPreview
+            drawFootprint={simpleMode ? {
+              drawing, selection: footprint, valid: footprintValid,
+              onChange: setFootprint, onFinish: () => { setDrawing(false); if (isMobile) toggleLibrary(); }, onCancel: cancelDrawing,
+              isPanning: () => isSpaceHeldRef.current,
+            } : undefined}
             gridX={gridResult.gridX}
             gridY={gridResult.gridY}
             placedItems={placedItems}
+            scopedModels={ws.liveModels}
             selectedItemIds={selectedItemIds}
             spacers={spacers}
             imageViewMode={imageViewMode}
@@ -504,7 +543,12 @@ export function WorkspacePage() {
         aria-label="Resize library panel"
       />
 
-      <LibraryPanel width={libraryWidth} isMobile={isMobile} isOpen={isMobile && libraryOpen} />
+      {simpleMode ? <SimpleLibraryPanel width={Math.max(libraryWidth, 300)} isMobile={isMobile} isOpen={isMobile && libraryOpen}
+        selection={footprint} valid={footprintValid} drawing={drawing} busy={placingBin} onBusy={setPlacingBin}
+        onCancel={cancelDrawing} onDraw={() => { setFootprint(null); setDrawing(true); deselectAll(); closeLibrary(); }}
+        onSelection={value => { setFootprint(value); setDrawing(false); }}
+        onPlaced={() => { setFootprint(null); setDrawing(false); }}
+      /> : <LibraryPanel width={libraryWidth} isMobile={isMobile} isOpen={isMobile && libraryOpen} />}
 
       <div className="mobile-panel-strip mobile-panel-strip--right">
         <button

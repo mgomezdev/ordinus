@@ -1,4 +1,5 @@
 export interface LayoutMetaState {
+  revision?: number;
   id: number | null;
   name: string;
   description: string;
@@ -6,9 +7,9 @@ export interface LayoutMetaState {
 }
 
 export type LayoutMetaAction =
-  | { type: 'LOAD_LAYOUT'; payload: { id: number; name: string; description: string; owner: string } }
+  | { type: 'LOAD_LAYOUT'; payload: { id: number; name: string; description: string; owner: string; revision?: number } }
   | { type: 'CLEAR_LAYOUT' }
-  | { type: 'SAVE_COMPLETE'; payload: { id: number; name: string } };
+  | { type: 'SAVE_COMPLETE'; payload: { id: number; name: string; revision?: number } };
 
 export const initialLayoutMetaState: LayoutMetaState = {
   id: null,
@@ -24,7 +25,8 @@ export function layoutMetaReducer(state: LayoutMetaState, action: LayoutMetaActi
     case 'CLEAR_LAYOUT':
       return { ...initialLayoutMetaState };
     case 'SAVE_COMPLETE':
-      return { ...state, id: action.payload.id, name: action.payload.name };
+      return { id: action.payload.id, name: action.payload.name, description: state.description, owner: state.owner,
+        ...(action.payload.revision !== undefined ? { revision: action.payload.revision } : {}) };
     default:
       return state;
   }

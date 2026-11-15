@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest';
-import request from 'supertest';
+import request, { authenticateTestAdmin } from './adminRequest.js';
 import pino from 'pino';
 
 vi.mock('../src/db/connection.js', async () => {
@@ -8,7 +8,7 @@ vi.mock('../src/db/connection.js', async () => {
   const schema = await import('../src/db/schema.js');
   const client = createClient({ url: ':memory:' });
   const db = drizzle(client, { schema });
-  return { db, client };
+  return { db, client, authClient: client };
 });
 
 vi.mock('../src/logger.js', () => ({
@@ -46,6 +46,7 @@ async function createLayout(overrides: Record<string, unknown> = {}): Promise<nu
 beforeAll(async () => {
   await runMigrations(testClient);
   app = createApp();
+    await authenticateTestAdmin(app);
 });
 
 describe('layouts API', () => {

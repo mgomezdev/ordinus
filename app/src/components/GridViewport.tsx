@@ -22,6 +22,7 @@ interface GridViewportProps {
   handleTouchMove: (e: TouchEvent) => void;
   handleTouchEnd: () => void;
   zoomOverlayProps?: ZoomOverlayProps;
+  drawing?: boolean;
 }
 
 export function GridViewport({
@@ -35,6 +36,7 @@ export function GridViewport({
   handleTouchMove,
   handleTouchEnd,
   zoomOverlayProps,
+  drawing = false,
 }: GridViewportProps) {
   const internalRef = useRef<HTMLDivElement>(null);
   const ref = externalRef ?? internalRef;
@@ -93,17 +95,19 @@ export function GridViewport({
     const viewport = ref.current;
     if (!viewport) return;
     // passive: false required — handlers call preventDefault() to suppress browser scroll/zoom
-    viewport.addEventListener('touchstart', handleTouchStart, { passive: false });
-    viewport.addEventListener('touchmove', handleTouchMove, { passive: false });
+    const touchStart = (e: TouchEvent) => { if (!drawing || e.touches.length > 1) handleTouchStart(e); };
+    const touchMove = (e: TouchEvent) => { if (!drawing || e.touches.length > 1) handleTouchMove(e); };
+    viewport.addEventListener('touchstart', touchStart, { passive: false });
+    viewport.addEventListener('touchmove', touchMove, { passive: false });
     viewport.addEventListener('touchend', handleTouchEnd);
     viewport.addEventListener('touchcancel', handleTouchEnd);
     return () => {
-      viewport.removeEventListener('touchstart', handleTouchStart);
-      viewport.removeEventListener('touchmove', handleTouchMove);
+      viewport.removeEventListener('touchstart', touchStart);
+      viewport.removeEventListener('touchmove', touchMove);
       viewport.removeEventListener('touchend', handleTouchEnd);
       viewport.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [handleTouchStart, handleTouchMove, handleTouchEnd, ref]);
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd, ref, drawing]);
 
   return (
     <div

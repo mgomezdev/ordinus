@@ -5,8 +5,8 @@ import type { LayoutMetaState } from '../reducers/layoutMetaReducer';
 export function useLayoutMeta() {
   const [layoutMeta, layoutDispatch] = useReducer(layoutMetaReducer, initialLayoutMetaState);
 
-  const handleSaveComplete = useCallback((layoutId: number, name: string) => {
-    layoutDispatch({ type: 'SAVE_COMPLETE', payload: { id: layoutId, name } });
+  const handleSaveComplete = useCallback((layoutId: number, name: string, revision?: number) => {
+    layoutDispatch({ type: 'SAVE_COMPLETE', payload: { id: layoutId, name, ...(revision !== undefined ? { revision } : {}) } });
   }, []);
 
   const handleClearLayout = useCallback(() => {

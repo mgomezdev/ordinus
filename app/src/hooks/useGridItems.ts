@@ -96,7 +96,7 @@ function generateInstanceId(): string {
   return `item-${++instanceCounter}-${Date.now()}`;
 }
 
-function findValidPosition(
+export function findValidPosition(
   items: PlacedItem[],
   width: number,
   height: number,
@@ -230,6 +230,27 @@ export function useGridItems(
     updateItems([...itemsRef.current, newItem]);
     updateSelected(new Set([newItem.instanceId]));
   }, [getItemById, updateItems, updateSelected]);
+
+  /** Commit an exact drawn footprint, checking current occupancy after any async generation. */
+  const placeLibraryItemAt = useCallback((item: LibraryItem, x: number, y: number, rotation: Rotation): string | null => {
+    const rotated = rotation === 90 || rotation === 270;
+    const width = (rotated ? item.heightUnits : item.widthUnits) * GRID_RESOLUTION;
+    const height = (rotated ? item.widthUnits : item.heightUnits) * GRID_RESOLUTION;
+    const geometry = { x, y, width, height, customSpec: item.customSpec, parameters: item.parameters };
+    if (![x, y, width, height].every(Number.isInteger) || width <= 0 || height <= 0
+      || isOutOfBounds(x, y, width, height, cellsX, cellsY) || violatesHalfGrid(geometry)
+      || hasCollision(itemsRef.current, x, y, width, height)) return null;
+    const fields = ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'].map(field => ({ field })) as CustomizableFieldDef[];
+    const defaults = item.parameters ? generatorParamsToBinCustomization(item.parameters, fields) : {};
+    const placed: PlacedItem = {
+      instanceId: generateInstanceId(), itemId: item.id, ...geometry, rotation,
+      customization: Object.keys(defaults).length ? { ...DEFAULT_BIN_CUSTOMIZATION, ...defaults } : undefined,
+      paramHash: item.paramHash,
+    };
+    updateItems([...itemsRef.current, placed]);
+    updateSelected(new Set([placed.instanceId]));
+    return placed.instanceId;
+  }, [cellsX, cellsY, updateItems, updateSelected]);
 
   const placeCustomItem = useCallback((libraryItem: LibraryItem, x: number, y: number): string => {
     const newItem: PlacedItem = {
@@ -491,14 +512,14 @@ export function useGridItems(
     updateClipboard(selected);
   }, [updateClipboard]);
 
-  const loadItems = useCallback((items: PlacedItem[]) => {
+  const loadItems = useCallback((items: PlacedItem[], preserveIds = false) => {
     // Replace all current items with the given items, assigning new instance IDs
     const newItems = items.map(item => ({
       ...item,
-      instanceId: generateInstanceId(),
+      instanceId: preserveIds ? item.instanceId : generateInstanceId(),
     }));
     updateItems(newItems);
-    updateSelected(EMPTY_SET);
+    updateSelected(preserveIds ? new Set([...selectedRef.current].filter(id => newItems.some(item => item.instanceId === id))) : EMPTY_SET);
   }, [updateItems, updateSelected]);
 
   const pasteItems = useCallback(() => {
@@ -541,6 +562,7 @@ export function useGridItems(
     addItem,
     addItemWithCustomization,
     addCustomItem,
+    placeLibraryItemAt,
     moveItem,
     rotateItem,
     updateItemCustomization,

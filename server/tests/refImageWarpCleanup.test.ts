@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { rmSync, mkdirSync, writeFileSync, existsSync, utimesSync } from 'node:fs';
 import { join } from 'node:path';
-import request from 'supertest';
+import request, { authenticateTestAdmin } from './adminRequest.js';
 import pino from 'pino';
 import sharp from 'sharp';
 
@@ -37,7 +37,7 @@ vi.mock('../src/db/connection.js', async () => {
   const schema = await import('../src/db/schema.js');
   const client = createClient({ url: ':memory:' });
   const db = drizzle(client, { schema });
-  return { db, client };
+  return { db, client, authClient: client };
 });
 
 vi.mock('../src/logger.js', () => ({
@@ -79,6 +79,7 @@ beforeAll(async () => {
   });
   refImageId = Number(inserted.rows[0].id);
   app = createApp();
+    await authenticateTestAdmin(app);
 });
 
 async function warp(): Promise<string> {

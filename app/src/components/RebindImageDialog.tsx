@@ -1,7 +1,7 @@
 import type { ApiRefImage } from '@gridfinity/shared';
 import { useRefImagesQuery } from '../hooks/useRefImages';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3001/api/v1';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api/v1';
 
 interface RebindImageDialogProps {
   isOpen: boolean;

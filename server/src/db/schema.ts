@@ -100,6 +100,8 @@ export const customerRefImages = sqliteTable('customer_ref_images', {
 
 // Layout tables
 export const layouts = sqliteTable('layouts', {
+  revision: integer('revision').notNull().default(0),
+  liveGuarded: integer('live_guarded', { mode: 'boolean' }).notNull().default(false),
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id'),  // nullable — no longer enforced
   customerId: integer('customer_id').references(() => customers.id, { onDelete: 'set null' }),
@@ -122,6 +124,8 @@ export const layouts = sqliteTable('layouts', {
 ]);
 
 export const placedItems = sqliteTable('placed_items', {
+  sourceSnapshot: text('source_snapshot'),
+  stableId: text('stable_id'),
   id: integer('id').primaryKey({ autoIncrement: true }),
   layoutId: integer('layout_id').notNull().references(() => layouts.id, { onDelete: 'cascade' }),
   libraryId: text('library_id').notNull(),

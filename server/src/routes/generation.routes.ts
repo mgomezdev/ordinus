@@ -197,7 +197,7 @@ router.get('/stl/:hash', async (req: Request, res: Response, next: NextFunction)
 // GET /generation/events — SSE stream
 router.get('/events', (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 

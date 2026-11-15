@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { rmSync } from 'node:fs';
-import request from 'supertest';
+import request, { authenticateTestAdmin } from './adminRequest.js';
 import pino from 'pino';
 
 // vi.hoisted runs before vi.mock factories and before ESM imports are initialized.
@@ -39,7 +39,7 @@ vi.mock('../src/db/connection.js', async () => {
   const schema = await import('../src/db/schema.js');
   const client = createClient({ url: ':memory:' });
   const db = drizzle(client, { schema });
-  return { db, client };
+  return { db, client, authClient: client };
 });
 
 vi.mock('../src/logger.js', () => ({
@@ -51,8 +51,9 @@ const { createApp } = await import('../src/app.js');
 describe('GET /api/v1/images/:libraryId/:filename', () => {
   let app: ReturnType<typeof createApp>;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     app = createApp();
+    await authenticateTestAdmin(app);
   });
 
   afterAll(() => {
@@ -62,8 +63,7 @@ describe('GET /api/v1/images/:libraryId/:filename', () => {
   it('serves an existing image with cache headers', async () => {
     const res = await request(app).get('/api/v1/images/testlib/test.png');
     expect(res.status).toBe(200);
-    expect(res.headers['cache-control']).toContain('max-age=86400');
-    expect(res.headers['cache-control']).toContain('immutable');
+    expect(res.headers['cache-control']).toBe('no-store');
   });
 
   it('returns 404 for a file that does not exist', async () => {

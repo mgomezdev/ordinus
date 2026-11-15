@@ -1,4 +1,5 @@
 import { useRef, useMemo } from 'react';
+import type { GuestBinModel } from '@gridfinity/shared';
 import type { PlacedItemWithValidity, DragData, ComputedSpacer, LibraryItem, ReferenceImage, ImageViewMode, BinCustomization, LibraryMeta } from '../types/gridfinity';
 import { PlacedItemOverlay } from './PlacedItemOverlay';
 import { SpacerOverlay } from './SpacerOverlay';
@@ -7,6 +8,8 @@ import { usePointerDropTarget } from '../hooks/usePointerDrag';
 import type { SnapPreviewData } from '../hooks/usePointerDrag';
 import { SnapPreviewOverlay } from './SnapPreviewOverlay';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { DrawFootprint } from './simple/DrawFootprint';
+import type { DrawnFootprint } from './simple/DrawFootprint';
 
 const EMPTY_SPACERS: ComputedSpacer[] = [];
 const EMPTY_REF_IMAGES: ReferenceImage[] = [];
@@ -20,6 +23,7 @@ interface GridPreviewProps {
   gridX: number;
   gridY: number;
   placedItems: PlacedItemWithValidity[];
+  scopedModels?: GuestBinModel[];
   selectedItemIds: Set<string>;
   spacers?: ComputedSpacer[];
   onDrop: (dragData: DragData, x: number, y: number) => void;
@@ -49,12 +53,18 @@ interface GridPreviewProps {
   getLibraryMeta?: (libraryId: string) => Promise<LibraryMeta>;
   snapPreview?: { col: number; row: number; w: number; d: number; valid: boolean } | null;
   onSnapChange?: (preview: SnapPreviewData | null) => void;
+  drawFootprint?: {
+    drawing: boolean; selection: DrawnFootprint | null; valid: boolean;
+    onChange: (value: DrawnFootprint | null) => void; onFinish: () => void; onCancel: () => void;
+    isPanning: () => boolean;
+  };
 }
 
 export function GridPreview({
   gridX,
   gridY,
   placedItems,
+  scopedModels,
   selectedItemIds,
   spacers = EMPTY_SPACERS,
   onDrop,
@@ -84,10 +94,11 @@ export function GridPreview({
   getLibraryMeta,
   snapPreview = null,
   onSnapChange,
+  drawFootprint,
 }: GridPreviewProps) {
   const gridRef = useRef<HTMLDivElement>(null);
 
-  const { trackGeneration, instanceGenerationHash, getGenerationEntry, clearInstanceHash } = useWorkspace();
+  const { trackGeneration, instanceGenerationHash, getGenerationEntry, clearInstanceHash, layoutMeta } = useWorkspace();
 
   usePointerDropTarget({
     gridRef,
@@ -176,6 +187,7 @@ export function GridPreview({
           onKeyDown={handleGridKeyDown}
         >
           {cells}
+          {drawFootprint && <DrawFootprint gridX={gridX} gridY={gridY} {...drawFootprint} />}
           {snapPreview && (
             <SnapPreviewOverlay
               col={snapPreview.col}
@@ -194,6 +206,8 @@ export function GridPreview({
               <PlacedItemOverlay
                 key={item.instanceId}
                 item={item}
+                layoutRevision={layoutMeta?.revision}
+                modelOverride={scopedModels?.find(model => item.instanceId === `item-${model.stableId}`)}
                 gridX={gridX}
                 gridY={gridY}
                 isSelected={selectedItemIds.has(item.instanceId)}
@@ -202,7 +216,7 @@ export function GridPreview({
                 onDelete={onDeleteItem}
                 onRotateCw={onRotateItemCw}
                 onRotateCcw={onRotateItemCcw}
-                onCustomizationChange={onItemCustomizationChange}
+                onCustomizationChange={drawFootprint ? undefined : onItemCustomizationChange}
                 onCustomizationReset={onItemCustomizationReset}
                 onDuplicate={onDuplicateItem}
                 imageViewMode={imageViewMode}

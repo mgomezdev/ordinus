@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type {
   UnitSystem, ImperialFormat, GridSpacerConfig, LibraryItem,
   LibraryMeta, DragData, BinCustomization, Category,
@@ -7,7 +8,8 @@ import type {
   ComputedSpacer, BOMExtras,
 } from '../types/gridfinity';
 import type { SelectModifiers } from '../hooks/useGridItems';
-import type { BOMItem, CustomBinSpec } from '@gridfinity/shared';
+import type { BOMItem, CustomBinSpec, CuratedEntry, ApiLayoutDetail, GuestBinModel } from '@gridfinity/shared';
+import { matchCuratedEntry } from '@gridfinity/shared';
 import type { RefImagePlacement, UseRefImagePlacementsReturn } from '../hooks/useRefImagePlacements';
 import type { LayoutMetaState } from '../reducers/layoutMetaReducer';
 import type { DialogState, DialogAction } from '../reducers/dialogReducer';
@@ -29,7 +31,10 @@ import { useLayoutLoader } from '../hooks/useLayoutLoader';
 import { useGenerationState } from '../hooks/useGenerationState';
 import type { GenerationEntry } from '../hooks/useGenerationState';
 import { requestGenerationApi } from '../api/generation.api';
-import { API_BASE_URL } from '../api/apiClient';
+import { API_BASE_URL, apiFetch } from '../api/apiClient';
+import { buildPayload } from '../utils/layoutHelpers';
+import { useWorkspaceLiveSync } from '../hooks/useWorkspaceLiveSync';
+import type { WorkspaceLiveSync } from '../hooks/useWorkspaceLiveSync';
 
 // ConfirmDialog props shape returned by useConfirmDialog
 interface ConfirmDialogProps {
@@ -44,6 +49,8 @@ interface ConfirmDialogProps {
 }
 
 interface WorkspaceContextValue {
+  liveSync?: WorkspaceLiveSync;
+  liveModels?: GuestBinModel[];
   // Dimensions
   width: number;
   setWidth: (w: number) => void;
@@ -89,7 +96,7 @@ interface WorkspaceContextValue {
 
   // Layout meta
   layoutMeta: LayoutMetaState;
-  handleSaveComplete: (layoutId: number, name: string) => void;
+  handleSaveComplete: (layoutId: number, name: string, revision?: number) => void;
 
   // Dirty state
   isDirty: boolean;
@@ -116,6 +123,7 @@ interface WorkspaceContextValue {
   categories: Category[];
   getItemById: (prefixedId: string) => LibraryItem | undefined;
   addCustomBin: (spec: CustomBinSpec) => Promise<boolean>;
+  placeCuratedBin: (entry: CuratedEntry, width: number, depth: number, choices: Record<string, string>, x: number, y: number) => Promise<boolean>;
   getLibraryMeta: (libraryId: string) => Promise<LibraryMeta>;
 
   // Layout actions
@@ -238,8 +246,10 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
   const {
     placedItems, selectedItemIds, rotateItem, deleteItem, clearAll, loadItems,
     selectItem, selectAll, deselectAll, handleDrop, duplicateItem,
-    copyItems, pasteItems, deleteSelected, rotateSelected, updateItemCustomization, addCustomItem,
+    copyItems, pasteItems, deleteSelected, rotateSelected, updateItemCustomization, addCustomItem, placeLibraryItemAt,
   } = useGridItems(gridResult.gridX, gridResult.gridY, getLibraryItemById);
+  const placeAtRef = useRef(placeLibraryItemAt);
+  useEffect(() => { placeAtRef.current = placeLibraryItemAt; }, [placeLibraryItemAt]);
 
   const { resolveItem: getItemById, createCustomItem, customItems } = useCustomBins(getLibraryItemById, placedItems);
   const bomLibraryItems = useMemo(() => [...libraryItems, ...customItems], [libraryItems, customItems]);
@@ -272,12 +282,12 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     setUnitSystem(newUnit);
   }, [unitSystem, width, depth]);
 
-  const handleSaveComplete = useCallback((id: number, name: string) => {
-    rawHandleSaveComplete(id, name);
+  const handleSaveComplete = useCallback((id: number, name: string, revision?: number) => {
+    rawHandleSaveComplete(id, name, revision);
     setIsDirty(false);
   }, [rawHandleSaveComplete]);
 
-  const { loadLayout: rawLoadLayout } = useLayoutLoader({
+  const { loadLayout: rawLoadLayout, loadDetail } = useLayoutLoader({
     unitSystem, setWidth, setDepth, setSpacerConfig,
     loadItems, loadRefImagePlacements, layoutDispatch,
     clearExtras,
@@ -355,6 +365,23 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     return true;
   }, [createCustomItem, addCustomItem, trackHash, recordInstanceHash]);
 
+  const placeCuratedBin = useCallback(async (entry: CuratedEntry, width: number, depth: number, choices: Record<string, string>, x: number, y: number): Promise<boolean> => {
+    const match = matchCuratedEntry(entry, width, depth, choices);
+    if (!match) return false;
+    if (entry.kind === 'fixed') {
+      const item = getLibraryItemById(entry.sourceId);
+      if (!item || item.isActive === false || item.widthUnits !== entry.width || item.heightUnits !== entry.depth) return false;
+      return placeLibraryItemAt(item, x, y, match.rotation) !== null;
+    }
+    if (!match.spec) return false;
+    const { item, status } = await createCustomItem(match.spec);
+    const id = placeAtRef.current(item, x, y, match.rotation);
+    if (!id || !item.paramHash) return false;
+    trackHash(item.paramHash, status);
+    recordInstanceHash(id, item.paramHash);
+    return true;
+  }, [getLibraryItemById, placeLibraryItemAt, createCustomItem, trackHash, recordInstanceHash]);
+
   // Rebind image select handler
   const handleRebindSelect = useCallback((refImageId: number, imageUrl: string, name: string) => {
     if (dialogs.rebindTargetId) {
@@ -363,7 +390,31 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     closeRebind();
   }, [dialogs.rebindTargetId, rebindRefImage, closeRebind]);
 
+  const workspacePayload = buildPayload(layoutMeta.name, layoutMeta.description, gridResult.gridX, gridResult.gridY, drawerWidth, drawerDepth, spacerConfig, placedItems, refImagePlacements);
+  const workspaceContent = JSON.stringify({ ...workspacePayload, refImagePlacements: workspacePayload.refImagePlacements ?? [] });
+  const liveSync = useWorkspaceLiveSync({ id: layoutMeta.id, revision: layoutMeta.revision, content: workspaceContent, dirty: isDirty,
+    apply: (detail: ApiLayoutDetail) => {
+      skipNextDirtyRef.current = true;
+      loadDetail(detail, true); setIsDirty(false);
+      for (const item of detail.placedItems) {
+        const instanceId = item.stableId ? `item-${item.stableId}` : '';
+        const old = placedItems.find(bin => bin.instanceId === instanceId);
+        if (instanceId && JSON.stringify(old?.customization) !== JSON.stringify(item.customization)) {
+          clearInstanceHash(instanceId);
+          if (item.customization && !item.customSpec) void trackGeneration(instanceId, item.libraryId, item.itemId, item.customization);
+        }
+      }
+    },
+    saved: (detail, unchanged) => { rawHandleSaveComplete(detail.id, detail.name, detail.revision); if (unchanged) setIsDirty(false); },
+  });
+
+  const liveModels = useQuery({ queryKey: ['workspace-live-models', layoutMeta.id, layoutMeta.revision],
+    queryFn: () => apiFetch<{ bins: GuestBinModel[] }>(`/layouts/${layoutMeta.id}/live/models`), enabled: !!layoutMeta.id && liveSync.enabled,
+    retry: false, refetchInterval: query => query.state.data?.bins.some(bin => bin.status === 'pending') ? 2000 : false });
+
   const value: WorkspaceContextValue = {
+    liveSync,
+    liveModels: liveModels.data?.bins,
     // Dimensions
     width,
     setWidth,
@@ -436,6 +487,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     categories,
     getItemById,
     addCustomBin,
+    placeCuratedBin,
     getLibraryMeta,
 
     // Layout actions
