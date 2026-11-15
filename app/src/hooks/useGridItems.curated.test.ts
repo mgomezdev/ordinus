@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { useGridItems } from './useGridItems';
+import { DEFAULT_BIN_CUSTOMIZATION } from '../types/gridfinity';
 import type { LibraryItem } from '../types/gridfinity';
 
 const fixed: LibraryItem = { id: 'bins:tray', libraryId: 'bins', name: 'Tray', widthUnits: 3, heightUnits: 2, color: '#007aff', categories: [] };
@@ -25,4 +26,11 @@ describe('exact footprint placement', () => {
     });
     expect(result.current.placedItems[0]).toMatchObject({ customSpec: custom.customSpec, paramHash: 'hash', rotation: 90, width: 4, height: 6 });
   });
+});
+
+it('preserves favorite customization when placing a rotated existing bin', () => {
+  const { result } = renderHook(() => useGridItems(4, 4, () => fixed));
+  const customization = { ...DEFAULT_BIN_CUSTOMIZATION, lipStyle: 'none' as const, height: 6 };
+  act(() => { result.current.placeLibraryItemAt(fixed, 0, 0, 90, customization); });
+  expect(result.current.placedItems[0]).toMatchObject({ customization, rotation: 90, width: 4, height: 6 });
 });
