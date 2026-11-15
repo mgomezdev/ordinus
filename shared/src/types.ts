@@ -234,6 +234,7 @@ export interface ApiCustomer {
 }
 
 export interface ApiLayout {
+  revision?: number;
   id: number;
   userId: number;
   customerId?: number | null;
@@ -257,6 +258,7 @@ export interface ApiLayout {
 }
 
 export interface ApiPlacedItem {
+  stableId?: string;
   id: number;
   layoutId: number;
   libraryId: string;
@@ -340,6 +342,7 @@ export interface ApiLayoutDetail extends ApiLayout {
 }
 
 export interface CreateLayoutRequest {
+  baseRevision?: number;
   name: string;
   description?: string;
   gridX: number;
@@ -349,6 +352,7 @@ export interface CreateLayoutRequest {
   spacerHorizontal?: string;
   spacerVertical?: string;
   placedItems: Array<{
+    stableId?: string;
     itemId: string;
     x: number;
     y: number;

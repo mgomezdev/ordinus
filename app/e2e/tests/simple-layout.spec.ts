@@ -133,7 +133,7 @@ test('named presets reach generation and survive saving, library edits, reload a
 });
 
 test('draws a footprint with one finger on a tablet and opens the matching picker', async ({ browser, baseURL, library }, testInfo) => {
-  const context = await browser.newContext({ baseURL, hasTouch: true, isMobile: true, viewport: { width: 900, height: 900 } });
+  const context = await browser.newContext({ baseURL, storageState: testInfo.project.use.storageState, hasTouch: true, isMobile: true, viewport: { width: 900, height: 900 } });
   try {
     const page = await context.newPage();
     const simple = new SimpleLayoutPage(page);

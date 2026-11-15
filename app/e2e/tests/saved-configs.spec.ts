@@ -65,7 +65,7 @@ async function gotoConfigs(page: Page): Promise<void> {
 
 // ── Tests ──
 
-test('saved configs page is reachable directly without signing in', async ({ page }) => {
+test('saved configs page is reachable directly with the admin session', async ({ page }) => {
   await skipWalkthrough(page);
   await setupLayoutsMock(page, []);
 

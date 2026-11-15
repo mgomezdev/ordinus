@@ -42,6 +42,7 @@ export function buildPayload(
     spacerHorizontal: spacerConfig.horizontal,
     spacerVertical: spacerConfig.vertical,
     placedItems: placedItems.map(item => ({
+      ...(/^item-[0-9a-f-]{36}$/i.test(item.instanceId) ? { stableId: item.instanceId.slice(5) } : {}),
       itemId: item.itemId,
       x: item.x,
       y: item.y,

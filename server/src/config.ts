@@ -16,6 +16,8 @@ const envSchema = z.object({
   THUMBNAIL_DIR: z.string().default('./data/thumbnails'),
   LIBRARY_BUILDER_DIR: z.string().default('../tools/library-builder'),
   PUBLIC_URL: z.string().default('http://localhost:3001'),
+  AUTH_COOKIE_SECURE: z.enum(['true', 'false']).optional(),
+  ADMIN_SETUP_PASSWORD_FILE: z.string().optional(),
 });
 
 export type Config = z.infer<typeof envSchema>;

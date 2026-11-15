@@ -42,6 +42,7 @@ const customSpecSchema = z.custom<CustomBinSpec>((raw) => validateCustomBinSpec(
 });
 
 const placedItemSchema = z.object({
+  stableId: z.string().uuid().optional(),
   itemId: z.string().min(1),
   x: z.number().int().min(0),
   y: z.number().int().min(0),
@@ -80,6 +81,7 @@ const refImagePlacementSchema = z.object({
 const gridResolutionSchema = z.union([z.literal(LEGACY_GRID_RESOLUTION), z.literal(GRID_RESOLUTION)]);
 
 const createLayoutSchema = z.object({
+  baseRevision: z.number().int().nonnegative().optional(),
   name: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
   customerId: z.number().int().positive().optional().nullable(),
@@ -103,6 +105,7 @@ const createLayoutSchema = z.object({
 });
 
 const updateLayoutMetaSchema = z.object({
+  baseRevision: z.number().int().nonnegative().optional(),
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional(),
   customerId: z.number().int().positive().optional().nullable(),

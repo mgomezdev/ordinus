@@ -8,12 +8,16 @@ import { useImageLoadState } from '../hooks/useImageLoadState';
 import { BinCustomizationPanel } from './BinCustomizationPanel';
 import { getRotatedPerspectiveUrl } from '../utils/imageHelpers';
 import { BinContextMenu } from './BinContextMenu';
+import { BinPlacementToolbar } from './BinPlacementToolbar';
 import { useFavorites } from '../hooks/useFavorites';
 import { generatedImageUrl } from '../api/generation.api';
 import { GRID_RESOLUTION, halfCellsToUnits } from '@gridfinity/shared';
+import type { GuestBinModel } from '@gridfinity/shared';
 import { footprintSnapStep } from '../utils/snap';
 
 interface PlacedItemOverlayProps {
+  layoutRevision?: number;
+  modelOverride?: GuestBinModel;
   item: PlacedItemWithValidity;
   gridX: number;
   gridY: number;
@@ -51,11 +55,13 @@ function getCustomizationBadges(customization: BinCustomization | undefined): st
   return badges;
 }
 
-export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, gridY, isSelected, onSelect, getItemById, onDelete, onRotateCw, onRotateCcw, onCustomizationChange, onCustomizationReset, onDuplicate, imageViewMode = 'ortho', getLibraryMeta, generationEntry, onCustomizationChangeWithGeneration, onGenerationReset }: PlacedItemOverlayProps) {
+export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, gridY, isSelected, onSelect, getItemById, onDelete, onRotateCw, onRotateCcw, onCustomizationChange, onCustomizationReset, onDuplicate, imageViewMode = 'ortho', getLibraryMeta, generationEntry, onCustomizationChangeWithGeneration, onGenerationReset, layoutRevision, modelOverride }: PlacedItemOverlayProps) {
   const [showPopover, setShowPopover] = useState(false);
   interface PopoverPos { top: number; left: number; direction: 'above' | 'below' }
   const [popoverPos, setPopoverPos] = useState<PopoverPos | null>(null);
   const [popoverDraft, setPopoverDraft] = useState<BinCustomization | undefined>(undefined);
+  const [popoverRevision, setPopoverRevision] = useState<number | undefined>(undefined);
+  const staleOptions = showPopover && popoverDraft !== undefined && JSON.stringify(popoverDraft) !== JSON.stringify(item.customization ?? null) && layoutRevision !== undefined && popoverRevision !== layoutRevision;
   const gearButtonRef = useRef<HTMLButtonElement>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [libraryMeta, setLibraryMeta] = useState<LibraryMeta>({ customizableFields: [], parameters: {} });
@@ -99,7 +105,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   // Apply draft when item is deselected while popover is open (e.g. click outside).
   // setState calls here synchronize popover visibility to the external isSelected prop change.
   useEffect(() => {
-    if (isSelected || !showPopover || popoverDraft === undefined) return;
+    if (isSelected || !showPopover || popoverDraft === undefined || staleOptions) return;
     const hasChanges = JSON.stringify(popoverDraft) !== JSON.stringify(item.customization ?? null);
     if (hasChanges) {
       onCustomizationChange?.(item.instanceId, popoverDraft);
@@ -109,7 +115,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
     setPopoverDraft(undefined);
     setShowPopover(false);
     setPopoverPos(null);
-  }, [isSelected, showPopover, popoverDraft, item.customization, item.instanceId, onCustomizationChange, onCustomizationChangeWithGeneration]);
+  }, [isSelected, showPopover, popoverDraft, item.customization, item.instanceId, onCustomizationChange, onCustomizationChangeWithGeneration, staleOptions]);
 
   const libraryItem = getItemById(item.itemId);
   const hasStaticStl = !!libraryItem?.stlFile;
@@ -118,7 +124,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const perspectiveUrl = libraryItem?.perspectiveImageUrl;
   const orthoUrl = libraryItem?.imageUrl;
   const hasGeneratedImages = !!(item.paramHash ?? libraryItem?.paramHash) || generationEntry?.status === 'complete';
-  const usingPerspective = imageViewMode === 'perspective' && (!!perspectiveUrl || hasGeneratedImages);
+  const usingPerspective = imageViewMode === 'perspective' && (!!modelOverride?.perspectiveUrl || !!perspectiveUrl || hasGeneratedImages);
 
   // Use explicit rotation-specific URLs when available, fall back to derived
   const getPerspectiveUrlForRotation = (rotation: typeof item.rotation): string | undefined => {
@@ -136,10 +142,14 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
     return imageViewMode === 'perspective' ? (perspectiveUrl || orthoUrl) : orthoUrl;
   })();
 
-  const isGenerating = generationEntry?.status === 'pending';
-  const generationFailed = generationEntry?.status === 'failed';
+  const isGenerating = modelOverride ? modelOverride.status === 'pending' : generationEntry?.status === 'pending';
+  const generationFailed = !modelOverride && generationEntry?.status === 'failed';
 
   const effectiveImageSrc = (() => {
+    if (modelOverride) {
+      const url = imageViewMode === 'perspective' ? modelOverride.perspectiveUrl : modelOverride.topUrl;
+      return url ? `${url}?v=${layoutRevision ?? 0}` : undefined;
+    }
     const hash = generationEntry?.status === 'complete'
       ? generationEntry.hash
       : item.paramHash ?? libraryItem?.paramHash ?? null;
@@ -157,19 +167,20 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
 
   // Calculate image dimensions for rotation
   // When rotated 90° or 270°, we need to swap dimensions to fill the container
-  const isSideways = item.rotation === 90 || item.rotation === 270;
+  const imageRotation = modelOverride?.topRotation ?? item.rotation;
+  const isSideways = imageRotation === 90 || imageRotation === 270;
   const aspectRatio = item.width / item.height;
 
   const getImageStyle = (): React.CSSProperties | undefined => {
     // Perspective images are pre-rendered at the correct angle — no CSS rotation needed
     if (usingPerspective) return undefined;
-    if (!item.rotation) return undefined;
+    if (!imageRotation) return undefined;
 
     if (isSideways) {
       // When sideways, the image box needs to be inversely proportioned
       // so that after rotation it fills the swapped container
       return {
-        transform: `translate(-50%, -50%) rotate(${item.rotation}deg)`,
+        transform: `translate(-50%, -50%) rotate(${imageRotation}deg)`,
         transformOrigin: 'center center',
         position: 'absolute',
         top: '50%',
@@ -179,7 +190,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
       };
     }
 
-    return { transform: `rotate(${item.rotation}deg)` };
+    return { transform: `rotate(${imageRotation}deg)` };
   };
 
   const { onPointerDown } = usePointerDragSource({
@@ -214,9 +225,10 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
     e.stopPropagation();
     e.preventDefault();
     setPopoverDraft(item.customization);
+    setPopoverRevision(layoutRevision);
     computePopoverPos();
     setShowPopover(true);
-  }, [item.customization, computePopoverPos]);
+  }, [item.customization, computePopoverPos, layoutRevision]);
 
   // Updates draft only — generation fires when popover is dismissed
   const handlePopoverChange = useCallback((customization: BinCustomization) => {
@@ -224,6 +236,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   }, []);
 
   const handlePopoverReset = useCallback(() => {
+    if (staleOptions) return;
     const allFields = ['wallPattern', 'lipStyle', 'fingerSlide', 'wallCutout', 'height'] as const;
     const allFieldDefs = allFields.map(f => ({ field: f })) as CustomizableFieldDef[];
     const libraryDefaults = item.parameters
@@ -240,7 +253,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
     setPopoverDraft(undefined);
     setShowPopover(false);
     setPopoverPos(null);
-  }, [item, onCustomizationChange, onCustomizationReset, onGenerationReset]);
+  }, [item, onCustomizationChange, onCustomizationReset, onGenerationReset, staleOptions]);
 
   const handleDuplicateClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -251,6 +264,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
   const handleClosePopover = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    if (staleOptions) return;
     if (popoverDraft !== undefined) {
       const hasChanges = JSON.stringify(popoverDraft) !== JSON.stringify(item.customization ?? null);
       if (hasChanges) {
@@ -344,85 +358,28 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
         </div>
       )}
       {isSelected && (onRotateCcw || onRotateCw || onDuplicate || onCustomizationChange || onDelete) && (
-        <div
-          className="placed-item-toolbar"
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          {libraryItem && (
-            <button
-              className={`placed-item-toolbar-btn placed-item-toolbar-btn--heart${isFavorited ? ' favorited' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                const generationHash = generationEntry?.status === 'complete' ? generationEntry.hash : (libraryItem.paramHash ?? null);
-                toggleFavorite(libraryItem, currentCustomization, generationHash);
-              }}
-              draggable={false}
-              aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-              title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-            >
-              {isFavorited ? '♥' : '♡'}
-            </button>
-          )}
-          {onRotateCcw && (
-            <button
-              className="placed-item-toolbar-btn"
-              onClick={handleRotateCcwClick}
-              draggable={false}
-              aria-label="Rotate counter-clockwise"
-              title="Rotate counter-clockwise (Shift+R)"
-            >
-              &#8634;
-            </button>
-          )}
-          {onRotateCw && (
-            <button
-              className="placed-item-toolbar-btn"
-              onClick={handleRotateCwClick}
-              draggable={false}
-              aria-label="Rotate clockwise"
-              title="Rotate clockwise (R)"
-            >
-              &#8635;
-            </button>
-          )}
-          {onDuplicate && (
-            <button
-              className="placed-item-toolbar-btn"
-              onClick={handleDuplicateClick}
-              draggable={false}
-              aria-label="Duplicate"
-              title="Duplicate (Ctrl+D)"
-            >
-              &#x29C9;
-            </button>
-          )}
-          {onCustomizationChange && libraryMeta.customizableFields.length > 0 && !hasStaticStl && (
-            <button
-              ref={gearButtonRef}
-              className="placed-item-toolbar-btn"
-              onClick={handleGearClick}
-              draggable={false}
-              aria-label="Customize"
-              title="Customize bin options"
-            >
-              &#9881;
-            </button>
-          )}
-          {onDelete && (
-            <button
-              className="placed-item-toolbar-btn placed-item-toolbar-btn--danger"
-              onClick={handleDeleteClick}
-              draggable={false}
-              aria-label="Remove item"
-              title="Remove item (Del)"
-            >
-              🗑
-            </button>
-          )}
-        </div>
+        <BinPlacementToolbar
+          onRotateCcw={onRotateCcw ? handleRotateCcwClick : undefined}
+          onRotateCw={onRotateCw ? handleRotateCwClick : undefined}
+          onDuplicate={onDuplicate ? handleDuplicateClick : undefined}
+          onCustomize={onCustomizationChange && libraryMeta.customizableFields.length > 0 && !hasStaticStl ? handleGearClick : undefined}
+          onDelete={onDelete ? handleDeleteClick : undefined}
+          customizeRef={gearButtonRef}
+          favorite={libraryItem && <button
+            type="button"
+            draggable={false}
+            className={`placed-item-toolbar-btn placed-item-toolbar-btn--heart${isFavorited ? ' favorited' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              const generationHash = generationEntry?.status === 'complete' ? generationEntry.hash : (libraryItem.paramHash ?? null);
+              toggleFavorite(libraryItem, currentCustomization, generationHash);
+            }}
+            aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+            title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+          >{isFavorited ? '♥' : '♡'}</button>}
+        />
       )}
-      {showPopover && isSelected && onCustomizationChange && popoverPos && createPortal(
+      {showPopover && (isSelected || staleOptions) && onCustomizationChange && popoverPos && createPortal(
         <div
           className={`placed-item-customize-popover placed-item-customize-popover--${popoverPos.direction}`}
           role="dialog"
@@ -443,6 +400,10 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
               &times;
             </button>
           </div>
+          {staleOptions && <div className="popover-conflict" role="alert"><p>The shared drawer changed while these options were open. Your draft is kept.</p>
+            <button type="button" onClick={() => { setPopoverDraft(item.customization); setPopoverRevision(layoutRevision); }}>Use latest bin options</button>
+            <button type="button" onClick={() => { onCustomizationChange(item.instanceId, popoverDraft!); onCustomizationChangeWithGeneration?.(item.instanceId, popoverDraft!); setPopoverDraft(undefined); setShowPopover(false); setPopoverPos(null); }}>Apply my options to latest drawer</button>
+          </div>}
           <BinCustomizationPanel
             customization={popoverDraft ?? item.customization}
             onChange={handlePopoverChange}
@@ -461,7 +422,7 @@ export const PlacedItemOverlay = memo(function PlacedItemOverlay({ item, gridX, 
           onRotateCw={() => onRotateCw?.(item.instanceId)}
           onRotateCcw={() => onRotateCcw?.(item.instanceId)}
           onDuplicate={() => onDuplicate?.()}
-          onCustomize={hasStaticStl || !onCustomizationChange ? undefined : () => { computePopoverPos(); setShowPopover(true); }}
+          onCustomize={hasStaticStl || !onCustomizationChange ? undefined : () => { setPopoverDraft(item.customization); setPopoverRevision(layoutRevision); computePopoverPos(); setShowPopover(true); }}
           onDelete={() => onDelete?.(item.instanceId)}
           onClose={handleCloseContextMenu}
         />

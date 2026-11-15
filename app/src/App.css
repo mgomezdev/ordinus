@@ -1038,6 +1038,11 @@
   justify-content: center;
 }
 
+.workspace-live-status { padding: .35rem 1rem; font-size: .8rem; border-bottom: 1px solid var(--border-primary); }
+.workspace-live-status p { margin: .3rem 0; line-height: 1.45; }
+.workspace-live-status [role="alert"] { color: var(--invalid-secondary); }
+.workspace-live-status button { margin: .3rem .5rem .3rem 0; }
+
 /* Read-only canvas overlay */
 .canvas-readonly .preview-viewport {
   position: relative;

@@ -26,7 +26,7 @@ afterEach(() => {
 async function renderModal(onClose = vi.fn()) {
   // The modal seeds its fields from settings on mount, so open it once they've loaded.
   const { rerender } = render(<SettingsProvider><div /></SettingsProvider>);
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/v1/settings'));
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/v1/settings', { credentials: 'include' }));
   await new Promise(r => setTimeout(r, 0));
   rerender(<SettingsProvider><SettingsModal onClose={onClose} /></SettingsProvider>);
   return onClose;

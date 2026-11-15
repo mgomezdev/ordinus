@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
+const { loadShared } = vi.hoisted(() => ({ loadShared: vi.fn() }));
 
 // Mock WorkspaceContext
 vi.mock('./contexts/WorkspaceContext', () => ({
@@ -60,7 +61,7 @@ vi.mock('./contexts/WorkspaceContext', () => ({
     categories: [],
     getItemById: vi.fn(),
     getLibraryMeta: vi.fn(),
-    loadLayout: vi.fn(),
+    loadLayout: loadShared,
     handleClearAll: vi.fn(),
     handleReset: vi.fn(),
     exportPdfError: null,
@@ -93,6 +94,18 @@ function renderShell() {
 }
 
 describe('AppShell status bar', () => {
+  it('loads the latest shared layout before opening its BOM and hides stale workspace totals while live', async () => {
+    let finish!: () => void;
+    loadShared.mockImplementation(() => new Promise<void>(resolve => { finish = resolve; }));
+    const view = render(<MemoryRouter initialEntries={['/collaborate/42']}><AppShell /></MemoryRouter>);
+    expect(view.container.querySelector('.app-status-bar')).toBeNull();
+    fireEvent.click(screen.getByRole('link', { name: 'BOM', exact: true }));
+    expect(loadShared).toHaveBeenCalledWith(42);
+    expect(view.container.querySelector('.app-status-bar')).toBeNull();
+    await act(async () => finish());
+    await waitFor(() => expect(view.container.querySelector('.app-status-bar')).not.toBeNull());
+    loadShared.mockReset();
+  });
   it('shows $0.00 cost estimate when no priced items', () => {
     renderShell();
     expect(screen.getByText(/\$0\.00/)).toBeInTheDocument();

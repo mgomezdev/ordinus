@@ -88,3 +88,6 @@ server/dist/
 # Claude tooling artifacts
 .claude/scheduled_tasks.lock
 .claude/worktrees/
+
+# Authentication credentials and browser state
+app/e2e/.auth/

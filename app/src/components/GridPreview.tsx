@@ -1,4 +1,5 @@
 import { useRef, useMemo } from 'react';
+import type { GuestBinModel } from '@gridfinity/shared';
 import type { PlacedItemWithValidity, DragData, ComputedSpacer, LibraryItem, ReferenceImage, ImageViewMode, BinCustomization, LibraryMeta } from '../types/gridfinity';
 import { PlacedItemOverlay } from './PlacedItemOverlay';
 import { SpacerOverlay } from './SpacerOverlay';
@@ -22,6 +23,7 @@ interface GridPreviewProps {
   gridX: number;
   gridY: number;
   placedItems: PlacedItemWithValidity[];
+  scopedModels?: GuestBinModel[];
   selectedItemIds: Set<string>;
   spacers?: ComputedSpacer[];
   onDrop: (dragData: DragData, x: number, y: number) => void;
@@ -62,6 +64,7 @@ export function GridPreview({
   gridX,
   gridY,
   placedItems,
+  scopedModels,
   selectedItemIds,
   spacers = EMPTY_SPACERS,
   onDrop,
@@ -95,7 +98,7 @@ export function GridPreview({
 }: GridPreviewProps) {
   const gridRef = useRef<HTMLDivElement>(null);
 
-  const { trackGeneration, instanceGenerationHash, getGenerationEntry, clearInstanceHash } = useWorkspace();
+  const { trackGeneration, instanceGenerationHash, getGenerationEntry, clearInstanceHash, layoutMeta } = useWorkspace();
 
   usePointerDropTarget({
     gridRef,
@@ -203,6 +206,8 @@ export function GridPreview({
               <PlacedItemOverlay
                 key={item.instanceId}
                 item={item}
+                layoutRevision={layoutMeta?.revision}
+                modelOverride={scopedModels?.find(model => item.instanceId === `item-${model.stableId}`)}
                 gridX={gridX}
                 gridY={gridY}
                 isSelected={selectedItemIds.has(item.instanceId)}

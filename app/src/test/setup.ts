@@ -47,7 +47,8 @@ if (typeof globalThis.PointerEvent === 'undefined') {
 
 // Stub EventSource for jsdom (not implemented in jsdom)
 if (typeof globalThis.EventSource === 'undefined') {
-  class EventSourceStub {
+  class EventSourceStub extends EventTarget {
+    onopen: (() => void) | null = null;
     onmessage: ((e: MessageEvent) => void) | null = null;
     onerror: ((e: Event) => void) | null = null;
     close() {}
