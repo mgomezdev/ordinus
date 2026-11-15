@@ -123,7 +123,7 @@ interface WorkspaceContextValue {
   categories: Category[];
   getItemById: (prefixedId: string) => LibraryItem | undefined;
   addCustomBin: (spec: CustomBinSpec) => Promise<boolean>;
-  placeCuratedBin: (entry: CuratedEntry, width: number, depth: number, choices: Record<string, string>, x: number, y: number) => Promise<boolean>;
+  placeCuratedBin: (entry: CuratedEntry, width: number, depth: number, choices: Record<string, string>, x: number, y: number, customization?: BinCustomization) => Promise<boolean>;
   getLibraryMeta: (libraryId: string) => Promise<LibraryMeta>;
 
   // Layout actions
@@ -365,13 +365,20 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
     return true;
   }, [createCustomItem, addCustomItem, trackHash, recordInstanceHash]);
 
-  const placeCuratedBin = useCallback(async (entry: CuratedEntry, width: number, depth: number, choices: Record<string, string>, x: number, y: number): Promise<boolean> => {
+  const placeCuratedBin = useCallback(async (entry: CuratedEntry, width: number, depth: number, choices: Record<string, string>, x: number, y: number, customization?: BinCustomization): Promise<boolean> => {
     const match = matchCuratedEntry(entry, width, depth, choices);
     if (!match) return false;
     if (entry.kind === 'fixed') {
       const item = getLibraryItemById(entry.sourceId);
       if (!item || item.isActive === false || item.widthUnits !== entry.width || item.heightUnits !== entry.depth) return false;
-      return placeLibraryItemAt(item, x, y, match.rotation) !== null;
+      if (!customization) return placeLibraryItemAt(item, x, y, match.rotation) !== null;
+      const separator = item.id.indexOf(':');
+      const { hash, status } = await requestGenerationApi(item.id.slice(0, separator), item.id.slice(separator + 1), customization);
+      const id = placeAtRef.current({ ...item, paramHash: hash }, x, y, match.rotation, customization);
+      if (!id) return false;
+      trackHash(hash, status);
+      recordInstanceHash(id, hash);
+      return true;
     }
     if (!match.spec) return false;
     const { item, status } = await createCustomItem(match.spec);
