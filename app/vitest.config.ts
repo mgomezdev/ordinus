@@ -20,7 +20,12 @@ export default defineConfig({
       exclude: ['src/**/*.test.*', 'src/test/**', 'src/main.tsx', 'src/**/*.d.ts'],
       reporter: ['text-summary', 'json-summary', 'lcov'],
       // Ratchet: raise these as coverage improves; CI fails if coverage drops below.
-      thresholds: { statements: 77, branches: 70, functions: 70, lines: 78 },
+      thresholds: {
+        statements: 77, branches: 71, functions: 72, lines: 81,
+        'src/hooks/useLiveLayout.ts': { statements: 83, branches: 70, functions: 80, lines: 95 },
+        'src/hooks/useWorkspaceLiveSync.ts': { statements: 78, branches: 64, functions: 80, lines: 90 },
+        'src/components/layouts/GuestLinkPanel.tsx': { statements: 80, branches: 80, functions: 80, lines: 80 },
+      },
     },
   },
 })

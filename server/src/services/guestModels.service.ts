@@ -1,6 +1,6 @@
 import { resolve, sep, isAbsolute } from 'node:path';
 import { realpath, writeFile } from 'node:fs/promises';
-import type { Row } from '@libsql/client';
+import type { Client, Row } from '@libsql/client';
 import { AppError, ErrorCodes, buildCustomBinParams, validateCustomBinSpec } from '@gridfinity/shared';
 import type { BinCustomization, GuestBinModel } from '@gridfinity/shared';
 import { authClient as client } from '../db/connection.js';
@@ -22,8 +22,8 @@ const defaults: BinCustomization = { wallPatternEnabled: false, wallPattern: 'gr
 function json(raw: unknown): unknown {
   try { return typeof raw === 'string' ? JSON.parse(raw) as unknown : null; } catch { return null; }
 }
-export async function modelRows(layoutId: number): Promise<Row[]> {
-  const result = await client.execute({
+export async function modelRows(layoutId: number, connection: Client = client): Promise<Row[]> {
+  const result = await connection.execute({
     sql: `SELECT p.id, p.library_id, p.rotation, p.custom_spec, p.customization, p.source_snapshot,
       li.width_units, li.height_units, li.param_hash, li.image_path, li.perspective_image_path,
       l.base_model_path, l.parameters, u.image_url, u.persp_image_urls,

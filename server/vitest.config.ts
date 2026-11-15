@@ -18,7 +18,10 @@ export default defineConfig({
       exclude: ['src/**/*.test.ts', 'src/index.ts', 'src/db/seed.ts', 'src/db/migrate-cli.ts'],
       reporter: ['text-summary', 'json-summary', 'lcov'],
       // Ratchet: raise these as coverage improves; CI fails if coverage drops below.
-      thresholds: { statements: 73, branches: 61, functions: 70, lines: 74 },
+      thresholds: {
+        statements: 79, branches: 68, functions: 79, lines: 80,
+        'src/services/live.service.ts': { statements: 90, branches: 75, functions: 90, lines: 95 },
+      },
     },
   },
 });

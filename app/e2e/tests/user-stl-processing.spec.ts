@@ -10,7 +10,7 @@ import { test, expect, type APIRequestContext } from '@playwright/test';
 import { readFile } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import type { ApiUserStl } from '../../shared/src/types';
+import type { ApiUserStl } from '@gridfinity/shared';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -64,6 +64,7 @@ async function pollUntilReady(
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 test.describe('User STL processing pipeline', () => {
+  test.describe.configure({ timeout: 120_000 });
   test.skip(
     process.env.TARGET !== 'docker' && !process.env.RUN_INTEGRATION_TESTS,
     'Integration test requires full Docker stack — run with TARGET=docker or RUN_INTEGRATION_TESTS=1',

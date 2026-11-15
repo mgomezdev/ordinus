@@ -2,7 +2,7 @@ import { test, expect, type Page, type Route } from '@playwright/test';
 import { GridPage } from '../pages/GridPage';
 import { LibraryPage } from '../pages/LibraryPage';
 import { pointerDragDrop, dragToGridCell } from '../utils/drag-drop';
-import type { ApiRefImage } from '../../shared/src/types';
+import type { ApiRefImage } from '@gridfinity/shared';
 
 // 1x1 red pixel PNG
 const PNG_BUFFER = Buffer.from(

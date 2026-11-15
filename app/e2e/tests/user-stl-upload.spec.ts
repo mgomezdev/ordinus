@@ -2,7 +2,7 @@ import { test, expect, type Page, type Route } from '@playwright/test';
 import { UserStlPage } from '../pages/UserStlPage';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import type { ApiUserStl } from '../../shared/src/types';
+import type { ApiUserStl } from '@gridfinity/shared';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

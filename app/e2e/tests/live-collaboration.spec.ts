@@ -51,6 +51,8 @@ test('host stays in Workspace while the client uses bin controls and two approve
   try {
     await owner.goto(`/?layout=${id}`);
     await expect(owner.locator('.grid-container .placed-item')).toHaveCount(2);
+    // A manual save before first activation must become the sync baseline.
+    await owner.getByRole('spinbutton', { name: 'Width mm', exact: true }).fill('169');
     const share = owner.getByRole('region', { name: 'Share workspace' });
     await share.getByRole('button', { name: 'Share preview', exact: true }).click();
     await share.getByLabel('Allow client editing (live)').check();
@@ -63,6 +65,7 @@ test('host stays in Workspace while the client uses bin controls and two approve
     expect(new URL(owner.url()).pathname).toBe('/');
     await owner.locator('.grid-container .placed-item').first().click();
     const initial = await current(); const stableId = initial.bins[0].stableId;
+    expect(initial.layout.widthMm).toBe(169);
     expect(new Set(initial.catalog.map(item => item.libraryName))).toEqual(new Set(['Standard Bins', 'Labeled Bins']));
     const guest = await context.newPage(); await guest.goto(invitation);
     await guest.getByLabel('Your name (optional)').fill('Alex'); await guest.getByRole('button', { name: 'Open preview' }).click();

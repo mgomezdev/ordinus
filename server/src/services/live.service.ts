@@ -78,7 +78,7 @@ export async function createEditableLink(layoutId: number, hours: number, librar
     const refs = (await client.execute({ sql: 'SELECT * FROM reference_images WHERE layout_id = ?', args: [layoutId] })).rows;
     await client.execute({ sql: 'INSERT OR IGNORE INTO live_backups(layout_id, snapshot, created_at) VALUES (?, ?, ?)', args: [layoutId, JSON.stringify({ layout, bins: before, references: refs }), Date.now()] });
     if (Number(layout.grid_resolution) === 1) await client.execute({ sql: 'UPDATE placed_items SET x=x*2, y=y*2, width=width*2, height=height*2 WHERE layout_id = ?', args: [layoutId] });
-    for (const row of await modelRows(layoutId)) await client.execute({ sql: 'UPDATE placed_items SET stable_id=COALESCE(stable_id, ?), source_snapshot=COALESCE(source_snapshot, ?) WHERE id = ?', args: [randomUUID(), modelSourceSnapshot(row), row.id] });
+    for (const row of await modelRows(layoutId, client)) await client.execute({ sql: 'UPDATE placed_items SET stable_id=COALESCE(stable_id, ?), source_snapshot=COALESCE(source_snapshot, ?) WHERE id = ?', args: [randomUUID(), modelSourceSnapshot(row), row.id] });
     validateGeometry(layout, await binRows(layoutId));
     await client.execute({ sql: 'UPDATE layouts SET live_guarded=1, grid_resolution=2, revision=revision+1 WHERE id = ?', args: [layoutId] });
     const id = randomBytes(12).toString('hex'), secret = randomBytes(32).toString('base64url'); const now = Date.now(), expiresAt = now + hours * 3600_000;
