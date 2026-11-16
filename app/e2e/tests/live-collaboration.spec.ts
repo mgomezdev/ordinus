@@ -217,6 +217,7 @@ test('organizer and client configure the same drawer live, with conflicts and re
   const stale = await owner.context().newPage();
   await owner.addInitScript(() => localStorage.setItem('gridfinity-walkthrough-seen', 'true'));
   await stale.addInitScript(() => localStorage.setItem('gridfinity-walkthrough-seen', 'true'));
+  let releaseOwnerCommand = () => {};
   try {
     const staleConfigs = new SavedConfigsPage(stale); await staleConfigs.goto(); await staleConfigs.editButton(name).click();
     await expect(stale.getByRole('navigation', { name: 'breadcrumb' })).toContainText(name);
@@ -251,11 +252,22 @@ test('organizer and client configure the same drawer live, with conflicts and re
     await expect(owner.getByRole('alert')).toContainText('Someone changed this drawer');
     await expect(ownerBin.getByLabel('X position', { exact: true })).toHaveValue('0.5');
     await ownerBin.getByRole('button', { name: 'Use latest revision for these values' }).click();
+    // SSE can reach the guest before the organizer receives its command response.
+    // Keep that response pending so the next gesture must wait for editing to resume.
+    const ownerCommandGate = new Promise<void>(resolve => { releaseOwnerCommand = resolve; });
+    await owner.route(`**/api/v1/layouts/${id}/live/commands`, async route => {
+      const response = await route.fetch();
+      await ownerCommandGate;
+      await route.fulfill({ response });
+    }, { times: 1 });
     await ownerBin.getByRole('button', { name: 'Move bin', exact: true }).click();
     await expect.poll(() => guest.getByRole('button', { name: /^Select bin 1:/ }).evaluate(el => (el as HTMLElement).style.left)).toBe('12.5%');
 
     // Owner drag is one committed command; the guest receives it without reload.
     const bin2 = owner.getByRole('button', { name: /^Select bin 2:/ });
+    await expect(bin2).toHaveAttribute('aria-disabled', 'true');
+    releaseOwnerCommand();
+    await expect(bin2).toHaveAttribute('aria-disabled', 'false');
     await bin2.scrollIntoViewIfNeeded();
     const box = (await bin2.boundingBox())!;
     const grid = (await owner.getByRole('group', { name: 'Drawer layout' }).boundingBox())!;
@@ -278,6 +290,8 @@ test('organizer and client configure the same drawer live, with conflicts and re
     await expect.poll(async () => (await current()).bins[0].height).toBe(6);
     await expect(guest.getByRole('button', { name: /^Bin 1:/ })).toContainText('42 mm tall');
 
+    // Mount the next form from the organizer's confirmed revision, not the guest's.
+    await expect(owner.locator('.live-status')).toContainText('Live · Saved');
     await owner.getByText('Drawer dimensions and spacers', { exact: true }).click();
     const drawer = owner.getByRole('form', { name: 'Drawer dimensions' });
     await drawer.getByLabel('Drawer width (mm)').fill('210'); await drawer.getByLabel('Horizontal spacers').selectOption('symmetrical');
@@ -303,5 +317,5 @@ test('organizer and client configure the same drawer live, with conflicts and re
     await expect(guest.getByRole('group', { name: 'Drawer layout' })).toHaveCount(0);
     await owner.getByRole('button', { name: 'Back to workspace' }).click();
     await expect(owner.getByRole('spinbutton', { name: 'Width mm', exact: true })).toHaveValue('210');
-  } finally { await stale.close(); await guestContext.close(); await request.delete(`/api/v1/layouts/${id}`); }
+  } finally { releaseOwnerCommand(); await owner.unrouteAll({ behavior: 'ignoreErrors' }); await stale.close(); await guestContext.close(); await request.delete(`/api/v1/layouts/${id}`); }
 });

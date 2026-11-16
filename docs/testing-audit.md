@@ -84,6 +84,13 @@ its test checkout are now pinned together to Concordia `6b79c6a`, which provisio
 a disposable administrator and authenticates the integration client. Production
 was not changed during validation.
 
+The packaged CI rerun also exposed a sequencing race in the collaboration E2E:
+the guest can receive an SSE update while the organizer is still awaiting its
+command response. The test now holds that response deliberately, verifies that
+editing pauses, and waits for the organizer to resume before dragging or opening
+the next revision-bound form. This preserves the conflict assertions without
+depending on which client receives the update first.
+
 ## Execution boundaries
 
 - The dev browser suite deliberately skips two real STL-processing tests and the
