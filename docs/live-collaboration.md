@@ -108,3 +108,10 @@ exist. Owner model metadata includes the stable placement UUID for matching.
 Pending models poll until their images are ready. Both shared views version image
 requests by layout revision, so a later customization or rotation refreshes the
 bitmap even when its placement URL stays the same.
+
+## Verification
+
+See [the use-case test audit](testing-audit.md) for the coverage matrix, regression
+tests and validated results. CI runs collaboration against both the dev stack and
+the built nginx image. Persistent-database tests use the production WAL connections
+to verify source capture inside writes and command receipts after restart.

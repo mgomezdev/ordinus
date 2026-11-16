@@ -122,7 +122,9 @@ export function useWorkspaceLiveSync(input: Input) {
     const current = session.current;
     if (!current) return;
     if (current.applying) { current.applying = false; current.baseline = input.content; if (current.again) void refresh.current(); return; }
-    if (!input.dirty && input.revision !== current.revision && !current.pending && !current.remote) { current.revision = input.revision; current.baseline = input.content; }
+    // Manual saves of an unshared drawer do not expose a revision. Still adopt
+    // their clean baseline before its first editable invitation activates live sync.
+    if (!input.dirty && (!current.enabled || input.revision !== current.revision) && !current.pending && !current.remote) { current.revision = input.revision; current.baseline = input.content; }
     // Library/model readiness can recompute placement validity without changing
     // the saved payload. It must not leave an otherwise saved workspace dirty.
     if (current.enabled && !current.pending && !current.remote && input.content === current.baseline && input.dirty && current.detail && current.detail.revision === current.revision) {

@@ -2,7 +2,7 @@ import { test, expect, type Page, type Route } from '@playwright/test';
 import { BOMPage } from '../pages/BOMPage';
 import { SavedConfigsPage } from '../pages/SavedConfigsPage';
 import { configureIntegrations, liveIntegrationUrls, mockIntegrations } from '../utils/integrations';
-import type { ApiBomGeneration, ApiLayout } from '../../shared/src/types';
+import type { ApiBomGeneration, ApiLayout } from '@gridfinity/shared';
 
 const LAYOUT_ID = 1;
 const MOCK_THEMIS_URL = 'http://themis.e2e.test';
@@ -17,6 +17,8 @@ const LAYOUT: ApiLayout = {
   isPublic: false,
   gridX: 4,
   gridY: 4,
+  gridResolution: 2,
+  thumbnailUrl: null,
   widthMm: 168,
   depthMm: 168,
   spacerHorizontal: 'none',

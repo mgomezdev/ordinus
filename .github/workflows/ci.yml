@@ -3,7 +3,7 @@ name: ci
 # Quality gates for every pull request and every push to develop/main.
 #
 #   lint, typecheck, unit tests (with coverage thresholds), python tests,
-#   production build, Playwright E2E against the dev stack, and the Docker
+#   production build, Playwright E2E against the dev stack and nginx image, and the Docker
 #   image -> Concordia cross-service E2E (Ordinus -> Themis contract).
 #
 # `ci-success` depends on every gate, so branch protection only needs to
@@ -188,6 +188,67 @@ jobs:
           path: /tmp/ordinus-ci.tar
           retention-days: 1
 
+  # Exercise SSE through nginx, persistent SQLite, scoped images and the Python
+  # renderer using the exact image built for this change. No external services.
+  e2e-container:
+    needs: [image]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+        timeout-minutes: 10
+      - uses: actions/download-artifact@v7
+        with:
+          name: ordinus-ci-image
+          path: ${{ runner.temp }}/ordinus-image
+      - name: Start isolated test deployment
+        shell: bash
+        run: |
+          docker load -i "$RUNNER_TEMP/ordinus-image/ordinus-ci.tar"
+          password=$(openssl rand -hex 24)
+          echo "::add-mask::$password"
+          echo "ORDINUS_E2E_ADMIN_PASSWORD=$password" >> "$GITHUB_ENV"
+          printf '%s' "$password" > "$RUNNER_TEMP/ordinus-admin-password"
+          chmod 600 "$RUNNER_TEMP/ordinus-admin-password"
+          docker run -d --name ordinus-e2e -p 127.0.0.1:32888:80 \
+            --mount "type=bind,source=$RUNNER_TEMP/ordinus-admin-password,target=/run/admin-password,readonly" \
+            -e ADMIN_SETUP_PASSWORD_FILE=/run/admin-password \
+            -e NODE_ENV=test -e AUTH_COOKIE_SECURE=false \
+            -e CORS_ORIGIN=http://localhost:32888 -e PUBLIC_URL=http://localhost:32888 \
+            ordinus:ci
+          for _attempt in {1..60}; do
+            if curl --fail --silent http://localhost:32888/api/v1/health > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - name: Test packaged collaboration, guest previews and STL rendering
+        run: npm run test:e2e -- live-collaboration.spec.ts guest-preview.spec.ts user-stl-processing.spec.ts --workers=1
+        env:
+          CI: "true"
+          TARGET: docker
+      - name: Container diagnostics
+        if: failure()
+        run: docker logs ordinus-e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-container-report
+          path: |
+            app/playwright-report/
+            app/test-results/
+          retention-days: 7
+      - name: Remove isolated deployment
+        if: always()
+        run: |
+          docker rm -fv ordinus-e2e || true
+          rm -f "$RUNNER_TEMP/ordinus-admin-password"
+
   # The Ordinus -> Themis edge: runs Concordia's `push` profile (mock-laminus +
   # mock-spoolman + themis + ordinus) against this change's image, proving it
   # still satisfies the Themis operations Ordinus calls
@@ -211,7 +272,7 @@ jobs:
   # Single required check for branch protection.
   ci-success:
     if: always()
-    needs: [lint, typecheck, test-app, test-server, test-python, build, e2e, image, e2e-push]
+    needs: [lint, typecheck, test-app, test-server, test-python, build, e2e, image, e2e-container, e2e-push]
     runs-on: ubuntu-latest
     steps:
       - name: Verify all gates passed

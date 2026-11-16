@@ -3,6 +3,8 @@ import { GridPage } from '../pages/GridPage';
 import { LibraryPage } from '../pages/LibraryPage';
 import { dragToGridCell } from '../utils/drag-drop';
 import type { FavoriteItem } from '../../src/types/gridfinity';
+import type { CreateFavoriteRequest } from '../../src/api/favorites.api';
+import { randomUUID } from 'node:crypto';
 
 // The library's favorites tab is labelled with a heart glyph.
 const FAVORITES_TAB_LABEL = '♥';
@@ -22,20 +24,11 @@ async function setupApiMocks(page: Page, favorites: FavoriteItem[] = []) {
       });
     } else if (route.request().method() === 'POST') {
       // Create favorite
-      const body = await route.request().postDataJSON();
+      const body = route.request().postDataJSON() as CreateFavoriteRequest;
       const newFavorite: FavoriteItem = {
-        id: (favorites.length > 0 ? Math.max(...favorites.map(f => f.id)) : 0) + 1,
-        userId: 1,
-        libraryId: body.libraryId,
-        libraryItemId: body.libraryItemId,
-        name: body.name,
-        customization: body.customization || null,
-        widthUnits: body.widthUnits || 1,
-        heightUnits: body.heightUnits || 1,
-        color: body.color || '#ffffff',
-        paramHash: body.paramHash || null,
-        imageUrl: body.imageUrl || null,
-        createdAt: new Date().toISOString(),
+        ...body,
+        id: randomUUID(),
+        createdAt: Date.now(),
       };
       favorites.push(newFavorite);
       await route.fulfill({
@@ -53,7 +46,7 @@ async function setupApiMocks(page: Page, favorites: FavoriteItem[] = []) {
     if (route.request().method() === 'DELETE') {
       const url = route.request().url();
       const idStr = url.split('/').pop();
-      const id = Number(idStr);
+      const id = idStr;
       const idx = favorites.findIndex(f => f.id === id);
       if (idx !== -1) {
         favorites.splice(idx, 1);
@@ -70,9 +63,9 @@ async function setupApiMocks(page: Page, favorites: FavoriteItem[] = []) {
       await route.continue();
       return;
     }
-    const id = Number(route.request().url().split('/').at(-2));
+    const id = route.request().url().split('/').at(-2);
     const body = route.request().postDataJSON() as { name?: string };
-    const fav = favorites.find(f => Number(f.id) === id);
+    const fav = favorites.find(f => f.id === id);
     if (fav && body.name) {
       fav.name = body.name;
     }

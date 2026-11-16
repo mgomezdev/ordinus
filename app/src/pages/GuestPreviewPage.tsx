@@ -60,7 +60,7 @@ function GuestPreviewSession({ linkId }: { linkId: string }) {
     <header className="guest-header"><span className="guest-brand">ORDINUS</span><span className="guest-readonly">Read-only preview</span><button type="button" disabled={leave.isPending} onClick={() => leave.mutate()}>Leave preview</button></header>
     <main className="guest-content">
       <div className="guest-heading"><h1>{preview.data.layout.name}</h1><p>{preview.data.layout.widthMm} × {preview.data.layout.depthMm} mm · {(preview.data.layout.widthMm / 25.4).toFixed(2)} × {(preview.data.layout.depthMm / 25.4).toFixed(2)} in</p></div>
-      <p className="guest-note">Inspect this saved configuration. Editing and live collaboration will be added in a later version.</p>
+      <p className="guest-note">This invitation allows viewing only. Ask your organizer for an editable invitation to collaborate on this drawer.</p>
       {leave.isError && <p role="alert">Could not leave the preview. Try again.</p>}
       {models.isError && <p role="status">Bin previews could not be loaded. <button type="button" onClick={() => void models.refetch()}>Retry bin previews</button></p>}
       <GuestDrawer layout={preview.data.layout} models={models.data?.bins ?? []} />

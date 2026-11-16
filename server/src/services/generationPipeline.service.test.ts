@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
+import { once } from 'node:events';
 import { GenerationPipelineService } from './generationPipeline.service.js';
 
 vi.mock('child_process', () => ({
@@ -93,11 +94,12 @@ describe('enqueue', () => {
     const events: string[] = [];
     svc.on('generation:complete', ({ hash }: { hash: string }) => events.push(hash));
 
+    const completed = once(svc, 'generation:complete');
     const status = await svc.enqueue('hash1', { width: [2, 0] }, '/fake/base.scad');
     expect(status).toBe('pending');
 
     // Wait for async job to complete
-    await new Promise(r => setTimeout(r, 500));
+    await completed;
     expect(events).toContain('hash1');
   });
 
@@ -109,8 +111,9 @@ describe('enqueue', () => {
     const errors: string[] = [];
     svc.on('generation:failed', ({ hash }: { hash: string }) => errors.push(hash));
 
+    const failed = once(svc, 'generation:failed');
     await svc.enqueue('hash2', { width: [2, 0] }, '/fake/base.scad');
-    await new Promise(r => setTimeout(r, 50));
+    await failed;
 
     expect(errors).toContain('hash2');
     const errContent = await fs.readFile(path.join(tmpDir, 'custom', 'hash2', 'error.txt'), 'utf-8');
@@ -126,8 +129,9 @@ describe('enqueue', () => {
     const onUnhandledRejection = (reason: unknown) => unhandled.push(reason);
     process.on('unhandledRejection', onUnhandledRejection);
 
+    const failed = once(svc, 'generation:failed');
     await svc.enqueue('hash-mkdir-fail', { width: [2, 0] }, '/fake/base.scad');
-    await new Promise(r => setTimeout(r, 50));
+    await failed;
 
     process.off('unhandledRejection', onUnhandledRejection);
     mkdirSpy.mockRestore();
@@ -145,10 +149,11 @@ describe('enqueue', () => {
     makeSpawnSuccess();
     makeSpawnSuccess();
 
+    const completed = once(svc, 'generation:complete');
     const p1 = svc.enqueue('hash3', { width: [2, 0] }, '/fake/base.scad');
     const p2 = svc.enqueue('hash3', { width: [2, 0] }, '/fake/base.scad');
     await Promise.all([p1, p2]);
-    await new Promise(r => setTimeout(r, 500));
+    await completed;
 
     // spawn should only have been called once (6 calls for 1 job, not 12 for 2)
     expect(mockSpawn).toHaveBeenCalledTimes(6);
@@ -177,8 +182,9 @@ describe('seed', () => {
     const events: string[] = [];
     svc.on('generation:complete', ({ hash }: { hash: string }) => events.push(hash));
 
+    const completed = once(svc, 'generation:complete');
     await svc.seed('lib-hash', { width: [2, 0] }, '/fake/base.scad');
-    await new Promise(r => setTimeout(r, 500));
+    await completed;
 
     expect(events).toContain('lib-hash');
     // Dir should be under library/, not custom/

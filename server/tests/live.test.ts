@@ -37,6 +37,43 @@ async function fixture(edit = true) {
   return { data, layoutId, linkId: issued.body.id as string, cookie, base, host, snapshot, command };
 }
 describe('live collaboration', () => {
+  it('rolls back an oversized batch completely and enforces the 200-bin limit without recording rejected commands', async () => {
+    const f = await fixture();
+    const before = (await f.snapshot()).body;
+    const duplicate = { type: 'duplicate', stableId: before.bins[0].stableId, x: 0, y: 0 };
+    const oversized = { commandId: randomUUID(), baseRevision: before.revision, change: { type: 'batch', changes: Array.from({ length: 200 }, () => duplicate) } };
+    expect((await f.command(oversized)).status).toBe(400);
+    expect((await f.snapshot()).body).toMatchObject({ revision: before.revision, bins: before.bins });
+    expect((await client.execute({ sql: 'SELECT command_id FROM live_commands WHERE layout_id=?', args: [f.layoutId] })).rows).toHaveLength(0);
+    const accepted = await f.command({ ...oversized, commandId: randomUUID(), change: { type: 'batch', changes: oversized.change.changes.slice(1) } });
+    expect(accepted.status).toBe(200);
+    expect((await f.snapshot()).body.bins).toHaveLength(200);
+    expect((await f.command({ commandId: randomUUID(), baseRevision: accepted.body.revision, change: { type: 'add', catalogKey: before.catalog[0].key, x: 0, y: 0 } })).status).toBe(400);
+    expect((await f.snapshot()).body.revision).toBe(accepted.body.revision);
+    expect((await client.execute({ sql: 'SELECT command_id FROM live_commands WHERE layout_id=?', args: [f.layoutId] })).rows).toHaveLength(1);
+  });
+
+  it('guards metadata writes while cloned drawers receive fresh identities and independent access', async () => {
+    const f = await fixture();
+    const before = (await f.snapshot()).body;
+    const endpoint = `/api/v1/layouts/${f.layoutId}`;
+    expect((await owner(app).patch(endpoint).send({ name: 'Renamed' })).status).toBe(409);
+    const renamed = await owner(app).patch(endpoint).send({ name: 'Renamed', baseRevision: before.revision });
+    expect(renamed.status).toBe(200);
+    expect((await f.snapshot()).body.layout.name).toBe('Renamed');
+    expect((await f.command({ commandId: randomUUID(), baseRevision: before.revision, change: { type: 'remove', stableId: before.bins[0].stableId } })).status).toBe(409);
+    const cloned = await owner(app).post(`${endpoint}/clone`);
+    expect(cloned.status).toBe(201);
+    const copyId = cloned.body.data.id as number;
+    expect((await owner(app).get(`/api/v1/layouts/${copyId}/guest-links`)).body.data).toEqual([]);
+    const sourceIds = (await client.execute({ sql: 'SELECT stable_id FROM placed_items WHERE layout_id=?', args: [f.layoutId] })).rows.map(row => row.stable_id);
+    const copyIds = (await client.execute({ sql: 'SELECT stable_id FROM placed_items WHERE layout_id=?', args: [copyId] })).rows.map(row => row.stable_id);
+    expect(copyIds).toHaveLength(sourceIds.length);
+    expect(copyIds.every(id => !sourceIds.includes(id))).toBe(true);
+    expect((await owner(app).put(`/api/v1/layouts/${copyId}`).send(f.data)).status).toBe(200);
+    expect((await f.snapshot()).body.layout.name).toBe('Renamed');
+  });
+
   it('approves multiple frozen libraries per invitation and rejects empty or unavailable sets atomically', async () => {
     await client.execute("INSERT INTO libraries (id, name) VALUES ('live-second', 'Second approved library')");
     await client.execute("INSERT INTO library_items (library_id, id, name, width_units, height_units) VALUES ('live-second', 'second', 'Second bin', 1, 2)");

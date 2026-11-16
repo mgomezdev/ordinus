@@ -2,7 +2,7 @@ import { eq, and, lt, desc, sql, or, inArray } from 'drizzle-orm';
 import { AppError, ErrorCodes, GRID_RESOLUTION } from '@gridfinity/shared';
 import { logger } from '../logger.js';
 import type { ApiLayout, ApiLayoutDetail, ApiRefImagePlacement, ApiReferenceImage, BinCustomization, CustomBinSpec, Quad } from '@gridfinity/shared';
-import { db } from '../db/connection.js';
+import { db, client } from '../db/connection.js';
 import { layouts, placedItems, referenceImages, refImages, customers } from '../db/schema.js';
 import { formatLayout, formatPlacedItem } from './formatters.js';
 import * as layoutThumbnailService from './layoutThumbnail.service.js';
@@ -458,7 +458,9 @@ async function updateLayoutInner(
     await db.delete(referenceImages).where(eq(referenceImages.layoutId, layoutId));
     insertedItems = await insertPlacedItems(values);
     if (existing.liveGuarded) {
-      for (const row of await modelRows(layoutId)) if (!row.source_snapshot) await db.update(placedItems).set({ sourceSnapshot: modelSourceSnapshot(row) }).where(eq(placedItems.id, Number(row.id)));
+      // Read the new placements inside this transaction; the asset connection
+      // still sees the previous committed drawer when SQLite uses WAL.
+      for (const row of await modelRows(layoutId, client)) if (!row.source_snapshot) await db.update(placedItems).set({ sourceSnapshot: modelSourceSnapshot(row) }).where(eq(placedItems.id, Number(row.id)));
     }
     refImagePlacements = await insertRefPlacements(
       toRefPlacementValues(layoutId, data.refImagePlacements, now),

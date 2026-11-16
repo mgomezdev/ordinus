@@ -18,7 +18,7 @@ writeFileSync(passwordFile, process.env.ORDINUS_E2E_ADMIN_PASSWORD, { mode: 0o60
 export default defineConfig({
   testDir: './e2e/tests',
   fullyParallel: true,
-  forbidOnly: !isDocker && !!process.env.CI,
+  forbidOnly: !!process.env.CI,
   retries: isDocker ? 1 : (process.env.CI ? 2 : 0),
   workers: isDocker ? 4 : (process.env.CI ? 1 : undefined),
   timeout: isDocker ? 60000 : undefined,

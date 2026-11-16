@@ -40,12 +40,31 @@ async function mount() {
       apply: detail => { setText(content(detail.name)); setRevision(detail.revision); setDirty(false); },
       saved: (detail, unchanged) => { setRevision(detail.revision); if (unchanged) setDirty(false); },
     });
-    return { sync, text, dirty, revision, markDirty: () => setDirty(true), edit: (name: string) => { setText(content(name)); setDirty(true); } };
+    return { sync, text, dirty, revision, markDirty: () => setDirty(true), markSaved: () => setDirty(false), edit: (name: string) => { setText(content(name)); setDirty(true); } };
   });
   act(() => Events.current.onopen?.());
   await waitFor(() => expect(hook.result.current.sync.connected).toBe(true));
   return hook;
 }
+it.each([true, false])('activates collaboration after unshared edits (manually saved: %s) without losing drafts', async saved => {
+  server = { ...server, revision: undefined };
+  const { result, unmount } = await mount();
+  act(() => result.current.edit('Changed before sharing'));
+  expect(result.current.sync.enabled).toBe(false);
+  if (saved) {
+    server = { ...server, name: 'Changed before sharing' };
+    act(() => result.current.markSaved());
+  }
+  server = { ...server, revision: 1 };
+  act(() => Events.current.listeners.get('changed')?.());
+  await waitFor(() => expect(result.current.sync.enabled).toBe(true));
+  expect(result.current.sync.conflict).toBe(!saved);
+  expect(result.current.text).toBe(content('Changed before sharing'));
+  expect(writes).toHaveLength(0);
+  if (saved) expect(result.current.revision).toBe(1);
+  unmount();
+});
+
 it('receives client changes in the workspace and automatically saves host changes at the current revision', async () => {
   const { result, unmount } = await mount();
   server = { ...server, name: 'Client change', revision: 2 };

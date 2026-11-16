@@ -15,7 +15,7 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:docker": "TARGET=docker playwright test",
     "test:coverage": "vitest run --coverage",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b && tsc -p tsconfig.e2e.json"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.21",

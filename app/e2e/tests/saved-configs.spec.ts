@@ -1,6 +1,6 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
 import { SavedConfigsPage } from '../pages/SavedConfigsPage';
-import type { ApiLayout } from '../../shared/src/types';
+import type { ApiLayout } from '@gridfinity/shared';
 
 function makeLayout(overrides: Partial<ApiLayout> = {}): ApiLayout {
   return {
@@ -11,6 +11,8 @@ function makeLayout(overrides: Partial<ApiLayout> = {}): ApiLayout {
     isPublic: false,
     gridX: 4,
     gridY: 4,
+    gridResolution: 2,
+    thumbnailUrl: null,
     widthMm: 168,
     depthMm: 168,
     spacerHorizontal: 'none',

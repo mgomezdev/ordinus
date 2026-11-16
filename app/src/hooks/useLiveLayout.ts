@@ -13,12 +13,19 @@ export function useLiveLayout(base: string) {
   const [problem, setProblem] = useState('');
   const [pending, setPending] = useState<LiveCommand | null>(null);
   const mounted = useRef(true);
+  const inFlight = useRef(false);
+  const readFailed = useRef<(error: unknown) => void>(() => {});
   useEffect(() => {
     mounted.current = true;
     let active = true, open = false, refreshing = false, again = false, closed = false;
     let events: EventSource;
     let reconnect: ReturnType<typeof setTimeout> | undefined;
     const stop = () => { closed = true; clearTimeout(reconnect); events?.close(); setConnection('closed'); };
+    readFailed.current = error => {
+      if (!active || closed) return;
+      if (error instanceof ApiError && [401, 403, 404, 409, 410].includes(error.status)) stop();
+      else setConnection('reconnecting');
+    };
     const refresh = async () => {
       if (refreshing) { again = true; return; }
       refreshing = true;
@@ -56,12 +63,14 @@ export function useLiveLayout(base: string) {
   }, [base, cache]);
 
   async function transmit(command: LiveCommand): Promise<number | undefined> {
-    if (connection !== 'live' || sending) return undefined;
+    if (connection !== 'live' || inFlight.current) return undefined;
+    inFlight.current = true;
     setSending(true); setProblem('');
     try {
       const accepted = await apiFetch<{ revision: number }>(`${base}/commands`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(command) });
-      await snapshot.refetch({ cancelRefetch: true });
+      const refreshed = await snapshot.refetch({ cancelRefetch: true });
       if (!mounted.current) return undefined;
+      if (refreshed.isError) readFailed.current(refreshed.error);
       setPending(null);
       void cache.invalidateQueries({ queryKey: ['live-models', base] });
       return accepted.revision;
@@ -69,16 +78,17 @@ export function useLiveLayout(base: string) {
       if (!mounted.current) return undefined;
       if (err instanceof ApiError && err.status < 500 && err.status !== 408) {
         setProblem(err.message); setPending(null);
-        if ([401, 403, 404, 410].includes(err.status)) setConnection('closed');
-        await snapshot.refetch({ cancelRefetch: false });
+        if ([401, 403, 404, 410].includes(err.status)) readFailed.current(err);
+        const refreshed = await snapshot.refetch({ cancelRefetch: false });
+        if (mounted.current && refreshed.isError) readFailed.current(refreshed.error);
       } else {
         setPending(command);
         setProblem('The last change may have saved. Reconnect and retry that change to check its result.');
       }
       return undefined;
-    } finally { if (mounted.current) setSending(false); }
+    } finally { inFlight.current = false; if (mounted.current) setSending(false); }
   }
-  const canEdit = connection === 'live' && !sending && !pending && !!snapshot.data;
+  const canEdit = connection === 'live' && !sending && !pending && snapshot.isSuccess;
   return { snapshot, connection, sending, problem, ambiguous: !!pending, canEdit,
     send: (change: LiveChange, baseRevision: number) => canEdit ? transmit({ commandId: crypto.randomUUID(), baseRevision, change }) : Promise.resolve(undefined),
     retry: () => pending ? transmit(pending) : Promise.resolve(undefined) };
