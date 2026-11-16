@@ -1,12 +1,17 @@
 import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { GRID_RESOLUTION, assessCuratedEntry } from '@gridfinity/shared';
-import type { CuratedEntry, CuratedLibrary } from '@gridfinity/shared';
+import type { CuratedEntry, CuratedLibrary, CustomBinSpec } from '@gridfinity/shared';
 import { useCuratedLibraries } from '../../hooks/useCuratedLibraries';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { violatesHalfGrid } from '../../utils/snap';
 import { CuratedLibraryEditor } from './CuratedLibraryEditor';
 import type { DrawnFootprint } from './DrawFootprint';
 import './simple.css';
+import { useFavorites } from '../../hooks/useFavorites';
+import { CustomBinDialog } from '../custombin/CustomBinDialog';
+import { existingChoices, favoriteChoices, parameterizedChoice } from './binChoices';
+import type { BinChoice } from './binChoices';
 
 interface Props {
   width: number; isMobile: boolean; isOpen: boolean; selection: DrawnFootprint | null;
@@ -18,6 +23,9 @@ interface Props {
 export function SimpleLibraryPanel({ width, isMobile, isOpen, selection, valid, drawing, busy, onDraw, onCancel, onSelection, onPlaced, onBusy }: Props) {
   const { libraryItems, getItemById, placeCuratedBin } = useWorkspace();
   const data = useCuratedLibraries();
+  const { favorites } = useFavorites();
+  const [configuration, setConfiguration] = useState<CustomBinSpec | null>(null);
+  const [configured, setConfigured] = useState<BinChoice | null>(null);
   const [libraryId, setLibraryId] = useState('');
   const [entryId, setEntryId] = useState('');
   const [choices, setChoices] = useState<Record<string, string>>({});
@@ -26,7 +34,9 @@ export function SimpleLibraryPanel({ width, isMobile, isOpen, selection, valid, 
   const placementPending = useRef(false);
   const touchActivated = useRef(false);
   const [fields, setFields] = useState({ x: 0, y: 0, width: 1, depth: 1 });
-  const library = data.libraries.find(l => l.id === libraryId) ?? data.libraries[0];
+  const allBins: CuratedLibrary = { id: '__all', name: 'All bins', description: 'Existing bins and parameter presets', entries: existingChoices(libraryItems) };
+  const libraries = [...data.libraries, allBins];
+  const library = libraries.find(l => l.id === libraryId) ?? libraries[0];
   const sourceAvailable = (e: CuratedEntry) => {
     if (e.kind === 'parametric') return true;
     const source = getItemById(e.sourceId);
@@ -39,7 +49,8 @@ export function SimpleLibraryPanel({ width, isMobile, isOpen, selection, valid, 
     customSpec: resolved.spec, parameters: e.kind === 'fixed' ? getItemById(e.sourceId)?.parameters : undefined,
     }), 'Half-grid steps are not supported by these options. Choose a half-grid preset or use whole-unit dimensions and positions.') : { match: null, reasons: [] };
   };
-  const entries = library?.entries.map(entry => ({ entry, ...compatibility(entry) })) ?? [];
+  const options: BinChoice[] = [...favoriteChoices(favorites), ...library.entries, ...(configured ? [configured] : [])];
+  const entries = options.map(entry => ({ entry, ...compatibility(entry) }));
   const compatible = entries.filter(e => e.match);
   const entry = entries.find(e => e.entry.id === entryId)?.entry ?? compatible[0]?.entry ?? entries[0]?.entry;
   const assessment = entry ? compatibility(entry, choices) : { match: null, reasons: [] };
@@ -50,7 +61,7 @@ export function SimpleLibraryPanel({ width, isMobile, isOpen, selection, valid, 
     placementPending.current = true;
     onBusy(true); setError(null);
     try {
-      const placed = await placeCuratedBin(entry, selection.width / GRID_RESOLUTION, selection.depth / GRID_RESOLUTION, chosen, selection.x, selection.y);
+      const placed = await placeCuratedBin(entry, selection.width / GRID_RESOLUTION, selection.depth / GRID_RESOLUTION, chosen, selection.x, selection.y, entry.customization);
       if (placed) { onPlaced(); setChoices({}); }
       else setError('This bin can no longer be placed here. Check the rectangle and choose again.');
     } catch (err) { setError(err instanceof Error ? err.message : 'Placement failed. Try again.'); }
@@ -76,10 +87,10 @@ export function SimpleLibraryPanel({ width, isMobile, isOpen, selection, valid, 
       /> : <>
         {library ? <>
           <label>Bin library<select disabled={busy} value={library.id} onChange={e => { setLibraryId(e.target.value); setEntryId(''); setChoices({}); setError(null); }}>
-            {data.libraries.map(l => <option value={l.id} key={l.id}>{l.name}</option>)}
+            {libraries.map(l => <option value={l.id} key={l.id}>{l.name}</option>)}
           </select></label>
           {library.description && <p className="simple-help">{library.description}</p>}
-          <button type="button" disabled={busy} onClick={() => { onCancel(); setError(null); setEditor({ library, existing: true }); }}>Edit library</button>
+          {library.id !== allBins.id && <button type="button" disabled={busy} onClick={() => { onCancel(); setError(null); setEditor({ library, existing: true }); }}>Edit library</button>}
         </> : !data.isLoading && !data.error && <p>Create a library with your favorite bins and friendly options, then draw where each bin should go.</p>}
         <button type="button" disabled={busy || data.isLoading} onClick={() => { onCancel(); setError(null); setEditor({ library: { id: crypto.randomUUID(), name: '', description: '', entries: [] }, existing: false }); }}>New library</button>
         {library && <>
@@ -94,9 +105,13 @@ export function SimpleLibraryPanel({ width, isMobile, isOpen, selection, valid, 
           {selection && <>
             <h3>{selection.width / GRID_RESOLUTION} × {selection.depth / GRID_RESOLUTION} footprint</h3>
             {!valid && <p role="alert" className="simple-error">Choose an empty rectangle inside the grid.</p>}
+            <button type="button" disabled={busy || !valid} onClick={() => setConfiguration({
+              width: selection.width / GRID_RESOLUTION, depth: selection.depth / GRID_RESOLUTION,
+              height: match?.spec?.height ?? 4, overrides: match?.spec?.overrides ?? {},
+            })}>Configure parameterized bin</button>
             {!compatible.length && <p role="status">No bins in this library fit this rectangle. Select a bin to see why, draw a different size or choose another library.</p>}
             {entry && <>
-              <label>Choose a bin<select disabled={busy} value={entry.id} onChange={e => { setEntryId(e.target.value); setChoices({}); setError(null); }}>{entries.map(({ entry: e, match }) => <option value={e.id} key={e.id}>{e.name}{!match ? ' (Unsupported)' : ''}</option>)}</select></label>
+              <label>Choose a bin<select disabled={busy} value={entry.id} onChange={e => { setEntryId(e.target.value); setChoices({}); setError(null); }}>{entries.map(({ entry: e, match }) => <option value={e.id} key={e.id}>{e.favorite ? 'Favorite: ' : ''}{e.name}{!match ? ' (Unsupported)' : ''}</option>)}</select></label>
               {entry?.kind === 'parametric' && entry.groups.map(group => <label key={group.id}>{group.name}<select disabled={busy} value={chosen[group.id] ?? ''} onChange={e => setChoices({ ...chosen, [group.id]: e.target.value })}>
                 {group.choices.map(choice => <option key={choice.id} value={choice.id}>{choice.name}{!compatibility(entry, { ...chosen, [group.id]: choice.id }).match ? ' (Unsupported)' : ''}</option>)}
               </select></label>)}
@@ -121,5 +136,11 @@ export function SimpleLibraryPanel({ width, isMobile, isOpen, selection, valid, 
         {error && <p role="alert" className="simple-error">{error}</p>}
       </>}
     </div>
+    {createPortal(<CustomBinDialog open={configuration !== null} initial={configuration ?? undefined} onClose={() => setConfiguration(null)} confirmLabel="Use configuration" onAdd={spec => {
+      if (!selection) return;
+      const next = parameterizedChoice('__configured', 'Configured bin', spec);
+      setConfigured(next); setEntryId(next.id); setChoices({}); setConfiguration(null);
+      onSelection({ ...selection, width: spec.width * GRID_RESOLUTION, depth: spec.depth * GRID_RESOLUTION });
+    }} />, document.body)}
   </section>;
 }

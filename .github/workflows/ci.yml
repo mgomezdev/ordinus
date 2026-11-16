@@ -258,11 +258,11 @@ jobs:
     permissions:
       contents: read
       packages: read
-    # Keep provisioning and test-client authentication on the same revision.
-    uses: mgomezdev/concordia/.github/workflows/e2e.yml@b455ebe2953ccdb207565fd725fd961be91980c2
+    # Auth-aware harness: https://github.com/mgomezdev/concordia/pull/21
+    uses: mgomezdev/concordia/.github/workflows/e2e.yml@6b79c6a1ef0c0d94a8f0fba95f3c6b6043beb132
     with:
       profile: push
-      concordia_ref: b455ebe2953ccdb207565fd725fd961be91980c2
+      concordia_ref: 6b79c6a1ef0c0d94a8f0fba95f3c6b6043beb132
       image_artifact: ordinus-ci-image
       ordinus_image: ordinus:ci
     secrets:

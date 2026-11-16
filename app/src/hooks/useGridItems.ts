@@ -232,7 +232,7 @@ export function useGridItems(
   }, [getItemById, updateItems, updateSelected]);
 
   /** Commit an exact drawn footprint, checking current occupancy after any async generation. */
-  const placeLibraryItemAt = useCallback((item: LibraryItem, x: number, y: number, rotation: Rotation): string | null => {
+  const placeLibraryItemAt = useCallback((item: LibraryItem, x: number, y: number, rotation: Rotation, customization?: BinCustomization): string | null => {
     const rotated = rotation === 90 || rotation === 270;
     const width = (rotated ? item.heightUnits : item.widthUnits) * GRID_RESOLUTION;
     const height = (rotated ? item.widthUnits : item.heightUnits) * GRID_RESOLUTION;
@@ -244,7 +244,7 @@ export function useGridItems(
     const defaults = item.parameters ? generatorParamsToBinCustomization(item.parameters, fields) : {};
     const placed: PlacedItem = {
       instanceId: generateInstanceId(), itemId: item.id, ...geometry, rotation,
-      customization: Object.keys(defaults).length ? { ...DEFAULT_BIN_CUSTOMIZATION, ...defaults } : undefined,
+      customization: customization ?? (Object.keys(defaults).length ? { ...DEFAULT_BIN_CUSTOMIZATION, ...defaults } : undefined),
       paramHash: item.paramHash,
     };
     updateItems([...itemsRef.current, placed]);

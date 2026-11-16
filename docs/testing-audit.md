@@ -80,7 +80,7 @@ the container, volumes and generated credentials were removed afterward. The
 existing remote Concordia `e2e-push` workflow was inspected but was not executed
 locally. The first PR run exposed an outdated Concordia harness that attempted
 anonymous settings mutations and failed with HTTP 403. The reusable workflow and
-its test checkout are now pinned together to Concordia `b455ebe`, which provisions
+its test checkout are now pinned together to Concordia `6b79c6a`, which provisions
 a disposable administrator and authenticates the integration client. Production
 was not changed during validation.
 

@@ -189,3 +189,77 @@ test('authors a mixed library and named height presets without editing model fil
     await expect(simple.panel.getByLabel('Bin library')).toHaveValue(created.id);
   } finally { await request.delete(`/api/v1/curated-libraries/${created.id}`); }
 });
+
+base('draws without a curated library and configures a bin with prefilled dimensions', async ({ page }) => {
+  await page.route('**/api/v1/curated-libraries', route => route.fulfill({ json: { data: [] } }));
+  const simple = new SimpleLayoutPage(page);
+  await simple.open();
+  await expect(simple.panel.getByLabel('Bin library')).toHaveValue('__all');
+  await simple.draw(0, 0, 2, 3);
+  await simple.panel.getByRole('button', { name: 'Configure parameterized bin' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Custom bin' });
+  await expect(dialog.getByLabel('Width in units')).toHaveValue('2');
+  await expect(dialog.getByLabel('Depth in units')).toHaveValue('3');
+  await dialog.getByLabel('Height in units').fill('6');
+  await dialog.getByLabel('Height in units').blur();
+  await dialog.getByRole('button', { name: 'Use configuration' }).click();
+  await expect(simple.panel.getByLabel('Choose a bin')).toHaveValue('__configured');
+  const generation = page.waitForRequest(r => r.url().includes('/generation/custom') && r.method() === 'POST');
+  await simple.panel.getByRole('button', { name: 'Place bin' }).click();
+  expect((await generation).postDataJSON()).toMatchObject({ width: 2, depth: 3, height: 6 });
+  await expect(page.locator('.placed-item')).toHaveCount(1);
+});
+
+base('offers a saved parametric favorite first and adapts its preset to the drawn size', async ({ page }) => {
+  await page.route('**/api/v1/favorites', route => route.fulfill({ json: { data: [{
+    id: 'draw-preset', name: 'Tall open bin', libraryId: 'custom', libraryItemId: 'saved',
+    widthUnits: 1, heightUnits: 1, color: '#ffffff', imageUrl: '',
+    customSpec: { width: 1, depth: 1, height: 6, overrides: { lip_style: 'none' } },
+  }] } }));
+  const simple = new SimpleLayoutPage(page);
+  await simple.open();
+  await simple.draw(0, 0, 2, 3);
+  const picker = simple.panel.getByLabel('Choose a bin');
+  await expect(picker.locator('option').first()).toHaveText('Favorite: Tall open bin');
+  await expect(picker).toHaveValue('favorite:draw-preset');
+  const generation = page.waitForRequest(r => r.url().includes('/generation/custom') && r.method() === 'POST');
+  await simple.panel.getByRole('button', { name: 'Place bin' }).click();
+  expect((await generation).postDataJSON()).toMatchObject({ width: 2, depth: 3, height: 6, overrides: { lip_style: 'none' } });
+  await expect(page.locator('.placed-item')).toHaveCount(1);
+});
+
+base('places a favorite existing bin with its saved customization and generated model', async ({ page }) => {
+  const customization = { wallPatternEnabled: false, wallPattern: 'hexgrid', lipStyle: 'none', fingerSlide: 'none',
+    wallCutout: { front: false, back: false, left: false, right: false }, height: 6 };
+  await page.route('**/api/v1/favorites', route => route.fulfill({ json: { data: [{
+    id: 'fixed-preset', name: 'Open tray', libraryId: 'bins_standard', libraryItemId: 'bin-3x2',
+    widthUnits: 3, heightUnits: 2, color: '#ffffff', imageUrl: '', customization,
+  }] } }));
+  const simple = new SimpleLayoutPage(page);
+  await simple.open();
+  await simple.draw(0, 0, 2, 3);
+  await expect(simple.panel.getByLabel('Choose a bin')).toHaveValue('favorite:fixed-preset');
+  const generation = page.waitForRequest(r => r.url().includes('/generation/generate') && r.method() === 'POST');
+  await simple.panel.getByRole('button', { name: 'Place bin' }).click();
+  expect((await generation).postDataJSON()).toMatchObject({ libraryId: 'bins_standard', itemId: 'bin-3x2', customization });
+  await expect(page.locator('.placed-item')).toHaveCount(1);
+});
+
+base('opens the parameter editor over the mobile sidebar', async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 900 });
+  const simple = new SimpleLayoutPage(page);
+  await simple.open();
+  await page.getByRole('button', { name: 'Toggle library panel' }).click();
+  await simple.keyboardRectangle(0, 0, 1.5, 2.5);
+  await simple.panel.getByRole('button', { name: 'Configure parameterized bin' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Custom bin' });
+  await expect(dialog.getByLabel('Width in units')).toHaveValue('1.5');
+  await expect(dialog.getByLabel('Depth in units')).toHaveValue('2.5');
+  const bounds = await dialog.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.x).toBeGreaterThanOrEqual(0);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(900);
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(simple.panel.getByRole('heading', { name: '1.5 \u00d7 2.5 footprint' })).toBeVisible();
+});
