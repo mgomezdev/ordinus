@@ -26,16 +26,19 @@ export function GuestLinkPanel({ layoutId, name, beforeCreate }: GuestLinkPanelP
       await beforeCreate?.();
       return apiFetch<GuestLink & { secret: string }>(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ expiresInHours: hours, ...(allowEdit ? { allowEdit, libraryIds } : {}) }) });
     },
-    onSuccess: link => {
+    onSuccess: async link => {
+      // A list request started before creation must not replace the new link with an older list.
+      await queryClient.cancelQueries({ queryKey, exact: true });
       const { secret, ...metadata } = link;
-      queryClient.setQueryData<{ data: GuestLink[] }>(queryKey, old => ({ data: [metadata, ...(old?.data ?? [])] }));
+      queryClient.setQueryData<{ data: GuestLink[] }>(queryKey, old => ({ data: [metadata, ...(old?.data ?? []).filter(item => item.id !== link.id)] }));
       setNewLink({ id: link.id, url: `${window.location.origin}/guest/${link.id}#${secret}`, allowEdit: !!link.allowEdit });
       setCopyStatus('');
     },
   });
   const close = useMutation({
     mutationFn: (id: string) => apiFetch(`${path}/${id}`, { method: 'DELETE' }),
-    onSuccess: (_result, id) => {
+    onSuccess: async (_result, id) => {
+      await queryClient.cancelQueries({ queryKey, exact: true });
       queryClient.setQueryData<{ data: GuestLink[] }>(queryKey, old => ({ data: (old?.data ?? []).map(link => link.id === id ? { ...link, revokedAt: new Date().toISOString() } : link) }));
       if (newLink?.id === id) { setNewLink(null); setCopyStatus('Access closed.'); }
     },
