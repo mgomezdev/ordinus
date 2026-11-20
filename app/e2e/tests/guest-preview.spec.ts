@@ -108,13 +108,31 @@ test('owner shares one drawer; a clean guest can inspect it and photos, then los
   expect(created.status()).toBe(201);
   const layoutId = (await created.json()).data.id as number;
   const guest = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] }, extraHTTPHeaders: {}, hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+  let releaseList!: () => void;
+  let markListCaptured!: () => void;
+  const listCaptured = new Promise<void>(resolve => { markListCaptured = resolve; });
+  const holdList = new Promise<void>(resolve => { releaseList = resolve; });
   try {
+    const linksPath = `/api/v1/layouts/${layoutId}/guest-links`;
+    let holdFirstList = true;
+    await page.route(`**${linksPath}`, async route => {
+      if (route.request().method() !== 'GET' || !holdFirstList) return route.fallback();
+      holdFirstList = false;
+      const response = await route.fetch();
+      markListCaptured();
+      await holdList;
+      await route.fulfill({ response });
+    });
     await page.goto('/configs');
     const card = page.locator('.saved-config-card').filter({ hasText: name });
     await card.getByRole('button', { name: 'Share preview', exact: true }).click();
+    await listCaptured;
     await card.getByRole('button', { name: 'Create preview link' }).click();
     const invitation = await card.getByLabel('Preview link', { exact: true }).inputValue();
     expect(invitation).toContain('#');
+    const listResponse = page.waitForResponse(response => response.url().endsWith(linksPath) && response.request().method() === 'GET');
+    releaseList();
+    await listResponse;
     const guestPage = await guest.newPage();
     const requested: string[] = [];
     guestPage.on('request', req => { if (req.url().includes('/api/v1/')) requested.push(new URL(req.url()).pathname); });
@@ -147,6 +165,7 @@ test('owner shares one drawer; a clean guest can inspect it and photos, then los
     await guestPage.getByRole('button', { name: 'Open preview' }).click();
     await expect(guestPage.getByRole('heading', { name: 'Preview unavailable' })).toBeVisible();
   } finally {
+    releaseList();
     await guest.close();
     await request.delete(`/api/v1/layouts/${layoutId}`);
     await request.delete(`/api/v1/ref-images/${imageId}`);

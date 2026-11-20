@@ -67,11 +67,16 @@ it('submits owner position, rotation, customization, addition, drawer changes an
   expect(writes[3].change).toEqual({ type: 'add', catalogKey: 'small', x: 0, y: 4 });
   fireEvent.click(screen.getByRole('button', { name: 'Drawer dimensions and spacers' }));
   await waitFor(() => expect(screen.getByRole('button', { name: 'Apply drawer changes' })).toBeEnabled());
+  state = { ...state, revision: state.revision + 1, layout: { ...state.layout, depthMm: 180 } };
+  const drawerRevision = state.revision;
+  act(() => Events.current.listeners.get('changed')?.());
+  await waitFor(() => expect(screen.getByLabelText('Drawer depth (mm)')).toHaveValue(180));
   fireEvent.change(screen.getByLabelText('Drawer width (mm)'), { target: { value: '210' } });
   fireEvent.change(screen.getByLabelText('Horizontal spacers'), { target: { value: 'symmetrical' } });
   fireEvent.click(screen.getByRole('button', { name: 'Apply drawer changes' }));
   await waitFor(() => expect(writes).toHaveLength(5));
-  expect(writes[4].change).toMatchObject({ type: 'drawer', widthMm: 210, spacerHorizontal: 'symmetrical' });
+  expect(writes[4].baseRevision).toBe(drawerRevision);
+  expect(writes[4].change).toMatchObject({ type: 'drawer', widthMm: 210, depthMm: 180, spacerHorizontal: 'symmetrical' });
   fireEvent.click(screen.getByRole('button', { name: 'Close live guest access' }));
   await screen.findByText('Live guest access closed. Your changes are saved.');
   fireEvent.click(screen.getByRole('button', { name: 'Back to workspace' })); expect(exit).toHaveBeenCalled();

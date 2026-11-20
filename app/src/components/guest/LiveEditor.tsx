@@ -92,12 +92,26 @@ function AddBin({ snapshot, send, disabled }: { snapshot: LiveSnapshot; send: Se
   </form></fieldset>;
 }
 function DrawerEditor({ snapshot, send, disabled }: { snapshot: LiveSnapshot; send: Send; disabled: boolean }) {
-  const [revision, setRevision] = useState(snapshot.revision), [width, setWidth] = useState(snapshot.layout.widthMm), [depth, setDepth] = useState(snapshot.layout.depthMm);
-  const [horizontal, setHorizontal] = useState(snapshot.layout.spacerHorizontal as 'none' | 'one-sided' | 'symmetrical'), [vertical, setVertical] = useState(snapshot.layout.spacerVertical as typeof horizontal);
-  return <fieldset disabled={disabled}><form aria-label="Drawer dimensions" onSubmit={event => { event.preventDefault(); void send({ type: 'drawer', widthMm: width, depthMm: depth, spacerHorizontal: horizontal, spacerVertical: vertical }, revision).then(next => { if (next !== undefined) setRevision(next); }); }}>
-    <div className="live-fields"><label>Drawer width (mm)<input type="number" min="42" max="881.999" step="any" required value={width} onChange={event => setWidth(Number(event.target.value))} /></label><label>Drawer depth (mm)<input type="number" min="42" max="881.999" step="any" required value={depth} onChange={event => setDepth(Number(event.target.value))} /></label></div>
-    <label>Horizontal spacers<select value={horizontal} onChange={event => setHorizontal(event.target.value as typeof horizontal)}>{['none', 'one-sided', 'symmetrical'].map(value => <option key={value}>{value}</option>)}</select></label>
-    <label>Vertical spacers<select value={vertical} onChange={event => setVertical(event.target.value as typeof vertical)}>{['none', 'one-sided', 'symmetrical'].map(value => <option key={value}>{value}</option>)}</select></label>
-    <button type="submit">Apply drawer changes</button><RevisionNotice base={revision} current={snapshot.revision} rebase={() => setRevision(snapshot.revision)} />
+  type DrawerChange = Extract<LiveChange, { type: 'drawer' }>;
+  const [draft, setDraft] = useState<{ revision: number; values: DrawerChange } | null>(null);
+  const revision = draft?.revision ?? snapshot.revision;
+  const values: DrawerChange = draft?.values ?? {
+    type: 'drawer',
+    widthMm: snapshot.layout.widthMm,
+    depthMm: snapshot.layout.depthMm,
+    spacerHorizontal: snapshot.layout.spacerHorizontal as DrawerChange['spacerHorizontal'],
+    spacerVertical: snapshot.layout.spacerVertical as DrawerChange['spacerVertical'],
+  };
+  function edit(change: Partial<Omit<DrawerChange, 'type'>>) {
+    setDraft({ revision, values: { ...values, ...change } });
+  }
+  return <fieldset disabled={disabled}><form aria-label="Drawer dimensions" onSubmit={event => {
+    event.preventDefault();
+    void send(values, revision).then(next => { if (next !== undefined) setDraft(null); });
+  }}>
+    <div className="live-fields"><label>Drawer width (mm)<input type="number" min="42" max="881.999" step="any" required value={values.widthMm} onChange={event => edit({ widthMm: Number(event.target.value) })} /></label><label>Drawer depth (mm)<input type="number" min="42" max="881.999" step="any" required value={values.depthMm} onChange={event => edit({ depthMm: Number(event.target.value) })} /></label></div>
+    <label>Horizontal spacers<select value={values.spacerHorizontal} onChange={event => edit({ spacerHorizontal: event.target.value as DrawerChange['spacerHorizontal'] })}>{['none', 'one-sided', 'symmetrical'].map(value => <option key={value}>{value}</option>)}</select></label>
+    <label>Vertical spacers<select value={values.spacerVertical} onChange={event => edit({ spacerVertical: event.target.value as DrawerChange['spacerVertical'] })}>{['none', 'one-sided', 'symmetrical'].map(value => <option key={value}>{value}</option>)}</select></label>
+    <button type="submit">Apply drawer changes</button><RevisionNotice base={revision} current={snapshot.revision} rebase={() => setDraft({ revision: snapshot.revision, values })} />
   </form></fieldset>;
 }
